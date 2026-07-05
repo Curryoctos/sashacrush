@@ -28,50 +28,76 @@ async function fetchProfile(session: Session): Promise<AuthUser | null> {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [authReady, setAuthReady] = useState(false)
 
-  const applySession = useCallback(async (session: Session | null) => {
-    if (!session) {
-      setUser(null)
-      return
-    }
-
-    const profile = await fetchProfile(session)
-    if (!profile) {
-      await supabase.auth.signOut()
-      setUser(null)
-      return
-    }
-
-    setUser(profile)
-  }, [])
-
+  // Listen for session changes — must stay synchronous (no await / Supabase calls here).
+  // Async work inside onAuthStateChange deadlocks signInWithPassword and getSession.
   useEffect(() => {
     let mounted = true
 
-    void (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (mounted) {
-        await applySession(session)
-        setIsLoading(false)
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (!mounted) {
+        return
       }
-    })()
+      setSession(initialSession)
+      setAuthReady(true)
+    })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void applySession(session)
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+      setAuthReady(true)
     })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [applySession])
+  }, [])
+
+  // Load profile whenever the session changes — outside the auth listener.
+  useEffect(() => {
+    if (!authReady) {
+      return
+    }
+
+    let cancelled = false
+
+    void (async () => {
+      setIsLoading(true)
+
+      if (!session) {
+        if (!cancelled) {
+          setUser(null)
+          setIsLoading(false)
+        }
+        return
+      }
+
+      const profile = await fetchProfile(session)
+
+      if (cancelled) {
+        return
+      }
+
+      if (!profile) {
+        await supabase.auth.signOut()
+        setUser(null)
+      } else {
+        setUser(profile)
+      }
+
+      setIsLoading(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session, authReady])
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -95,7 +121,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       )
     }
 
+    setSession(data.session)
     setUser(profile)
+    setIsLoading(false)
     return profile
   }, [])
 
@@ -104,6 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (error) {
       throw error
     }
+    setSession(null)
     setUser(null)
   }, [])
 

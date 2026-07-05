@@ -12,3 +12,15 @@ export type {
   LandRecordUpdate,
   SellerOption,
 } from './database'
+export type { ChatChannel } from './database'
+export type { ChatMessage, ChatMessageInsert } from './chat'
+export type { Document, DocumentStatus, AllowedMimeType } from './documents'
+export {
+  ALLOWED_MIME_TYPES,
+  DOCUMENT_BUCKET,
+  MAX_FILE_SIZE_BYTES,
+  ALREADY_SIGNED_ERROR,
+  FILE_SIZE_ERROR,
+  FILE_TYPE_ERROR,
+  UPLOAD_FAILED_ERROR,
+} from './documents'

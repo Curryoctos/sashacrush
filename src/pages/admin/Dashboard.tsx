@@ -10,12 +10,24 @@ export function AdminDashboard() {
         <h1 className="text-2xl font-semibold text-ink">Admin Dashboard</h1>
         <p className="mt-2 text-muted">Signed in as {user?.email}</p>
 
-        <div className="mt-8">
+        <div className="mt-8 flex flex-wrap gap-3">
           <Link
             to="/admin/land-records"
             className="inline-flex rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
           >
             Manage land records
+          </Link>
+          <Link
+            to="/admin/documents"
+            className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
+          >
+            Documents
+          </Link>
+          <Link
+            to="/admin/chat"
+            className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
+          >
+            Messages
           </Link>
         </div>
       </div>

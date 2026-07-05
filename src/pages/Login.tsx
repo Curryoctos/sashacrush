@@ -29,7 +29,14 @@ export function LoginPage() {
       const profile = await signIn(email.trim(), password)
       navigate(ROLE_DASHBOARD_PATH[profile.role], { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed.')
+      const message = err instanceof Error ? err.message : 'Sign-in failed.'
+      if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
+        setError(
+          'Cannot reach Supabase. Run `npx supabase start` and confirm .env.local is set.',
+        )
+      } else {
+        setError(message)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -127,6 +134,10 @@ export function LoginPage() {
             >
               {submitting ? 'Signing in…' : 'Sign in'}
             </button>
+            <p className="text-xs text-muted">
+              Local dev: use password <code className="rounded bg-slate-100 px-1">changeme-local-only</code>{' '}
+              with emails like <code className="rounded bg-slate-100 px-1">admin@sashacrush.com</code>
+            </p>
           </form>
         ) : (
           <form onSubmit={handleSellerSubmit} className="mt-6 space-y-4">

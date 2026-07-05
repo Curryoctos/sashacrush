@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
@@ -34,6 +35,18 @@ export function SellerDashboard() {
         <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-ink">Seller Dashboard</h1>
           <p className="mt-2 text-muted">Signed in as {user?.email}</p>
+          <Link
+            to="/seller/chat"
+            className="mt-6 inline-flex rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            Messages
+          </Link>
+          <Link
+            to="/seller/documents"
+            className="mt-6 ml-3 inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
+          >
+            Documents
+          </Link>
         </div>
 
         <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">

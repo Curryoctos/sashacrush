@@ -172,6 +172,8 @@ export interface Database {
           id: string
           land_id: string
           uploader_id: string
+          assigned_to: string | null
+          signed_by: string | null
           file_path: string | null
           title: string | null
           status: DocumentStatus
@@ -183,6 +185,8 @@ export interface Database {
           id?: string
           land_id: string
           uploader_id: string
+          assigned_to?: string | null
+          signed_by?: string | null
           file_path?: string | null
           title?: string | null
           status?: DocumentStatus
@@ -194,6 +198,8 @@ export interface Database {
           id?: string
           land_id?: string
           uploader_id?: string
+          assigned_to?: string | null
+          signed_by?: string | null
           file_path?: string | null
           title?: string | null
           status?: DocumentStatus
@@ -262,7 +268,12 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      send_chat_auto_reply: {
+        Args: { p_land_id: string; p_body: string }
+        Returns: undefined
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
