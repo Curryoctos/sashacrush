@@ -1,3 +1,4 @@
+import { notifySellerAssigned } from '@/features/land-records/notify'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -32,6 +33,7 @@ export function AdminLandRecordsPage() {
   >({})
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
+  const [previousSellerId, setPreviousSellerId] = useState<string | null>(null)
 
   const landRecordsQuery = useQuery({
     queryKey: ['land-records', 'admin'],
@@ -77,10 +79,20 @@ export function AdminLandRecordsPage() {
       const payload = formToLandRecordPayload(form)
 
       if (mode === 'create') {
-        const { error } = await supabase.from('land_records').insert(payload)
+        const { data, error } = await supabase
+          .from('land_records')
+          .insert(payload)
+          .select('id')
+          .single()
+
         if (error) {
           throw error
         }
+
+        if (payload.seller_id && data?.id) {
+          void notifySellerAssigned(data.id, payload.seller_id)
+        }
+
         return
       }
 
@@ -95,6 +107,19 @@ export function AdminLandRecordsPage() {
 
       if (error) {
         throw error
+      }
+
+      if (
+        payload.seller_id &&
+        payload.seller_id !== previousSellerId
+      ) {
+        void notifySellerAssigned(editingId, payload.seller_id)
+
+        await supabase
+          .from('documents')
+          .update({ assigned_to: payload.seller_id })
+          .eq('land_id', editingId)
+          .eq('status', 'sent')
       }
     },
     onSuccess: async () => {
@@ -132,6 +157,7 @@ export function AdminLandRecordsPage() {
   const startEdit = (record: LandRecord) => {
     setMode('edit')
     setEditingId(record.id)
+    setPreviousSellerId(record.seller_id)
     setForm(landRecordToForm(record))
     setFormError(null)
     setFormSuccess(null)
@@ -333,6 +359,12 @@ export function AdminLandRecordsPage() {
                       </td>
                       <td className="px-3 py-3 text-muted">{sellerLabel(record.seller_id)}</td>
                       <td className="px-3 py-3 text-right">
+                        <Link
+                          to={`/admin/deals/${record.id}`}
+                          className="mr-3 text-sm font-medium text-brand-700 hover:text-brand-900"
+                        >
+                          Deal
+                        </Link>
                         <button
                           type="button"
                           onClick={() => startEdit(record)}

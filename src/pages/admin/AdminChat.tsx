@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ChatWindow } from '@/features/chat/components/ChatWindow'
 import { UnreadBadge } from '@/features/chat/components/UnreadBadge'
 import {
@@ -41,8 +41,10 @@ async function fetchMessagesSnapshot(
 
 export function AdminChatPage() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const landFromQuery = searchParams.get('land') ?? ''
   const [activeTab, setActiveTab] = useState<AdminChatTab>('land-owner')
-  const [selectedLandId, setSelectedLandId] = useState<string>('')
+  const [selectedLandId, setSelectedLandId] = useState<string>(landFromQuery)
 
   const landsQuery = useQuery({
     queryKey: ['admin-land-records-options'],
@@ -50,6 +52,7 @@ export function AdminChatPage() {
       const { data, error } = await supabase
         .from('land_records')
         .select('id, title, location')
+        .eq('status', 'active')
         .order('title')
 
       if (error) {
@@ -61,11 +64,14 @@ export function AdminChatPage() {
   })
 
   const resolvedLandId = useMemo(() => {
-    if (selectedLandId) {
+    if (selectedLandId && landsQuery.data?.some((land) => land.id === selectedLandId)) {
       return selectedLandId
     }
+    if (landFromQuery && landsQuery.data?.some((land) => land.id === landFromQuery)) {
+      return landFromQuery
+    }
     return landsQuery.data?.[0]?.id ?? null
-  }, [landsQuery.data, selectedLandId])
+  }, [landsQuery.data, selectedLandId, landFromQuery])
 
   const sellerUnreadQuery = useQuery({
     queryKey: ['chat-unread', 'seller_channel', resolvedLandId],

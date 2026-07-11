@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { useSellerUnreadCount } from '@/features/chat/useSellerUnreadCount'
 import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
@@ -10,6 +11,7 @@ const SELLER_LAND_COLUMNS = 'id, title, description, location, total_value_usd, 
 
 export function SellerDashboard() {
   const { user } = useAuth()
+  const { data: unreadCount = 0 } = useSellerUnreadCount()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['land-records', 'seller', user?.id],
@@ -30,23 +32,42 @@ export function SellerDashboard() {
   })
 
   return (
-    <div className="min-h-screen bg-surface p-8">
+    <div className="p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-ink">Seller Dashboard</h1>
           <p className="mt-2 text-muted">Signed in as {user?.email}</p>
-          <Link
-            to="/seller/chat"
-            className="mt-6 inline-flex rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Messages
-          </Link>
-          <Link
-            to="/seller/documents"
-            className="mt-6 ml-3 inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
-          >
-            Documents
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              to="/seller/chat"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Messages
+              {unreadCount > 0 && (
+                <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-semibold">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+            <Link
+              to="/seller/documents"
+              className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
+            >
+              Documents
+            </Link>
+            <Link
+              to="/seller/receipts"
+              className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
+            >
+              Receipts
+            </Link>
+            <Link
+              to="/seller/photos"
+              className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
+            >
+              Photos
+            </Link>
+          </div>
         </div>
 
         <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">

@@ -27,6 +27,9 @@ export function ChatBubble({
         style={isOwn ? { backgroundColor: '#2D6A4F' } : undefined}
       >
         <p className="text-xs font-semibold opacity-80">{senderLabel}</p>
+        {message.is_auto_reply && (
+          <p className="text-[10px] uppercase tracking-wide opacity-60">Bot</p>
+        )}
         <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{message.body}</p>
         <p className={`mt-2 text-[11px] ${isOwn ? 'text-white/70' : 'text-muted'}`}>
           {formatMessageTime(message.created_at)}

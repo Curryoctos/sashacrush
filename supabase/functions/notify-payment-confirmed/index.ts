@@ -1,6 +1,9 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import { requireServiceRole } from '../_shared/auth.ts'
+import { claimNotificationEvent } from '../_shared/idempotency.ts'
 import { paymentConfirmedEmail } from '../_shared/emailTemplates.ts'
 import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { RateLimitError, assertRateLimit } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { createServiceClient, getAppUrl } from '../_shared/supabaseAdmin.ts'
 
@@ -57,6 +60,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    requireServiceRole(req)
+
     const payload = (await req.json()) as WebhookPayload | PaymentRow
     const { payment, oldPayment } = extractPayment(payload)
 
@@ -69,6 +74,25 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createServiceClient()
+
+    try {
+      await assertRateLimit(supabase, `notify-payment-confirmed:${payment.id}`, 5, 3_600)
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        return errorResponse(error.message, 429)
+      }
+      throw error
+    }
+
+    const shouldSend = await claimNotificationEvent(
+      supabase,
+      `payment:${payment.id}:confirmed`,
+      'notify-payment-confirmed',
+    )
+
+    if (!shouldSend) {
+      return jsonResponse({ success: true, skipped: true })
+    }
 
     const { data: admin, error: adminError } = await supabase
       .from('users')
@@ -100,7 +124,7 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle()
 
-    const portalUrl = `${getAppUrl()}/admin/dashboard`
+    const portalUrl = `${getAppUrl()}/admin/payments`
     const adminName = admin.full_name ?? admin.email
 
     const html = paymentConfirmedEmail({
@@ -122,6 +146,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error'
-    return errorResponse(message)
+    const status = message === 'Unauthorized' ? 401 : 500
+    return errorResponse(message, status)
   }
 })

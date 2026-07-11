@@ -9,22 +9,29 @@
     "lint": "oxlint",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude '**/seller-*-rls.test.ts' --exclude 'e2e/**'",
+    "test:integration": "vitest run src/lib/seller-payments-rls.test.ts src/lib/seller-land-records-rls.test.ts",
+    "test:e2e": "vitest run e2e",
     "test:watch": "vitest",
+    "deploy:functions": "bash scripts/deploy-functions.sh",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",
+    "leaflet": "^1.9.4",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hot-toast": "^2.6.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -37,6 +44,7 @@
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.0",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "wait-on": "^8.0.3"
   }
 }

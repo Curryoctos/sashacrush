@@ -137,15 +137,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const signInWithMagicLink = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/seller/dashboard`,
-      },
+    const { data, error } = await supabase.functions.invoke('request-seller-magic-link', {
+      body: { email: email.trim().toLowerCase() },
     })
 
     if (error) {
-      throw error
+      throw new Error(error.message || 'Could not request magic link.')
+    }
+
+    if (data && typeof data === 'object' && 'error' in data && data.error) {
+      throw new Error(String(data.error))
     }
   }, [])
 

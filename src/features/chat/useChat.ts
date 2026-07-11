@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useAuth } from '@/hooks/useAuth'
-import { getAutoReply, shouldAutoReply } from '@/features/chat/autoReply'
+import { getAutoReply, isAutoReplyBody, shouldAutoReply } from '@/features/chat/autoReply'
+import { notifyAdminSellerMessage, notifySellerAdminMessage } from '@/features/chat/notify'
 import {
   fetchAdminUserId,
   messageMatchesContext,
@@ -45,7 +46,7 @@ function buildHistoryQuery(channel: ChatChannel, landId: string | null) {
 async function enrichMessages(
   rows: ChatMessage[],
   currentUserId: string | undefined,
-  adminUserId: string | null,
+  _adminUserId: string | null,
   channel: ChatChannel,
   userRole: string | undefined,
 ): Promise<ChatMessage[]> {
@@ -66,14 +67,13 @@ async function enrichMessages(
   return rows.map((row) => {
     const profile = profiles.get(row.sender_id)
     const isFromCurrentUser = row.sender_id === currentUserId
-    const isAutoReply =
-      adminUserId !== null && row.sender_id === adminUserId && !isFromCurrentUser
+    const isAutoReply = isAutoReplyBody(row.body)
 
     let senderName = profile?.full_name ?? profile?.email
     if (channel === 'seller_channel' && userRole === 'seller' && !isFromCurrentUser) {
-      senderName = 'SashaCrush'
+      senderName = isAutoReply ? 'Automated reply' : 'SashaCrush'
     } else if (isAutoReply) {
-      senderName = 'SashaCrush'
+      senderName = 'Automated reply'
     }
 
     return {
@@ -112,7 +112,7 @@ export function useChat(landId: string | null, channel: ChatChannel) {
       if (queryError) {
         if (isRlsViolation(queryError)) {
           setMessages([])
-          setError(null)
+          setError('You do not have permission to view this conversation.')
           return
         }
         throw queryError
@@ -208,12 +208,16 @@ export function useChat(landId: string | null, channel: ChatChannel) {
       setError(null)
 
       try {
-        const { error: insertError } = await supabase.from('chat_messages').insert({
-          channel,
-          land_id: normalizedLandId,
-          sender_id: user.id,
-          body: trimmed,
-        })
+        const { data: inserted, error: insertError } = await supabase
+          .from('chat_messages')
+          .insert({
+            channel,
+            land_id: normalizedLandId,
+            sender_id: user.id,
+            body: trimmed,
+          })
+          .select('id')
+          .single()
 
         if (insertError) {
           if (isRlsViolation(insertError)) {
@@ -223,16 +227,43 @@ export function useChat(landId: string | null, channel: ChatChannel) {
           throw insertError
         }
 
+        let autoReplySent = false
+
         if (shouldAutoReply(channel) && user.role === 'seller' && normalizedLandId) {
           const reply = getAutoReply(trimmed)
           if (reply) {
+            autoReplySent = true
             window.setTimeout(() => {
-              void supabase.rpc('send_chat_auto_reply', {
-                p_land_id: normalizedLandId,
-                p_body: reply,
-              })
+              void supabase
+                .rpc('send_chat_auto_reply', {
+                  p_land_id: normalizedLandId,
+                  p_body: reply,
+                })
+                .then(({ error: replyError }) => {
+                  if (replyError) {
+                    console.error('Auto-reply failed:', replyError.message)
+                  }
+                })
             }, 1000)
           }
+        }
+
+        if (
+          user.role === 'seller' &&
+          normalizedLandId &&
+          inserted?.id &&
+          !autoReplySent
+        ) {
+          void notifyAdminSellerMessage(inserted.id, normalizedLandId)
+        }
+
+        if (
+          (user.role === 'admin' || user.role === 'agent') &&
+          normalizedLandId &&
+          inserted?.id &&
+          channel === 'seller_channel'
+        ) {
+          void notifySellerAdminMessage(inserted.id, normalizedLandId)
         }
       } catch (err) {
         setError(formatSupabaseError(err as Error))

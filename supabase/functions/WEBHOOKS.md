@@ -8,7 +8,12 @@ This guide explains how to connect database events to Edge Functions that send e
    ```bash
    supabase functions deploy notify-receipt-created
    supabase functions deploy notify-document-sent
+   supabase functions deploy notify-document-signed
+   supabase functions deploy notify-seller-assigned
+   supabase functions deploy notify-seller-message
+   supabase functions deploy notify-admin-message
    supabase functions deploy notify-payment-confirmed
+   supabase functions deploy request-seller-magic-link
    ```
 
 2. Set Edge Function secrets (Dashboard → Project Settings → Edge Functions → Secrets, or CLI):
@@ -24,6 +29,14 @@ This guide explains how to connect database events to Edge Functions that send e
    ```
 
 3. **Never** expose `SUPABASE_SERVICE_ROLE_KEY` or `RESEND_API_KEY` in client code or `VITE_*` variables.
+
+4. **Webhook authentication:** DB webhook functions (`notify-receipt-created`, `notify-payment-confirmed`) require `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`. When configuring webhooks in the Supabase Dashboard, use the **service role** key or the built-in Edge Function trigger (recommended).
+
+5. **Client-invoked functions:** `notify-document-sent`, `notify-seller-assigned`, and `notify-admin-message` require admin/agent JWT. `notify-document-signed` and `notify-seller-message` require an authenticated user JWT (seller for message alerts). `request-seller-magic-link` is public (no JWT) but rate-limited and only sends links for provisioned seller emails.
+
+6. **Idempotency:** Webhook and several invoke functions record events in `notification_events` to prevent duplicate emails on retries.
+
+7. **Rate limiting:** All notification edge functions use the `rate_limit_events` table to cap abuse.
 
 ---
 
@@ -152,6 +165,54 @@ https://<project-ref>.supabase.co/functions/v1/notify-document-sent
 ```
 {APP_URL}/seller/documents?sign={documentId}
 ```
+
+---
+
+## Direct invocation — Seller magic link
+
+**Not a DB webhook.** Called from the login page via `supabase.functions.invoke('request-seller-magic-link', ...)`.
+
+**Edge Function URL:**
+```
+https://<project-ref>.supabase.co/functions/v1/request-seller-magic-link
+```
+
+**Payload format:**
+
+```json
+{
+  "email": "seller@sashacrush.com"
+}
+```
+
+**Behavior:**
+- Always returns `{ success: true }` (anti-enumeration).
+- Only sends email when the address belongs to a user with `role = 'seller'`.
+- Rate limited per email address.
+
+**Result:** Sends `sellerMagicLinkEmail` with a one-time Supabase magic link.
+
+---
+
+## Direct invocation — Admin message to seller
+
+**Not a DB webhook.** Called from the admin chat UI via `supabase.functions.invoke('notify-admin-message', ...)`.
+
+**Edge Function URL:**
+```
+https://<project-ref>.supabase.co/functions/v1/notify-admin-message
+```
+
+**Payload format:**
+
+```json
+{
+  "messageId": "uuid",
+  "landId": "uuid"
+}
+```
+
+**Behavior:** Requires admin/agent JWT. Sends `adminMessageEmail` to the seller assigned to the land record.
 
 ---
 

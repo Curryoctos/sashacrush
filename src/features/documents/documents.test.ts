@@ -3,6 +3,7 @@ import { computeSHA256 } from '@/lib/crypto'
 import {
   ALREADY_SIGNED_ERROR,
   assertCanSignDocument,
+  canSendForSigning,
   validateFileSize,
   validateFileType,
 } from '@/features/documents/validation'
@@ -34,6 +35,12 @@ describe('file validation', () => {
   it('rejects files larger than 50MB', () => {
     expect(validateFileSize(MAX_FILE_SIZE_BYTES + 1)).toBe(false)
     expect(validateFileSize(MAX_FILE_SIZE_BYTES)).toBe(true)
+  })
+
+  it('allows DOCX upload but blocks DOCX from send-for-signing', () => {
+    expect(validateFileType('application/vnd.openxmlformats-officedocument.wordprocessingml.document')).toBe(true)
+    expect(canSendForSigning('application/vnd.openxmlformats-officedocument.wordprocessingml.document')).toBe(false)
+    expect(canSendForSigning('application/pdf')).toBe(true)
   })
 })
 

@@ -1,39 +1,24 @@
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { DocumentList } from '@/features/documents/components/DocumentList'
 import { notifySuccess } from '@/features/notifications/useNotifications'
+import { SellerLandSelector } from '@/features/seller/components/SellerLandSelector'
+import { useSellerLands } from '@/features/seller/useSellerLands'
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
-import { supabase } from '@/lib/supabase'
-import type { LandRecord } from '@/types'
-
-const SELLER_LAND_COLUMNS = 'id, title'
 
 export function SellerDocumentsPage() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const signDocumentId = searchParams.get('sign')
 
-  const landQuery = useQuery({
-    queryKey: ['land-records', 'seller-documents', user?.id],
-    enabled: Boolean(user?.id),
-    queryFn: async (): Promise<LandRecord | null> => {
-      const { data, error } = await supabase
-        .from('land_records')
-        .select(SELLER_LAND_COLUMNS)
-        .eq('seller_id', user!.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (error) {
-        throw error
-      }
-
-      return (data as LandRecord | null) ?? null
-    },
-  })
-
-  const landId = landQuery.data?.id ?? ''
+  const {
+    lands,
+    selectedLand,
+    selectedLandId,
+    setSelectedLandId,
+    isLoading,
+    error,
+  } = useSellerLands(signDocumentId)
 
   return (
     <div className="min-h-screen bg-surface p-8">
@@ -43,6 +28,9 @@ export function SellerDocumentsPage() {
             <div>
               <h1 className="text-2xl font-semibold text-ink">Documents</h1>
               <p className="mt-1 text-sm text-muted">Signed in as {user?.email}</p>
+              {selectedLand?.title && (
+                <p className="mt-1 text-sm text-muted">Property: {selectedLand.title}</p>
+              )}
             </div>
             <Link
               to="/seller/dashboard"
@@ -51,28 +39,42 @@ export function SellerDocumentsPage() {
               Back to dashboard
             </Link>
           </div>
+
+          {lands.length > 1 && (
+            <div className="mt-6">
+              <SellerLandSelector
+                lands={lands}
+                selectedLandId={selectedLandId}
+                onSelect={setSelectedLandId}
+              />
+            </div>
+          )}
         </div>
 
-        {landQuery.isLoading && (
-          <p className="text-sm text-muted">Loading your documents…</p>
-        )}
+        {isLoading && <p className="text-sm text-muted">Loading your documents…</p>}
 
-        {landQuery.error && (
+        {error && (
           <p className="text-sm text-red-700" role="alert">
-            {formatSupabaseError(landQuery.error as Error)}
+            {formatSupabaseError(error as Error)}
           </p>
         )}
 
-        {!landQuery.isLoading && !landQuery.error && !landId && (
+        {!isLoading && !error && !selectedLandId && (
           <p className="rounded-lg bg-slate-50 px-4 py-8 text-center text-sm text-muted">
             No land record assigned yet.
           </p>
         )}
 
-        {landId && (
+        {selectedLandId && (
           <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+            {signDocumentId && (
+              <p className="mb-4 rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-900">
+                You have a document waiting for your signature below.
+              </p>
+            )}
             <DocumentList
-              landId={landId}
+              landId={selectedLandId}
+              highlightDocumentId={signDocumentId}
               onSigned={() => {
                 notifySuccess('Document signed successfully.')
               }}

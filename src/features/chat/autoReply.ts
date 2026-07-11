@@ -52,3 +52,9 @@ export function getAutoReply(message: string): string | null {
 export function shouldAutoReply(channel: ChatChannel): boolean {
   return channel === 'seller_channel'
 }
+
+export const AUTO_REPLY_BODIES = new Set(AUTO_REPLIES.map((rule) => rule.reply))
+
+export function isAutoReplyBody(body: string): boolean {
+  return AUTO_REPLY_BODIES.has(body.trim())
+}

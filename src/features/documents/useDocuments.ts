@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { notifyDocumentSent } from '@/features/documents/notify'
+import { notifyDocumentSent, notifyDocumentSigned } from '@/features/documents/notify'
 import {
   hashSignedDocument,
   mimeTypeFromPath,
@@ -8,6 +8,7 @@ import {
 } from '@/features/documents/signing'
 import {
   assertCanSignDocument,
+  canSendForSigning,
   validateFileSize,
   validateFileType,
 } from '@/features/documents/validation'
@@ -150,6 +151,42 @@ export function useDocuments(landId: string | null) {
     async (documentId: string, sellerId: string): Promise<Document> => {
       setActionError(null)
 
+      const { data: existing, error: fetchError } = await supabase
+        .from('documents')
+        .select(`${DOCUMENT_COLUMNS}, land_id`)
+        .eq('id', documentId)
+        .single()
+
+      if (fetchError || !existing) {
+        throw new Error('Document not found.')
+      }
+
+      const doc = mapDocument(existing as Document)
+
+      if (doc.status !== 'draft') {
+        throw new Error('Only draft documents can be sent for signing.')
+      }
+
+      if (doc.file_path && !canSendForSigning(mimeTypeFromPath(doc.file_path))) {
+        throw new Error(
+          'Only PDF, PNG, and JPG documents can be sent for signing. Convert DOCX to PDF first.',
+        )
+      }
+
+      const { data: land, error: landError } = await supabase
+        .from('land_records')
+        .select('seller_id')
+        .eq('id', doc.land_id)
+        .single()
+
+      if (landError || !land?.seller_id) {
+        throw new Error('This land record has no seller assigned.')
+      }
+
+      if (land.seller_id !== sellerId) {
+        throw new Error('Selected seller does not match the land record owner.')
+      }
+
       const { data, error } = await supabase
         .from('documents')
         .update({
@@ -167,13 +204,16 @@ export function useDocuments(landId: string | null) {
       try {
         await notifyDocumentSent(documentId, sellerId)
       } catch (notificationError) {
+        await supabase
+          .from('documents')
+          .update({ status: 'draft', assigned_to: null })
+          .eq('id', documentId)
+
         const detail =
           notificationError instanceof Error
             ? notificationError.message
             : 'unknown error'
-        throw new Error(
-          `Document sent but the seller notification email failed: ${detail}`,
-        )
+        throw new Error(`Could not notify seller: ${detail}`)
       }
 
       await refresh()
@@ -276,6 +316,8 @@ export function useDocuments(landId: string | null) {
         throw new Error('Could not update signed document record.')
       }
 
+      void notifyDocumentSigned(documentId)
+
       await refresh()
       return mapDocument(updated as Document)
     },
@@ -298,6 +340,22 @@ export function useDocuments(landId: string | null) {
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
   }, [])
 
+  const getPreviewUrl = useCallback(async (document: Document): Promise<string> => {
+    if (!document.file_path) {
+      throw new Error('Document file is missing.')
+    }
+
+    const { data, error } = await supabase.storage
+      .from(DOCUMENT_BUCKET)
+      .createSignedUrl(document.file_path, 3600)
+
+    if (error || !data?.signedUrl) {
+      throw new Error('Could not create preview link.')
+    }
+
+    return data.signedUrl
+  }, [])
+
   return {
     documents: documentsQuery.data ?? [],
     isLoading: documentsQuery.isLoading,
@@ -307,6 +365,7 @@ export function useDocuments(landId: string | null) {
     sendForSigning,
     signDocument,
     downloadDocument,
+    getPreviewUrl,
     refresh,
     setActionError,
   }

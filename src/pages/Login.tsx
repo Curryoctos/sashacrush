@@ -168,8 +168,8 @@ export function LoginPage() {
             </button>
             {magicLinkSent && (
               <p className="text-sm text-brand-700">
-                Open the link in your email to access the seller portal. Local dev:
-                check Mailpit at{' '}
+                If your email is registered as a seller, you will receive a sign-in link shortly.
+                Local dev: check Mailpit at{' '}
                 <a href="http://127.0.0.1:54324" className="underline" target="_blank" rel="noreferrer">
                   127.0.0.1:54324
                 </a>

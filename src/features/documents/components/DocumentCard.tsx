@@ -22,16 +22,20 @@ interface DocumentCardProps {
   document: Document
   onSign?: () => void
   onDownload: () => void
+  onPreview?: () => void
   onSendForSigning?: () => void
   isSigning?: boolean
+  showNotSignableHint?: boolean
 }
 
 export function DocumentCard({
   document,
   onSign,
   onDownload,
+  onPreview,
   onSendForSigning,
   isSigning = false,
+  showNotSignableHint = false,
 }: DocumentCardProps) {
   const { user } = useAuth()
   const badge = STATUS_BADGE[document.status]
@@ -70,6 +74,15 @@ export function DocumentCard({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {onPreview && (
+          <button
+            type="button"
+            onClick={onPreview}
+            className="rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+          >
+            Preview
+          </button>
+        )}
         <button
           type="button"
           onClick={onDownload}
@@ -97,6 +110,12 @@ export function DocumentCard({
           >
             Send for Signing
           </button>
+        )}
+
+        {showNotSignableHint && (
+          <p className="w-full text-xs text-amber-700">
+            DOCX files must be converted to PDF before sending for signature.
+          </p>
         )}
       </div>
     </article>

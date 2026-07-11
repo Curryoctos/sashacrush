@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { DocumentList } from '@/features/documents/components/DocumentList'
 import { DocumentUpload } from '@/features/documents/components/DocumentUpload'
 import { useDocuments } from '@/features/documents/useDocuments'
@@ -15,6 +15,8 @@ const LAND_COLUMNS = 'id, title, seller_id'
 export function AdminDocumentsPage() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const landFromQuery = searchParams.get('land')
   const [selectedLandId, setSelectedLandId] = useState<string>('')
   const [pendingDocument, setPendingDocument] = useState<Document | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
@@ -36,6 +38,16 @@ export function AdminDocumentsPage() {
       return (data ?? []) as LandRecord[]
     },
   })
+
+  useEffect(() => {
+    if (!landFromQuery || !landsQuery.data?.length) {
+      return
+    }
+
+    if (landsQuery.data.some((land) => land.id === landFromQuery)) {
+      setSelectedLandId(landFromQuery)
+    }
+  }, [landFromQuery, landsQuery.data])
 
   const activeLandId = selectedLandId || landsQuery.data?.[0]?.id || ''
   const { sendForSigning } = useDocuments(activeLandId || null)

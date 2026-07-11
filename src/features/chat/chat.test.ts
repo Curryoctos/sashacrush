@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getAutoReply, shouldAutoReply } from '@/features/chat/autoReply'
+import { countUnreadMessages } from '@/features/chat/chat-utils'
+import type { ChatMessage } from '@/types'
 
 describe('getAutoReply', () => {
   it('returns payment response for payment keywords', () => {
@@ -39,5 +41,27 @@ describe('shouldAutoReply', () => {
 
   it('fires only for land-owner conversations', () => {
     expect(shouldAutoReply('seller_channel')).toBe(true)
+  })
+})
+
+describe('countUnreadMessages', () => {
+  const messages: ChatMessage[] = [
+    {
+      id: '1',
+      channel: 'seller_channel',
+      land_id: 'land-1',
+      sender_id: 'admin-1',
+      body: 'Hello',
+      created_at: '2026-07-01T10:00:00.000Z',
+    },
+  ]
+
+  it('counts messages from others when lastReadAt is null', () => {
+    expect(countUnreadMessages(messages, 'seller-1', null)).toBe(1)
+  })
+
+  it('returns zero for own messages only when never read', () => {
+    const ownMessages = [{ ...messages[0], sender_id: 'seller-1' }]
+    expect(countUnreadMessages(ownMessages, 'seller-1', null)).toBe(0)
   })
 })

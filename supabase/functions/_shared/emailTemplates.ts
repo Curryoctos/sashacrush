@@ -161,3 +161,99 @@ export function paymentConfirmedEmail(params: {
 
   return emailLayout({ bodyHtml })
 }
+
+export function sellerAssignedEmail(params: {
+  sellerName: string
+  landTitle: string
+  location: string
+  portalUrl: string
+}): string {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.sellerName},</p>
+    <p style="margin:0 0 16px;">You have been assigned to a property on SashaCrush.</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:16px 0;background-color:#f9fafb;border-radius:6px;">
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0 0 8px;"><strong>Property:</strong> ${params.landTitle}</p>
+          <p style="margin:0;"><strong>Location:</strong> ${params.location}</p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;">Sign in to your seller portal to view details, messages, and documents.</p>
+    ${ctaButton('Open Seller Portal', params.portalUrl)}
+  `
+
+  return emailLayout({ bodyHtml })
+}
+
+export function sellerMessageEmail(params: {
+  adminName: string
+  sellerName: string
+  landTitle: string
+  messagePreview: string
+  portalUrl: string
+}): string {
+  const preview =
+    params.messagePreview.length > 200
+      ? `${params.messagePreview.slice(0, 200)}…`
+      : params.messagePreview
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.adminName},</p>
+    <p style="margin:0 0 16px;"><strong>${params.sellerName}</strong> sent a new message about <strong>${params.landTitle}</strong>.</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:16px 0;background-color:#f9fafb;border-radius:6px;">
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0;font-style:italic;">"${preview}"</p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;">Reply in the admin messages portal.</p>
+    ${ctaButton('View Messages', params.portalUrl)}
+  `
+
+  return emailLayout({ bodyHtml })
+}
+
+export function adminMessageEmail(params: {
+  sellerName: string
+  landTitle: string
+  messagePreview: string
+  portalUrl: string
+}): string {
+  const preview =
+    params.messagePreview.length > 200
+      ? `${params.messagePreview.slice(0, 200)}…`
+      : params.messagePreview
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.sellerName},</p>
+    <p style="margin:0 0 16px;">You have a new message from the SashaCrush team about <strong>${params.landTitle}</strong>.</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:16px 0;background-color:#f9fafb;border-radius:6px;">
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0;font-style:italic;">"${preview}"</p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;">Reply in your seller messages portal.</p>
+    ${ctaButton('View Messages', params.portalUrl)}
+  `
+
+  return emailLayout({ bodyHtml })
+}
+
+export function sellerMagicLinkEmail(params: {
+  sellerName: string
+  magicLink: string
+  portalUrl: string
+}): string {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.sellerName},</p>
+    <p style="margin:0 0 16px;">Use the button below to sign in to your SashaCrush seller portal. This link expires soon and can only be used once.</p>
+    ${ctaButton('Sign In to SashaCrush', params.magicLink)}
+    <p style="margin:16px 0 0;font-size:14px;color:#6b7280;">After signing in you can always return to ${params.portalUrl}</p>
+  `
+
+  return emailLayout({ bodyHtml })
+}

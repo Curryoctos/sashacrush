@@ -1,3 +1,4 @@
+import { isAutoReplyBody } from '@/features/chat/autoReply'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage } from '@/types'
 import type { Database } from '@/types/database'
@@ -35,7 +36,11 @@ export function resolveSenderLabel(
     return 'You'
   }
 
-  if (message.is_auto_reply || message.sender_id === adminUserId) {
+  if (message.is_auto_reply || isAutoReplyBody(message.body)) {
+    return 'Automated reply'
+  }
+
+  if (message.sender_id === adminUserId) {
     return ADMIN_DISPLAY_NAME
   }
 
@@ -72,11 +77,11 @@ export function countUnreadMessages(
   currentUserId: string | undefined,
   lastReadAt: string | null,
 ): number {
-  if (!lastReadAt || !currentUserId) {
+  if (!currentUserId) {
     return 0
   }
 
-  const lastReadTime = new Date(lastReadAt).getTime()
+  const lastReadTime = lastReadAt ? new Date(lastReadAt).getTime() : 0
 
   return messages.filter(
     (message) =>

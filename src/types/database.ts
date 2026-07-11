@@ -239,6 +239,66 @@ export interface Database {
         }
         Relationships: []
       }
+      in_app_notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          body: string
+          href: string | null
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          body: string
+          href?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          body?: string
+          href?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          id: string
+          actor_id: string | null
+          action: string
+          entity_type: string
+          entity_id: string
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          actor_id?: string | null
+          action: string
+          entity_type: string
+          entity_id: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          actor_id?: string | null
+          action?: string
+          entity_type?: string
+          entity_id?: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           id: string
@@ -272,6 +332,36 @@ export interface Database {
       send_chat_auto_reply: {
         Args: { p_land_id: string; p_body: string }
         Returns: undefined
+      }
+      executive_deal_summaries: {
+        Args: Record<string, never>
+        Returns: {
+          land_id: string
+          title: string
+          location: string | null
+          status: string
+          total_value_usd: number
+          seller_name: string | null
+          pending_docs: number
+          signed_docs: number
+          confirmed_payments: number
+          pending_payments: number
+        }[]
+      }
+      executive_deal_summary: {
+        Args: { p_land_id: string }
+        Returns: {
+          land_id: string
+          title: string
+          location: string | null
+          status: string
+          total_value_usd: number
+          seller_name: string | null
+          pending_docs: number
+          signed_docs: number
+          confirmed_payments: number
+          pending_payments: number
+        }[]
       }
     }
     Enums: Record<string, never>

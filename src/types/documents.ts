@@ -23,6 +23,12 @@ export const ALLOWED_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ] as const
 
+export const SIGNABLE_MIME_TYPES = [
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+] as const
+
 export type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number]
 
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024

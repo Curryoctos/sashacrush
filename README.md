@@ -10,7 +10,9 @@ Cross-border land transactions, payments, and collaboration platform — built u
 | Styling | Tailwind CSS v4 |
 | Routing | React Router v7 |
 | Data fetching | TanStack React Query |
-| Backend (planned) | Supabase (PostgreSQL, Auth, Storage, Edge Functions) |
+| Backend | Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions) |
+| Email | Resend (via Edge Functions) |
+| PDF | pdf-lib (receipts, document signing) |
 | Testing | Vitest + Testing Library |
 
 ## Getting started
@@ -18,10 +20,23 @@ Cross-border land transactions, payments, and collaboration platform — built u
 ```bash
 npm install
 cp .env.example .env.local
+npx supabase start
+npx supabase db reset   # applies migrations + seed
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173).
+
+### Local dev accounts
+
+| Role | Email | Sign-in |
+|------|-------|---------|
+| Admin | `admin@sashacrush.com` | Password: `changeme-local-only` |
+| Agent | `agent@sashacrush.com` | Password: `changeme-local-only` |
+| Executive | `executive@sashacrush.com` | Password: `changeme-local-only` |
+| Seller | `seller@sashacrush.com` | Magic link (check Mailpit at http://127.0.0.1:54324) |
+
+Staff accounts require TOTP enrollment and verification on each login (MFA).
 
 ## Scripts
 
@@ -32,52 +47,75 @@ Open [http://localhost:5173](http://localhost:5173).
 | `npm run preview` | Preview production build |
 | `npm run lint` | Run Oxlint |
 | `npm run typecheck` | TypeScript check only |
-| `npm test` | Run Vitest unit tests |
-| `npm run test:watch` | Vitest in watch mode |
+| `npm test` | Run all Vitest tests |
+| `npm run test:unit` | Unit tests only (excludes integration + e2e) |
+| `npm run test:integration` | RLS integration tests (requires local Supabase) |
+| `npm run test:e2e` | Puppeteer smoke tests (requires preview server) |
+| `npm run deploy:functions` | Deploy all Edge Functions to linked project |
 
 ## Project structure
 
 ```
 src/
-├── components/     # Shared UI and layout
-│   ├── auth/       # ProtectedRoute, future auth forms
-│   └── layout/     # AppShell, PortalShell
-├── contexts/       # React context providers (Auth)
-├── lib/            # Utilities (env, future Supabase client)
-├── pages/          # Route-level pages by portal
+├── components/       # Shared UI, auth gates, portal layouts
+├── contexts/         # Auth provider
+├── features/         # Domain modules (chat, documents, payments, deals, …)
+├── lib/              # Utilities, portal nav, Supabase client
+├── pages/            # Route-level pages by portal
 │   ├── admin/
 │   ├── agent/
 │   ├── executive/
 │   ├── seller/
-│   └── community/
-├── routes/         # React Router configuration
-├── types/          # Shared TypeScript types
-└── test/           # Vitest setup
+│   └── staff/        # MFA setup & challenge
+├── routes/           # React Router configuration
+└── types/            # Shared TypeScript types
+
+supabase/
+├── migrations/       # Database schema & RLS
+├── functions/        # Edge Functions (notifications, magic link)
+└── seed.sql          # Local dev seed data
 ```
 
 ## Role-based routing
 
 | Role | Namespace | Access |
 |------|-----------|--------|
-| Admin / Owner | `/admin/*` | Full platform |
-| Executive | `/executive/*` | Analytics, documents, executive channel |
-| Agent | `/agent/*` | Maps, camera, receipts, suggestions |
-| Seller | `/seller/*` | Isolated portal — land, chat, receipts, photos |
-| Community | `/community/*` | Public community board |
+| Admin | `/admin/*` | Full platform — land records, documents, payments, chat, audit log, deal cockpit |
+| Agent | `/agent/*` | Read-only land/deal view, field photo upload |
+| Executive | `/executive/*` | Deal portfolio (aggregated, no payment amounts), executive chat |
+| Seller | `/seller/*` | Isolated portal — land, chat, documents, receipts, photos |
 
-Protected routes require Supabase Auth (C-01). Portal shells are scaffolded; auth integration is the next step.
+Protected routes require Supabase Auth with role-based RLS.
+
+## Key features
+
+- **Land records** — Admin CRUD with seller assignment and deal cockpit (`/admin/deals/:landId`)
+- **Documents** — Upload, send for signing, seller e-sign with PDF append, in-browser preview
+- **Payments** — Admin records pending payments, confirms to generate PDF receipt + email webhooks
+- **Chat** — Realtime seller/admin messaging with auto-replies and email alerts
+- **Notifications** — Resend emails via Edge Functions; see `supabase/functions/WEBHOOKS.md`
+- **MFA** — Staff TOTP enrollment + per-login challenge
+- **Audit log** — Automatic trail for land, payment, and document changes
 
 ## Environment variables
 
-Copy `.env.example` to `.env.local` and fill in values when Supabase is configured:
+Copy `.env.example` to `.env.local`:
 
 - `VITE_SUPABASE_URL` — Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` — Supabase anon key (RLS-enforced)
 - `VITE_APP_URL` — App base URL for deep links
 
-## Development plan
+Edge Function secrets (`RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`) are configured in Supabase, not in client env.
 
-This codebase follows the SashaCrush Master Software Development Plan (MSDP) v1.0 — 6-month delivery from June to December 2026. Month 1 focus: Auth & RBAC, Seller Portal, Land Records, Chat, and Supabase setup.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for the full production checklist and [supabase/functions/WEBHOOKS.md](supabase/functions/WEBHOOKS.md) for email webhook setup.
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR:
+
+1. **quality** — typecheck, lint, unit tests, build
+2. **integration** — Supabase local + RLS tests
+3. **e2e** — preview server + Puppeteer smoke tests
 
 ## License
 

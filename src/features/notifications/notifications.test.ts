@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  adminMessageEmail,
   documentSentEmail,
   newReceiptEmail,
   paymentConfirmedEmail,
+  sellerAssignedEmail,
+  sellerMagicLinkEmail,
+  sellerMessageEmail,
 } from '../../../supabase/functions/_shared/emailTemplates.ts'
 import { sendEmail } from '../../../supabase/functions/_shared/resend.ts'
 
@@ -14,7 +18,7 @@ describe('email templates', () => {
       amountUsd: 50000,
       amountUgx: 185000000,
       landTitle: 'Mubende Land',
-      portalUrl: 'http://localhost:5173/seller/dashboard',
+      portalUrl: 'http://localhost:5173/seller/receipts',
     })
 
     expect(html).toContain('RCP-2026-0001')
@@ -49,6 +53,60 @@ describe('email templates', () => {
     expect(html).toContain('$50,000.00')
     expect(html).toContain('RCP-2026-0001')
     expect(html).toContain('SashaCrush · CurryOctos · sashacrush.com')
+  })
+
+  it('sellerAssignedEmail contains property and portal URL', () => {
+    const portalUrl = 'http://localhost:5173/seller/dashboard'
+    const html = sellerAssignedEmail({
+      sellerName: 'Mubende Seller',
+      landTitle: 'Mubende Land',
+      location: 'Mubende District, Uganda',
+      portalUrl,
+    })
+
+    expect(html).toContain('Mubende Land')
+    expect(html).toContain(portalUrl)
+  })
+
+  it('sellerMessageEmail contains message preview', () => {
+    const html = sellerMessageEmail({
+      adminName: 'SashaCrush Admin',
+      sellerName: 'Mubende Seller',
+      landTitle: 'Mubende Land',
+      messagePreview: 'When will the survey be complete?',
+      portalUrl: 'http://localhost:5173/admin/chat',
+    })
+
+    expect(html).toContain('When will the survey be complete?')
+    expect(html).toContain('Mubende Seller')
+  })
+
+  it('sellerMagicLinkEmail contains magic link and portal URL', () => {
+    const magicLink = 'http://localhost:5173/auth/callback?token=abc'
+    const portalUrl = 'http://localhost:5173/seller/dashboard'
+    const html = sellerMagicLinkEmail({
+      sellerName: 'Mubende Seller',
+      magicLink,
+      portalUrl,
+    })
+
+    expect(html).toContain(magicLink)
+    expect(html).toContain(portalUrl)
+    expect(html).toContain('Sign In to SashaCrush')
+  })
+
+  it('adminMessageEmail contains message preview and portal URL', () => {
+    const portalUrl = 'http://localhost:5173/seller/chat'
+    const html = adminMessageEmail({
+      sellerName: 'Mubende Seller',
+      landTitle: 'Mubende Land',
+      messagePreview: 'Your survey documents are ready for review.',
+      portalUrl,
+    })
+
+    expect(html).toContain('Your survey documents are ready for review.')
+    expect(html).toContain(portalUrl)
+    expect(html).toContain('View Messages')
   })
 })
 
