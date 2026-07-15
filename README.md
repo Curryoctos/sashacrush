@@ -38,6 +38,10 @@ Open [http://localhost:5173](http://localhost:5173).
 
 Staff accounts require TOTP enrollment and verification on each login (MFA).
 
+Local Supabase: TOTP is enabled in `supabase/config.toml` (`auth.mfa.totp.enroll_enabled`). After changing it, restart with `npx supabase stop && npx supabase start`.
+
+Hosted Supabase: Dashboard → Authentication → MFA → enable **Authenticator app (TOTP)**.
+
 ## Scripts
 
 | Command | Description |

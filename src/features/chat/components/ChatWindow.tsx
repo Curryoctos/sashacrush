@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { fetchAdminUserId } from '@/features/chat/chat-utils'
+import { fetchAdminUserId } from '@/features/chat/fetchAdminUserId'
 import {
   writeLastReadAt,
 } from '@/features/chat/chat-utils'

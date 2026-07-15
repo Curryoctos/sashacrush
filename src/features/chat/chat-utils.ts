@@ -1,5 +1,4 @@
 import { isAutoReplyBody } from '@/features/chat/autoReply'
-import { supabase } from '@/lib/supabase'
 import type { ChatMessage } from '@/types'
 import type { Database } from '@/types/database'
 
@@ -9,22 +8,6 @@ type UserProfile = Pick<
 >
 
 const ADMIN_DISPLAY_NAME = 'SashaCrush'
-
-export async function fetchAdminUserId(): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id')
-    .eq('role', 'admin')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  if (error || !data) {
-    return null
-  }
-
-  return data.id
-}
 
 export function resolveSenderLabel(
   message: ChatMessage,

@@ -4,9 +4,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { getAutoReply, isAutoReplyBody, shouldAutoReply } from '@/features/chat/autoReply'
 import { notifyAdminSellerMessage, notifySellerAdminMessage } from '@/features/chat/notify'
 import {
-  fetchAdminUserId,
   messageMatchesContext,
 } from '@/features/chat/chat-utils'
+import { fetchAdminUserId } from '@/features/chat/fetchAdminUserId'
 import { formatSupabaseError, isRlsViolation } from '@/lib/supabase-errors'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage } from '@/types'

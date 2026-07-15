@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   countUnreadMessages,
-  fetchAdminUserId,
   readLastReadAt,
 } from '@/features/chat/chat-utils'
+import { fetchAdminUserId } from '@/features/chat/fetchAdminUserId'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage } from '@/types'
