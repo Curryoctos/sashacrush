@@ -22,6 +22,15 @@ async function isReachable(url: string): Promise<boolean> {
   }
 }
 
+function launchBrowser() {
+  // GitHub-hosted runners disable the Chromium user-namespace sandbox.
+  const args = process.env.CI
+    ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    : []
+
+  return puppeteer.launch({ headless: true, args })
+}
+
 describe('E2E smoke', () => {
   it('login page renders staff and seller modes', async () => {
     if (!(await isReachable(BASE_URL))) {
@@ -29,7 +38,7 @@ describe('E2E smoke', () => {
       return
     }
 
-    const browser = await puppeteer.launch({ headless: true })
+    const browser = await launchBrowser()
     const page = await browser.newPage()
 
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' })
@@ -47,7 +56,7 @@ describe('E2E smoke', () => {
       return
     }
 
-    const browser = await puppeteer.launch({ headless: true })
+    const browser = await launchBrowser()
     const page = await browser.newPage()
 
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' })
