@@ -7,7 +7,7 @@
  *   npx supabase db reset
  */
 import { createClient } from '@supabase/supabase-js'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import type { Database } from '@/types/database'
 
 const LOCAL_URL = 'http://127.0.0.1:54321'
@@ -17,6 +17,7 @@ const LOCAL_ANON_KEY =
 const url = import.meta.env.VITE_SUPABASE_URL || LOCAL_URL
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || LOCAL_ANON_KEY
 const DEV_PASSWORD = 'changeme-local-only'
+const MUBENDE_SELLER_ID = 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44'
 
 let supabaseAvailable = false
 
@@ -30,8 +31,6 @@ function createAnonClient() {
 }
 
 describe('Seller payments RLS (integration)', () => {
-  const client = createAnonClient()
-
   beforeAll(async () => {
     try {
       const response = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
@@ -44,16 +43,13 @@ describe('Seller payments RLS (integration)', () => {
     }
   })
 
-  afterAll(async () => {
-    await client.auth.signOut()
-  })
-
   it('admin can read payments (proves seed data exists)', async () => {
     if (!supabaseAvailable) {
       console.warn('Skipping integration test: Supabase not reachable')
       return
     }
 
+    const client = createAnonClient()
     const { error: signInError } = await client.auth.signInWithPassword({
       email: 'admin@sashacrush.com',
       password: DEV_PASSWORD,
@@ -73,19 +69,19 @@ describe('Seller payments RLS (integration)', () => {
       return
     }
 
-    const { error: signInError } = await client.auth.signInWithPassword({
+    // Fresh client per test avoids session races after admin signOut on a shared client.
+    const client = createAnonClient()
+    const { data: signInData, error: signInError } = await client.auth.signInWithPassword({
       email: 'seller@sashacrush.com',
       password: DEV_PASSWORD,
     })
     expect(signInError).toBeNull()
-
-    const { data: userData } = await client.auth.getUser()
-    expect(userData.user).not.toBeNull()
+    expect(signInData.user?.id).toBe(MUBENDE_SELLER_ID)
 
     const { data: profile } = await client
       .from('users')
       .select('role')
-      .eq('id', userData.user!.id)
+      .eq('id', MUBENDE_SELLER_ID)
       .single()
     expect(profile?.role).toBe('seller')
 
