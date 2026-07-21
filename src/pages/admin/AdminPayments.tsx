@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { computeDealBalance } from '@/features/payments/balance'
 import { useAllPayments } from '@/features/payments/usePayments'
 import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,7 +13,7 @@ import type { PaymentMethod } from '@/types/database'
 
 const PAYMENT_METHODS: PaymentMethod[] = ['manual', 'stripe', 'flutterwave', 'crypto']
 
-const LAND_COLUMNS = 'id, title'
+const LAND_COLUMNS = 'id, title, total_value_usd'
 
 function statusBadge(status: string): string {
   if (status === 'confirmed') {
@@ -68,9 +69,14 @@ export function AdminPaymentsPage() {
   const activeLandId = selectedLandId || landsQuery.data?.[0]?.id || ''
   const { payments, isLoading, error, confirmPayment, createPayment } = useAllPayments()
 
+  const activeLand = (landsQuery.data ?? []).find((land) => land.id === activeLandId)
   const filteredPayments = activeLandId
     ? payments.filter((payment) => payment.land_id === activeLandId)
     : payments
+
+  const balance = activeLand
+    ? computeDealBalance(Number(activeLand.total_value_usd), filteredPayments)
+    : null
 
   const handleConfirm = async (paymentId: string) => {
     setActionError(null)
@@ -156,6 +162,21 @@ export function AdminPaymentsPage() {
           </div>
         </div>
 
+        {balance && (
+          <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-ink">Balance tracker</h2>
+            <p className="mt-1 text-sm text-muted">
+              Paid vs outstanding for {activeLand?.title ?? 'this property'}.
+            </p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <BalanceStat label="Deal total" value={formatUsd(balance.totalValueUsd)} />
+              <BalanceStat label="Paid (confirmed)" value={formatUsd(balance.paidUsd)} />
+              <BalanceStat label="Pending (unconfirmed)" value={formatUsd(balance.pendingUsd)} />
+              <BalanceStat label="Outstanding" value={formatUsd(balance.outstandingUsd)} />
+            </div>
+          </section>
+        )}
+
         <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
           <h2 className="text-lg font-semibold text-ink">Record payment</h2>
           <p className="mt-1 text-sm text-muted">
@@ -224,7 +245,7 @@ export function AdminPaymentsPage() {
         <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
           <h2 className="text-lg font-semibold text-ink">Payment records</h2>
           <p className="mt-1 text-sm text-muted">
-            Confirm a payment to generate a seller receipt and trigger email notifications.
+            Confirm a payment to issue a server-side seller receipt and trigger email notifications.
           </p>
 
           {isLoading && <p className="mt-6 text-sm text-muted">Loading payments…</p>}
@@ -285,6 +306,15 @@ export function AdminPaymentsPage() {
           )}
         </section>
       </div>
+    </div>
+  )
+}
+
+function BalanceStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+      <p className="text-xs font-medium uppercase text-muted">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-ink">{value}</p>
     </div>
   )
 }

@@ -10,7 +10,12 @@ const RESEND_API_URL = 'https://api.resend.com/emails'
 const DEFAULT_FROM = 'notifications@sashacrush.com'
 
 export async function sendEmail(params: SendEmailParams): Promise<void> {
-  const apiKey = requireEnv('RESEND_API_KEY')
+  const apiKey = getEnv('RESEND_API_KEY')
+  if (!apiKey) {
+    console.warn('[sendEmail] RESEND_API_KEY not set — skipping email delivery')
+    console.warn('[sendEmail] To:', params.to, '| Subject:', params.subject)
+    return
+  }
 
   const from = getEnv('RESEND_FROM_EMAIL') ?? DEFAULT_FROM
 

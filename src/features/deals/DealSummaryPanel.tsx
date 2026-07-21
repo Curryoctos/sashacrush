@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { computeDealBalance } from '@/features/payments/balance'
 import { formatUsd } from '@/lib/land-records'
 import type { DealSummary } from '@/features/deals/useDealSummary'
 
@@ -13,6 +14,7 @@ export function DealSummaryPanel({ deal, backLink, quickActions }: DealSummaryPa
   const signedDocs = deal.documents.filter((doc) => doc.status === 'signed').length
   const confirmedPayments = deal.payments.filter((payment) => payment.status === 'confirmed').length
   const pendingPayments = deal.payments.filter((payment) => payment.status !== 'confirmed').length
+  const balance = computeDealBalance(deal.land.total_value_usd, deal.payments)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

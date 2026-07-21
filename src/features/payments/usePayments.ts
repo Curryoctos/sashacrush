@@ -70,13 +70,7 @@ export function useAllPayments() {
         throw new Error('Payment is already confirmed.')
       }
 
-      return confirmPaymentWithReceipt({
-        paymentId,
-        landId: payment.land_id,
-        amountUsd: payment.amount_usd,
-        amountUgx: payment.amount_ugx,
-        method: payment.method,
-      })
+      return confirmPaymentWithReceipt(paymentId)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['payments'] })

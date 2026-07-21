@@ -3,6 +3,7 @@ import { RateLimitError, assertRateLimit } from '../_shared/rateLimit.ts'
 import { sellerMagicLinkEmail } from '../_shared/emailTemplates.ts'
 import { errorResponse, jsonResponse } from '../_shared/http.ts'
 import { sendEmail } from '../_shared/resend.ts'
+import { getEnv } from '../_shared/env.ts'
 import { createServiceClient, getAppUrl } from '../_shared/supabaseAdmin.ts'
 
 interface RequestPayload {
@@ -73,16 +74,21 @@ Deno.serve(async (req) => {
     }
 
     const sellerName = seller.full_name ?? seller.email
+    const magicLink = linkData.properties.action_link
 
-    await sendEmail({
-      to: seller.email,
-      subject: 'Your SashaCrush seller sign-in link',
-      html: sellerMagicLinkEmail({
-        sellerName,
-        magicLink: linkData.properties.action_link,
-        portalUrl: redirectTo,
-      }),
-    })
+    if (!getEnv('RESEND_API_KEY')) {
+      console.log(`[dev] Seller magic link for ${seller.email}: ${magicLink}`)
+    } else {
+      await sendEmail({
+        to: seller.email,
+        subject: 'Your SashaCrush seller sign-in link',
+        html: sellerMagicLinkEmail({
+          sellerName,
+          magicLink,
+          portalUrl: redirectTo,
+        }),
+      })
+    }
 
     return jsonResponse({ success: true, message: GENERIC_SUCCESS })
   } catch (error) {

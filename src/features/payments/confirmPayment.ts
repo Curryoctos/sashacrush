@@ -1,4 +1,3 @@
-import { generateReceiptPdf, RECEIPTS_BUCKET } from '@/features/payments/receiptPdf'
 import { supabase } from '@/lib/supabase'
 
 export function buildReceiptNumber(existingCount: number): string {
@@ -7,90 +6,37 @@ export function buildReceiptNumber(existingCount: number): string {
   return `RCP-${year}-${sequence}`
 }
 
-interface ConfirmPaymentInput {
-  paymentId: string
-  landId: string
-  amountUsd: number
-  amountUgx: number | null
-  method: string | null
+function extractFunctionError(error: unknown, data: unknown): string {
+  if (data && typeof data === 'object' && 'error' in data && data.error) {
+    return String(data.error)
+  }
+
+  if (error && typeof error === 'object' && 'context' in error) {
+    const contextBody = (error as { context?: { body?: unknown } }).context?.body
+    if (contextBody && typeof contextBody === 'object' && 'error' in contextBody) {
+      return String((contextBody as { error: unknown }).error)
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return 'Could not confirm payment.'
 }
 
-export async function confirmPaymentWithReceipt({
-  paymentId,
-  landId,
-  amountUsd,
-  amountUgx,
-  method,
-}: ConfirmPaymentInput): Promise<string> {
-  const { data: land, error: landError } = await supabase
-    .from('land_records')
-    .select('seller_id, title')
-    .eq('id', landId)
-    .single()
-
-  if (landError || !land?.seller_id) {
-    throw new Error('This land record has no seller assigned.')
-  }
-
-  const { data: seller } = await supabase
-    .from('users')
-    .select('full_name, email')
-    .eq('id', land.seller_id)
-    .single()
-
-  const { error: updateError } = await supabase
-    .from('payments')
-    .update({ status: 'confirmed' })
-    .eq('id', paymentId)
-
-  if (updateError) {
-    throw updateError
-  }
-
-  const yearStart = `${new Date().getFullYear()}-01-01T00:00:00.000Z`
-  const { count } = await supabase
-    .from('receipts')
-    .select('id', { count: 'exact', head: true })
-    .gte('created_at', yearStart)
-
-  const receiptNumber = buildReceiptNumber(count ?? 0)
-  const issuedAt = new Date().toISOString()
-  const sellerName = seller?.full_name ?? seller?.email ?? 'Seller'
-
-  const pdfBytes = await generateReceiptPdf({
-    receiptNumber,
-    landTitle: land.title,
-    sellerName,
-    amountUsd,
-    amountUgx,
-    method,
-    issuedAt,
+/**
+ * Confirm a payment and issue a receipt via the confirm-payment edge function.
+ * Receipt PDF generation and storage upload happen server-side (BR-02).
+ */
+export async function confirmPaymentWithReceipt(paymentId: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('confirm-payment', {
+    body: { paymentId },
   })
 
-  const pdfPath = `${land.seller_id}/${receiptNumber}.pdf`
-
-  const { error: uploadError } = await supabase.storage
-    .from(RECEIPTS_BUCKET)
-    .upload(pdfPath, pdfBytes, {
-      contentType: 'application/pdf',
-      upsert: false,
-    })
-
-  if (uploadError) {
-    throw new Error('Payment confirmed but receipt PDF upload failed.')
+  if (data && typeof data === 'object' && 'receiptNumber' in data && data.receiptNumber) {
+    return String(data.receiptNumber)
   }
 
-  const { error: receiptError } = await supabase.from('receipts').insert({
-    payment_id: paymentId,
-    seller_id: land.seller_id,
-    receipt_number: receiptNumber,
-    pdf_path: pdfPath,
-  })
-
-  if (receiptError) {
-    await supabase.storage.from(RECEIPTS_BUCKET).remove([pdfPath])
-    throw new Error('Payment confirmed but receipt record could not be created.')
-  }
-
-  return receiptNumber
+  throw new Error(extractFunctionError(error, data))
 }

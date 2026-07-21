@@ -141,12 +141,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       body: { email: email.trim().toLowerCase() },
     })
 
-    if (error) {
-      throw new Error(error.message || 'Could not request magic link.')
-    }
-
     if (data && typeof data === 'object' && 'error' in data && data.error) {
       throw new Error(String(data.error))
+    }
+
+    if (error) {
+      const contextBody =
+        error && typeof error === 'object' && 'context' in error
+          ? (error as { context?: { body?: unknown } }).context?.body
+          : undefined
+      if (contextBody && typeof contextBody === 'object' && 'error' in contextBody) {
+        throw new Error(String((contextBody as { error: unknown }).error))
+      }
+      throw new Error(error.message || 'Could not request magic link.')
     }
   }, [])
 
