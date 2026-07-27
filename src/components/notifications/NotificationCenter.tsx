@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Bell } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import { useInAppNotifications } from '@/features/notifications/useInAppNotifications'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
@@ -29,20 +31,20 @@ export function NotificationCenter() {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="relative rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-ink hover:bg-slate-50"
+        className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-ink transition hover:bg-surface"
         aria-label="Notifications"
       >
-        🔔
+        <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-brand-600 px-1 py-0.5 text-[10px] font-semibold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-md bg-brand-600 px-1 py-0.5 text-[10px] font-semibold text-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-surface-elevated">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold text-ink">Notifications</h2>
             {unreadCount > 0 && (
               <button
@@ -61,7 +63,7 @@ export function NotificationCenter() {
             )}
 
             {error && (
-              <p className="px-4 py-6 text-sm text-red-700" role="alert">
+              <p className="px-4 py-6 text-sm text-danger" role="alert">
                 {formatSupabaseError(error as Error)}
               </p>
             )}
@@ -73,38 +75,34 @@ export function NotificationCenter() {
             {notifications.map((notification) => (
               <article
                 key={notification.id}
-                className={`border-b border-slate-100 px-4 py-3 last:border-0 ${
-                  notification.read_at ? 'bg-white' : 'bg-brand-50/40'
+                className={`border-b border-border px-4 py-3 last:border-0 ${
+                  notification.read_at ? 'bg-white' : 'bg-brand-50/50'
                 }`}
               >
                 <p className="text-sm font-medium text-ink">{notification.title}</p>
-                <p className="mt-1 text-xs text-muted">{notification.body}</p>
-                <p className="mt-1 text-[11px] text-muted">
-                  {new Date(notification.created_at).toLocaleString()}
-                </p>
-                <div className="mt-2 flex gap-2">
+                <p className="mt-0.5 text-xs text-muted">{notification.body}</p>
+                <div className="mt-2 flex items-center gap-3">
                   {notification.href && (
                     <Link
                       to={notification.href}
+                      className="text-xs font-medium text-brand-700 hover:underline"
                       onClick={() => {
-                        if (!notification.read_at) {
-                          void markRead(notification.id)
-                        }
+                        void markRead(notification.id)
                         setOpen(false)
                       }}
-                      className="text-xs font-medium text-brand-700 hover:underline"
                     >
                       Open
                     </Link>
                   )}
                   {!notification.read_at && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto px-0 py-0 text-xs"
                       onClick={() => void markRead(notification.id)}
-                      className="text-xs text-muted hover:text-ink"
                     >
                       Mark read
-                    </button>
+                    </Button>
                   )}
                 </div>
               </article>

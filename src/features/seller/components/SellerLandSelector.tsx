@@ -19,14 +19,14 @@ export function SellerLandSelector({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-ink">
+      <label htmlFor={id} className="ui-label">
         Property
       </label>
       <select
         id={id}
         value={selectedLandId}
         onChange={(event) => onSelect(event.target.value)}
-        className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        className="mt-2 ui-input"
       >
         {lands.map((land) => (
           <option key={land.id} value={land.id}>

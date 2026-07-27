@@ -1,4 +1,8 @@
 import { Link } from 'react-router-dom'
+import { Badge, statusTone } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Card, Stat, StatGrid } from '@/components/ui/Card'
+import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { computeDealBalance } from '@/features/payments/balance'
 import { formatUsd } from '@/lib/land-records'
 import type { DealSummary } from '@/features/deals/useDealSummary'
@@ -17,74 +21,64 @@ export function DealSummaryPanel({ deal, backLink, quickActions }: DealSummaryPa
   const balance = computeDealBalance(deal.land.total_value_usd, deal.payments)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="ui-page max-w-4xl">
       <div>
-        <Link to={backLink.to} className="text-sm text-brand-700 hover:underline">
-          ← {backLink.label}
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-ink">Deal Overview</h1>
-      </div>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-ink">{deal.land.title}</h2>
-        <p className="mt-1 text-sm text-muted">{deal.land.location}</p>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs font-medium uppercase text-muted">Seller</dt>
-            <dd className="mt-1 text-sm text-ink">{deal.land.seller_name ?? 'Unassigned'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-muted">Total value</dt>
-            <dd className="mt-1 text-sm font-medium text-ink">
-              {formatUsd(deal.land.total_value_usd)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-muted">Status</dt>
-            <dd className="mt-1 text-sm capitalize text-ink">{deal.land.status}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Unread messages" value={String(deal.unreadCount)} />
-        <StatCard label="Docs awaiting sign" value={String(pendingDocs)} />
-        <StatCard label="Signed documents" value={String(signedDocs)} />
-        <StatCard
-          label="Payments"
-          value={`${confirmedPayments} confirmed / ${pendingPayments} pending`}
+        <PageBackLink to={backLink.to} label={backLink.label} />
+        <PageHeader
+          className="mt-3 border-none pb-0"
+          eyebrow="Deal room"
+          title={deal.land.title}
+          description={deal.land.location ?? 'Land transaction overview'}
         />
       </div>
 
+      <Card>
+        <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Metric label="Seller" value={deal.land.seller_name ?? 'Unassigned'} />
+          <Metric label="Total value" value={formatUsd(deal.land.total_value_usd)} />
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">Status</dt>
+            <dd className="mt-1">
+              <Badge tone={statusTone(deal.land.status)}>{deal.land.status}</Badge>
+            </dd>
+          </div>
+          <Metric label="Paid" value={formatUsd(balance.paidUsd)} />
+          <Metric label="Outstanding" value={formatUsd(balance.outstandingUsd)} />
+          <Metric label="Pending payments" value={formatUsd(balance.pendingUsd)} />
+        </dl>
+      </Card>
+
+      <StatGrid>
+        <Stat label="Unread messages" value={String(deal.unreadCount)} />
+        <Stat label="Docs awaiting sign" value={String(pendingDocs)} />
+        <Stat label="Signed documents" value={String(signedDocs)} />
+        <Stat
+          label="Payments"
+          value={`${confirmedPayments} confirmed / ${pendingPayments} pending`}
+        />
+      </StatGrid>
+
       {quickActions && quickActions.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <Card>
           <h3 className="text-sm font-semibold text-ink">Quick actions</h3>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-4 flex flex-wrap gap-2">
             {quickActions.map((action) => (
-              <Link
-                key={action.to}
-                to={action.to}
-                className={
-                  action.primary
-                    ? 'rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700'
-                    : 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-ink hover:bg-slate-50'
-                }
-              >
-                {action.label}
+              <Link key={action.to} to={action.to}>
+                <Button variant={action.primary ? 'primary' : 'secondary'}>{action.label}</Button>
               </Link>
             ))}
           </div>
-        </section>
+        </Card>
       )}
     </div>
   )
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium uppercase text-muted">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-ink">{value}</p>
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{label}</dt>
+      <dd className="mt-1 text-sm font-medium text-ink">{value}</dd>
     </div>
   )
 }

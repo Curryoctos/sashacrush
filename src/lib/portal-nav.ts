@@ -6,6 +6,7 @@ export interface PortalNavItem {
 
 export const ADMIN_NAV: PortalNavItem[] = [
   { label: 'Dashboard', to: '/admin/dashboard' },
+  { label: 'Users', to: '/admin/users' },
   { label: 'Land Records', to: '/admin/land-records' },
   { label: 'Documents', to: '/admin/documents' },
   { label: 'Payments', to: '/admin/payments' },
@@ -24,6 +25,7 @@ export const SELLER_NAV: PortalNavItem[] = [
 export const AGENT_NAV: PortalNavItem[] = [
   { label: 'Dashboard', to: '/agent/dashboard' },
   { label: 'Land Records', to: '/agent/land-records' },
+  { label: 'Documents', to: '/agent/documents' },
   { label: 'Messages', to: '/agent/chat' },
   { label: 'Field Photos', to: '/agent/photos' },
 ]

@@ -73,7 +73,7 @@ export function ChatWindow({ landId, channel }: ChatWindowProps) {
   }
 
   return (
-    <div className="flex h-[min(70vh,720px)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-panel flex h-[min(70vh,720px)] flex-col overflow-hidden">
       <div
         ref={listRef}
         onScroll={handleScroll}
@@ -82,13 +82,13 @@ export function ChatWindow({ landId, channel }: ChatWindowProps) {
         {isLoading && (
           <div className="space-y-3">
             {[0, 1, 2].map((item) => (
-              <div key={item} className="h-16 animate-pulse rounded-2xl bg-slate-100" />
+              <div key={item} className="ui-skeleton h-16" />
             ))}
           </div>
         )}
 
         {!isLoading && error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          <p className="ui-alert-danger" role="alert">
             {error}
           </p>
         )}
@@ -114,11 +114,11 @@ export function ChatWindow({ landId, channel }: ChatWindowProps) {
       </div>
 
       {hasNewBelow && (
-        <div className="border-t border-slate-100 bg-slate-50 px-4 py-2 text-center">
+        <div className="border-t border-border bg-surface px-4 py-2 text-center">
           <button
             type="button"
             onClick={() => scrollToBottom()}
-            className="text-sm font-medium text-brand-700 hover:text-brand-900"
+            className="text-sm font-medium text-brand-700 hover:text-brand-800"
           >
             New message ↓
           </button>

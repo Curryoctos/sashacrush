@@ -36,7 +36,8 @@ Open [http://localhost:5173](http://localhost:5173).
 | Executive | `executive@sashacrush.com` | Password: `changeme-local-only` |
 | Seller | `seller@sashacrush.com` | Magic link (check Mailpit at http://127.0.0.1:54324) |
 
-Staff accounts require TOTP enrollment and verification on each login (MFA).
+Staff accounts (admin / agent / executive) sign in with email + password.
+MFA (TOTP enroll + challenge) is temporarily disabled; restore via `StaffMfaGate` and the commented MFA routes in `src/routes/router.tsx`.
 
 Local Supabase: TOTP is enabled in `supabase/config.toml` (`auth.mfa.totp.enroll_enabled`). After changing it, restart with `npx supabase stop && npx supabase start`.
 
@@ -84,7 +85,7 @@ supabase/
 
 | Role | Namespace | Access |
 |------|-----------|--------|
-| Admin | `/admin/*` | Full platform — land records, documents, payments, chat, audit log, deal cockpit |
+| Admin | `/admin/*` | Full platform — users, land records, documents, payments, chat, audit log, deal cockpit |
 | Agent | `/agent/*` | Read-only land/deal view, field photo upload |
 | Executive | `/executive/*` | Deal portfolio (aggregated, no payment amounts), executive chat |
 | Seller | `/seller/*` | Isolated portal — land, chat, documents, receipts, photos |
@@ -93,13 +94,14 @@ Protected routes require Supabase Auth with role-based RLS.
 
 ## Key features
 
+- **Users** — Admin provisions staff and sellers (`/admin/users`); deactivate, role changes, password reset / magic-link resend
 - **Land records** — Admin CRUD with seller assignment and deal cockpit (`/admin/deals/:landId`)
 - **Documents** — Upload, send for signing, seller e-sign with PDF append, in-browser preview
-- **Payments** — Admin records pending payments, confirms to generate PDF receipt + email webhooks
+- **Payments** — Manual confirm or Stripe/Flutterwave checkout; webhooks issue server-side PDF receipts + email notifications
 - **Chat** — Realtime seller/admin messaging with auto-replies and email alerts
 - **Notifications** — Resend emails via Edge Functions; see `supabase/functions/WEBHOOKS.md`
-- **MFA** — Staff TOTP enrollment + per-login challenge
-- **Audit log** — Automatic trail for land, payment, and document changes
+- **MFA** — Temporarily disabled (TOTP pages/helpers kept; gate + routes commented for later restore)
+- **Audit log** — Automatic trail for land, payment, document, and user lifecycle changes
 
 ## Environment variables
 

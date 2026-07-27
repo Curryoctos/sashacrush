@@ -6,6 +6,8 @@ import {
   verifyTotpEnrollment,
 } from '@/features/auth/useMfa'
 import { notifySuccess } from '@/features/notifications/useNotifications'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
 
@@ -75,22 +77,20 @@ export function StaffMfaSetupPage({ backPath }: StaffMfaSetupPageProps) {
   }
 
   return (
-    <div className="p-8">
-      <div className="mx-auto max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-ink">Set up two-factor authentication</h1>
+    <div className="ui-page max-w-lg">
+      <Card padding="lg">
+        <h1 className="font-display text-2xl font-semibold text-ink">
+          Set up two-factor authentication
+        </h1>
         <p className="mt-2 text-sm text-muted">
           Staff accounts require an authenticator app (Google Authenticator, Authy, etc.) for
           additional security on deal and payment operations.
         </p>
 
         {!factorId && (
-          <button
-            type="button"
-            onClick={() => void startEnrollment()}
-            className="mt-6 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
-          >
+          <Button className="mt-6" onClick={() => void startEnrollment()}>
             Start MFA setup
-          </button>
+          </Button>
         )}
 
         {qrCode && (
@@ -98,11 +98,12 @@ export function StaffMfaSetupPage({ backPath }: StaffMfaSetupPageProps) {
             <img src={qrCode} alt="MFA QR code" className="mx-auto h-48 w-48" />
             {secret && (
               <p className="text-center text-xs text-muted">
-                Manual entry secret: <code className="rounded bg-slate-100 px-1">{secret}</code>
+                Manual entry secret:{' '}
+                <code className="rounded bg-surface px-1 text-ink">{secret}</code>
               </p>
             )}
             <div>
-              <label htmlFor="mfa-code" className="block text-sm font-medium text-ink">
+              <label htmlFor="mfa-code" className="ui-label">
                 Verification code
               </label>
               <input
@@ -110,33 +111,31 @@ export function StaffMfaSetupPage({ backPath }: StaffMfaSetupPageProps) {
                 inputMode="numeric"
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="ui-input mt-1.5"
                 placeholder="123456"
               />
             </div>
-            <button
-              type="button"
+            <Button
               onClick={() => void handleVerify()}
               disabled={isSubmitting || code.trim().length < 6}
-              className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
             >
               {isSubmitting ? 'Verifying…' : 'Verify and enable'}
-            </button>
+            </Button>
           </div>
         )}
 
         {error && (
-          <p className="mt-4 text-sm text-red-700" role="alert">
+          <p className="ui-alert-danger mt-4" role="alert">
             {error}
           </p>
         )}
 
         <p className="mt-6 text-sm">
-          <Link to={backPath} className="text-brand-700 hover:underline">
+          <Link to={backPath} className="font-medium text-brand-700 hover:text-brand-800">
             Back to dashboard
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   )
 }

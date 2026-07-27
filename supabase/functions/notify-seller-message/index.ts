@@ -1,4 +1,4 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+/// <reference path="../_shared/deno.d.ts" />
 import { requireAuthenticatedUser } from '../_shared/auth.ts'
 import { sellerMessageEmail } from '../_shared/emailTemplates.ts'
 import { claimNotificationEvent } from '../_shared/idempotency.ts'

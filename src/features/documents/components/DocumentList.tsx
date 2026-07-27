@@ -4,23 +4,17 @@ import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import { DocumentCard } from '@/features/documents/components/DocumentCard'
 import { DocumentPreviewModal } from '@/features/documents/components/DocumentPreviewModal'
-import { DocumentUpload } from '@/features/documents/components/DocumentUpload'
 import { mimeTypeFromPath } from '@/features/documents/signing'
 import { canSendForSigning } from '@/features/documents/validation'
 import { useDocuments } from '@/features/documents/useDocuments'
-
-const GROUP_ORDER: DocumentStatus[] = ['sent', 'signed', 'draft', 'archived']
-
-const GROUP_LABELS: Record<DocumentStatus, string> = {
-  sent: 'Awaiting Signature',
-  signed: 'Signed',
-  draft: 'Draft',
-  archived: 'Archived',
-}
+import {
+  DOCUMENT_FOLDER_LABELS,
+  DOCUMENT_FOLDER_ORDER,
+} from '@/features/documents/documentFolders'
 
 interface DocumentListProps {
   landId: string
-  showUpload?: boolean
+  statusFilter?: DocumentStatus | null
   highlightDocumentId?: string | null
   onSendForSigning?: (document: Document) => void
   onSigned?: () => void
@@ -28,13 +22,13 @@ interface DocumentListProps {
 
 export function DocumentList({
   landId,
-  showUpload = false,
+  statusFilter = null,
   highlightDocumentId = null,
   onSendForSigning,
   onSigned,
 }: DocumentListProps) {
   const { user } = useAuth()
-  const { documents, isLoading, error, downloadDocument, getPreviewUrl, signDocument, refresh } =
+  const { documents, isLoading, error, downloadDocument, getPreviewUrl, signDocument } =
     useDocuments(landId)
   const [signingId, setSigningId] = useState<string | null>(null)
   const [pendingSignDocument, setPendingSignDocument] = useState<Document | null>(null)
@@ -46,15 +40,26 @@ export function DocumentList({
 
   const isStaff = user?.role === 'admin' || user?.role === 'agent'
 
+  const visibleDocuments = useMemo(() => {
+    if (!statusFilter) {
+      return documents
+    }
+    return documents.filter((document) => document.status === statusFilter)
+  }, [documents, statusFilter])
+
   useEffect(() => {
     if (highlightDocumentId && highlightRef.current) {
       highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
-  }, [highlightDocumentId, documents])
+  }, [highlightDocumentId, visibleDocuments])
 
   const grouped = useMemo(() => {
+    if (statusFilter) {
+      return []
+    }
+
     const buckets = new Map<DocumentStatus, Document[]>()
-    for (const status of GROUP_ORDER) {
+    for (const status of DOCUMENT_FOLDER_ORDER) {
       buckets.set(status, [])
     }
 
@@ -64,12 +69,12 @@ export function DocumentList({
       buckets.set(document.status, list)
     }
 
-    return GROUP_ORDER.map((status) => ({
+    return DOCUMENT_FOLDER_ORDER.map((status) => ({
       status,
-      label: GROUP_LABELS[status],
+      label: DOCUMENT_FOLDER_LABELS[status],
       items: buckets.get(status) ?? [],
     })).filter((group) => group.items.length > 0)
-  }, [documents])
+  }, [documents, statusFilter])
 
   const handleSign = async (document: Document) => {
     setPreviewError(null)
@@ -108,77 +113,75 @@ export function DocumentList({
     return <p className="text-sm text-muted">Loading documents…</p>
   }
 
+  const renderCard = (document: Document) => {
+    const signableForSend = document.file_path
+      ? canSendForSigning(mimeTypeFromPath(document.file_path))
+      : false
+    const isHighlighted = highlightDocumentId === document.id
+
+    return (
+      <div
+        key={document.id}
+        ref={isHighlighted ? highlightRef : undefined}
+        className={isHighlighted ? 'rounded-lg ring-2 ring-brand-500 ring-offset-2' : undefined}
+      >
+        <DocumentCard
+          document={document}
+          onPreview={() => void handlePreview(document)}
+          onDownload={() => void downloadDocument(document)}
+          onSign={() => setPendingSignDocument(document)}
+          onSendForSigning={
+            isStaff &&
+            document.status === 'draft' &&
+            signableForSend &&
+            onSendForSigning
+              ? () => onSendForSigning(document)
+              : undefined
+          }
+          isSigning={signingId === document.id}
+          showNotSignableHint={
+            isStaff && document.status === 'draft' && !signableForSend
+          }
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {showUpload && isStaff && (
-        <section>
-          <h3 className="mb-3 text-sm font-semibold text-ink">Upload document</h3>
-          <DocumentUpload
-            landId={landId}
-            onUpload={() => {
-              void refresh()
-            }}
-          />
-        </section>
-      )}
-
       {(error || previewError) && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="ui-alert-danger" role="alert">
           {previewError ??
             (error instanceof Error ? formatSupabaseError(error) : 'Could not load documents.')}
         </p>
       )}
 
-      {isPreviewLoading && (
-        <p className="text-sm text-muted">Loading preview…</p>
+      {isPreviewLoading && <p className="text-sm text-muted">Loading preview…</p>}
+
+      {statusFilter ? (
+        visibleDocuments.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
+            No documents in this folder yet.
+          </p>
+        ) : (
+          <div className="space-y-3">{visibleDocuments.map(renderCard)}</div>
+        )
+      ) : (
+        <>
+          {documents.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
+              No documents yet.
+            </p>
+          )}
+
+          {grouped.map((group) => (
+            <section key={group.status}>
+              <h3 className="mb-3 text-sm font-semibold text-ink">{group.label}</h3>
+              <div className="space-y-3">{group.items.map(renderCard)}</div>
+            </section>
+          ))}
+        </>
       )}
-
-      {documents.length === 0 && (
-        <p className="rounded-lg bg-slate-50 px-4 py-8 text-center text-sm text-muted">
-          No documents yet.
-        </p>
-      )}
-
-      {grouped.map((group) => (
-        <section key={group.status}>
-          <h3 className="mb-3 text-sm font-semibold text-ink">{group.label}</h3>
-          <div className="space-y-3">
-            {group.items.map((document) => {
-              const signableForSend = document.file_path
-                ? canSendForSigning(mimeTypeFromPath(document.file_path))
-                : false
-              const isHighlighted = highlightDocumentId === document.id
-
-              return (
-                <div
-                  key={document.id}
-                  ref={isHighlighted ? highlightRef : undefined}
-                  className={isHighlighted ? 'rounded-lg ring-2 ring-brand-500 ring-offset-2' : undefined}
-                >
-                  <DocumentCard
-                    document={document}
-                    onPreview={() => void handlePreview(document)}
-                    onDownload={() => void downloadDocument(document)}
-                    onSign={() => setPendingSignDocument(document)}
-                    onSendForSigning={
-                      isStaff &&
-                      document.status === 'draft' &&
-                      signableForSend &&
-                      onSendForSigning
-                        ? () => onSendForSigning(document)
-                        : undefined
-                    }
-                    isSigning={signingId === document.id}
-                    showNotSignableHint={
-                      isStaff && document.status === 'draft' && !signableForSend
-                    }
-                  />
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      ))}
 
       {previewDocument && previewUrl && (
         <DocumentPreviewModal
@@ -194,12 +197,12 @@ export function DocumentList({
 
       {pendingSignDocument && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="sign-modal-title"
         >
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-lg border border-border bg-surface-elevated p-6">
             <h2 id="sign-modal-title" className="text-lg font-semibold text-ink">
               Sign this document?
             </h2>
@@ -216,7 +219,7 @@ export function DocumentList({
               <button
                 type="button"
                 onClick={() => setPendingSignDocument(null)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-ink hover:bg-slate-50"
+                className="rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface"
               >
                 Cancel
               </button>
@@ -224,7 +227,7 @@ export function DocumentList({
                 type="button"
                 onClick={() => void handleSign(pendingSignDocument)}
                 disabled={signingId === pendingSignDocument.id}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                className="rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
               >
                 {signingId === pendingSignDocument.id ? 'Signing…' : 'Confirm & Sign'}
               </button>

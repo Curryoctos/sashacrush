@@ -1,16 +1,26 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { ArrowLeft, Camera, FileText, MessageSquare, Receipt } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/ui/PageHeader'
+import {
+  DealCards,
+  FolderCards,
+  HierarchyNav,
+} from '@/components/hierarchy/Hierarchy'
 import { useSellerUnreadCount } from '@/features/chat/useSellerUnreadCount'
+import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
-import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import { supabase } from '@/lib/supabase'
 import type { LandRecord } from '@/types/database'
 
-const SELLER_LAND_COLUMNS = 'id, title, description, location, total_value_usd, status'
+const SELLER_LAND_COLUMNS = 'id, title, status'
 
 export function SellerDashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { data: unreadCount = 0 } = useSellerUnreadCount()
 
   const { data, isLoading, error } = useQuery({
@@ -31,98 +41,103 @@ export function SellerDashboard() {
     },
   })
 
+  const lands = data ?? []
+  const { selectedLand, setNavigation } = useLandHierarchyNav(lands)
+
+  const dealCards = useMemo(
+    () =>
+      lands.map((land) => ({
+        id: land.id,
+        title: land.title,
+        hint: unreadCount > 0 ? 'New activity' : 'Open folders',
+      })),
+    [lands, unreadCount],
+  )
+
   return (
-    <div className="p-8">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold text-ink">Seller Dashboard</h1>
-          <p className="mt-2 text-muted">Signed in as {user?.email}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/seller/chat"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
-            >
-              Messages
-              {unreadCount > 0 && (
-                <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-semibold">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </Link>
-            <Link
-              to="/seller/documents"
-              className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
-            >
-              Documents
-            </Link>
-            <Link
-              to="/seller/receipts"
-              className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
-            >
-              Receipts
-            </Link>
-            <Link
-              to="/seller/photos"
-              className="inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-ink hover:bg-slate-50"
-            >
-              Photos
-            </Link>
-          </div>
-        </div>
+    <div className="ui-page max-w-4xl">
+      <PageHeader
+        eyebrow="Seller portal"
+        title="Your workspace"
+        description={
+          user?.email
+            ? `Signed in as ${user.email}. Open a deal, then a folder.`
+            : 'Open a deal, then a folder.'
+        }
+      />
 
-        <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="text-lg font-semibold text-ink">Your land record</h2>
-          <p className="mt-1 text-sm text-muted">
-            Property details assigned to your account. Payment information is not shown here.
-          </p>
+      {isLoading && <p className="text-sm text-muted">Loading workspace…</p>}
 
-          {isLoading && <p className="mt-6 text-sm text-muted">Loading your land record…</p>}
+      {error && (
+        <p className="ui-alert-danger" role="alert">
+          {formatSupabaseError(error as Error)}
+        </p>
+      )}
 
-          {error && (
-            <p className="mt-6 text-sm text-red-700" role="alert">
-              {formatSupabaseError(error as Error)}
-            </p>
-          )}
+      {!isLoading && !error && !selectedLand && (
+        <DealCards
+          deals={dealCards}
+          onSelect={(id) => setNavigation(id, null)}
+          emptyTitle="No land record assigned yet"
+          emptyDescription="Your deals appear here once admin assigns a property."
+          prompt="Select a deal to open its folders."
+        />
+      )}
 
-          {!isLoading && !error && data?.length === 0 && (
-            <p className="mt-6 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-muted">
-              No land record assigned yet.
-            </p>
-          )}
-
-          {data && data.length > 0 && (
-            <div className="mt-6 space-y-4">
-              {data.map((record) => (
-                <article
-                  key={record.id}
-                  className="rounded-lg border border-slate-200 bg-slate-50 p-5"
-                >
-                  <h3 className="text-lg font-semibold text-ink">{record.title}</h3>
-                  {record.description && (
-                    <p className="mt-2 text-sm text-muted">{record.description}</p>
-                  )}
-                  <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                        Location
-                      </dt>
-                      <dd className="mt-1 text-sm text-ink">{record.location}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                        Total value
-                      </dt>
-                      <dd className="mt-1 text-sm font-medium text-ink">
-                        {formatUsd(record.total_value_usd)}
-                      </dd>
-                    </div>
-                  </dl>
-                </article>
-              ))}
+      {selectedLand && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'Workspace', onClick: () => setNavigation(null, null) },
+              { label: selectedLand.title },
+            ]}
+          />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="ui-section-title">{selectedLand.title}</h2>
+              <p className="ui-section-desc">Choose a folder</p>
             </div>
-          )}
-        </section>
-      </div>
+            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
+              <ArrowLeft className="h-4 w-4" />
+              Workspace
+            </Button>
+          </div>
+
+          <FolderCards
+            folders={[
+              {
+                id: 'messages',
+                title: 'Messages',
+                description: 'Talk with the SashaCrush team',
+                icon: <MessageSquare className="h-5 w-5" />,
+                count: unreadCount > 0 ? unreadCount : undefined,
+                onSelect: () => navigate(`/seller/chat?land=${selectedLand.id}`),
+              },
+              {
+                id: 'documents',
+                title: 'Documents',
+                description: 'Review and sign deal documents',
+                icon: <FileText className="h-5 w-5" />,
+                onSelect: () => navigate(`/seller/documents?land=${selectedLand.id}`),
+              },
+              {
+                id: 'receipts',
+                title: 'Receipts',
+                description: 'Download payment receipts',
+                icon: <Receipt className="h-5 w-5" />,
+                onSelect: () => navigate(`/seller/receipts?land=${selectedLand.id}`),
+              },
+              {
+                id: 'photos',
+                title: 'Photos',
+                description: 'Property photo gallery',
+                icon: <Camera className="h-5 w-5" />,
+                onSelect: () => navigate(`/seller/photos?land=${selectedLand.id}`),
+              },
+            ]}
+          />
+        </div>
+      )}
     </div>
   )
 }

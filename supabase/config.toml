@@ -415,3 +415,14 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Payment gateway webhooks authenticate via provider signatures, not Supabase JWT.
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.flutterwave-webhook]
+verify_jwt = false
+
+# Seller magic link is requested before auth; rate-limited inside the function.
+[functions.request-seller-magic-link]
+verify_jwt = false

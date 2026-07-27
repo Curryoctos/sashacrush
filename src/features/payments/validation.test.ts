@@ -30,4 +30,57 @@ describe('validateCreatePayment', () => {
       }),
     ).toBe('Enter a positive USD amount.')
   })
+
+  it('requires a network and UGX amount for mobile money', () => {
+    expect(
+      validateCreatePayment({
+        landId: 'land-id',
+        amountUsd: 100,
+        method: 'flutterwave',
+      }),
+    ).toBe('Choose MTN MoMo or Airtel Money.')
+
+    expect(
+      validateCreatePayment({
+        landId: 'land-id',
+        amountUsd: 100,
+        method: 'flutterwave',
+        mobileMoneyNetwork: 'mtn',
+      }),
+    ).toBe('Enter the UGX amount for mobile-money checkout.')
+  })
+
+  it('accepts MTN and Airtel mobile-money payments', () => {
+    for (const network of ['mtn', 'airtel'] as const) {
+      expect(
+        validateCreatePayment({
+          landId: 'land-id',
+          amountUsd: 100,
+          amountUgx: 370_000,
+          method: 'flutterwave',
+          mobileMoneyNetwork: network,
+        }),
+      ).toBeNull()
+    }
+  })
+
+  it('rejects amount above deal total', () => {
+    expect(
+      validateCreatePayment({
+        landId: 'land-id',
+        amountUsd: 400_000,
+        totalValueUsd: 300_000,
+      }),
+    ).toMatch(/exceeds deal total/)
+  })
+
+  it('rejects amount above remaining outstanding', () => {
+    expect(
+      validateCreatePayment({
+        landId: 'land-id',
+        amountUsd: 60_000,
+        remainingOutstandingUsd: 50_000,
+      }),
+    ).toMatch(/exceeds remaining outstanding/)
+  })
 })

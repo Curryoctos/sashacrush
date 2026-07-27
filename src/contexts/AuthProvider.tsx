@@ -12,11 +12,15 @@ interface AuthProviderProps {
 async function fetchProfile(session: Session): Promise<AuthUser | null> {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, role')
+    .select('id, email, role, is_active')
     .eq('id', session.user.id)
     .single()
 
   if (error || !data) {
+    return null
+  }
+
+  if (data.is_active === false) {
     return null
   }
 
@@ -117,7 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!profile) {
       await supabase.auth.signOut()
       throw new Error(
-        'Your account is not provisioned. Contact an administrator.',
+        'Your account is not provisioned or has been deactivated. Contact an administrator.',
       )
     }
 

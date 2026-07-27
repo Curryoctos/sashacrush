@@ -324,6 +324,68 @@ export function useDocuments(landId: string | null) {
     [refresh, user],
   )
 
+  const setDocumentStage = useCallback(
+    async (
+      documentId: string,
+      nextStatus: Document['status'],
+      options?: { sellerId?: string | null },
+    ): Promise<Document> => {
+      setActionError(null)
+
+      const { data: existing, error: fetchError } = await supabase
+        .from('documents')
+        .select(DOCUMENT_COLUMNS)
+        .eq('id', documentId)
+        .single()
+
+      if (fetchError || !existing) {
+        throw new Error('Document not found.')
+      }
+
+      const doc = mapDocument(existing as Document)
+
+      if (doc.status === 'signed') {
+        throw new Error('Signed documents are locked and cannot change stage.')
+      }
+
+      if (nextStatus === 'signed') {
+        throw new Error('Only the assigned seller can sign a document.')
+      }
+
+      if (doc.status === 'draft' && nextStatus === 'sent') {
+        if (!options?.sellerId) {
+          throw new Error('This land record has no seller assigned.')
+        }
+        return sendForSigning(documentId, options.sellerId)
+      }
+
+      const patch: {
+        status: Document['status']
+        assigned_to?: string | null
+      } = { status: nextStatus }
+
+      if (doc.status === 'sent' && nextStatus === 'draft') {
+        patch.assigned_to = null
+      }
+
+      const { data, error } = await supabase
+        .from('documents')
+        .update(patch)
+        .eq('id', documentId)
+        .select(DOCUMENT_COLUMNS)
+        .single()
+
+      if (error || !data) {
+        throw new Error(error?.message ?? 'Could not update document stage.')
+      }
+
+      await refresh()
+      void queryClient.invalidateQueries({ queryKey: ['document-counts'] })
+      return mapDocument(data as Document)
+    },
+    [queryClient, refresh, sendForSigning],
+  )
+
   const downloadDocument = useCallback(async (document: Document) => {
     if (!document.file_path) {
       throw new Error('Document file is missing.')
@@ -363,6 +425,7 @@ export function useDocuments(landId: string | null) {
     fetchDocuments,
     uploadDocument,
     sendForSigning,
+    setDocumentStage,
     signDocument,
     downloadDocument,
     getPreviewUrl,

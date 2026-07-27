@@ -4,10 +4,12 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client", "vitest/globals"],
+    "types": ["vite/client", "vitest/globals", "node"],
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "npm:@supabase/supabase-js@2": ["./node_modules/@supabase/supabase-js"],
+      "npm:pdf-lib@1.17.1": ["./node_modules/pdf-lib"]
     },
 
     /* Bundler mode */

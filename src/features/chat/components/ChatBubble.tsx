@@ -21,10 +21,9 @@ export function ChatBubble({
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
-          isOwn ? 'text-white' : 'bg-slate-100 text-ink'
+        className={`max-w-[85%] rounded-lg px-4 py-3 ${
+          isOwn ? 'bg-brand-700 text-white' : 'bg-surface text-ink'
         }`}
-        style={isOwn ? { backgroundColor: '#2D6A4F' } : undefined}
       >
         <p className="text-xs font-semibold opacity-80">{senderLabel}</p>
         {message.is_auto_reply && (

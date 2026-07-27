@@ -1,4 +1,4 @@
-import { getEnv, requireEnv } from './env.ts'
+import { getEnv } from './env.ts'
 
 export interface SendEmailParams {
   to: string

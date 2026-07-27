@@ -5,16 +5,20 @@ export interface AgentDashboardStats {
   activeLands: number
   docsAwaitingSign: number
   pendingPayments: number
+  recentDeals: Array<{ id: string; title: string }>
 }
 
 export function useAgentDashboardStats() {
   return useQuery({
     queryKey: ['agent-dashboard-stats'],
     queryFn: async (): Promise<AgentDashboardStats> => {
-      const { count: activeLands } = await supabase
+      const { data: lands } = await supabase
         .from('land_records')
-        .select('id', { count: 'exact', head: true })
+        .select('id, title')
         .eq('status', 'active')
+        .order('created_at', { ascending: false })
+
+      const activeLands = lands ?? []
 
       const { count: docsAwaitingSign } = await supabase
         .from('documents')
@@ -27,9 +31,13 @@ export function useAgentDashboardStats() {
         .neq('status', 'confirmed')
 
       return {
-        activeLands: activeLands ?? 0,
+        activeLands: activeLands.length,
         docsAwaitingSign: docsAwaitingSign ?? 0,
         pendingPayments: pendingPayments ?? 0,
+        recentDeals: activeLands.slice(0, 8).map((land) => ({
+          id: land.id,
+          title: land.title,
+        })),
       }
     },
     refetchInterval: 60_000,

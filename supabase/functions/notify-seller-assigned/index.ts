@@ -1,4 +1,4 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+/// <reference path="../_shared/deno.d.ts" />
 import { requireAuthenticatedStaff } from '../_shared/auth.ts'
 import { RateLimitError, assertRateLimit } from '../_shared/rateLimit.ts'
 import { sellerAssignedEmail } from '../_shared/emailTemplates.ts'

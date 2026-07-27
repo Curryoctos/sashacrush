@@ -6,6 +6,8 @@ import {
   useMfaAssurance,
 } from '@/features/auth/useMfa'
 import { notifySuccess } from '@/features/notifications/useNotifications'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
 
@@ -57,15 +59,15 @@ export function StaffMfaChallengePage({ backPath }: StaffMfaChallengePageProps) 
   }
 
   return (
-    <div className="p-8">
-      <div className="mx-auto max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-ink">Verify your identity</h1>
+    <div className="ui-page max-w-lg">
+      <Card padding="lg">
+        <h1 className="font-display text-2xl font-semibold text-ink">Verify your identity</h1>
         <p className="mt-2 text-sm text-muted">
           Enter the 6-digit code from your authenticator app to continue.
         </p>
 
         <div className="mt-6">
-          <label htmlFor="mfa-challenge-code" className="block text-sm font-medium text-ink">
+          <label htmlFor="mfa-challenge-code" className="ui-label">
             Verification code
           </label>
           <input
@@ -74,32 +76,31 @@ export function StaffMfaChallengePage({ backPath }: StaffMfaChallengePageProps) 
             autoComplete="one-time-code"
             value={code}
             onChange={(event) => setCode(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="ui-input mt-1.5"
             placeholder="123456"
           />
         </div>
 
-        <button
-          type="button"
+        <Button
+          className="mt-4"
           onClick={() => void handleVerify()}
           disabled={isSubmitting || code.trim().length < 6 || !factorId}
-          className="mt-4 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
         >
           {isSubmitting ? 'Verifying…' : 'Verify and continue'}
-        </button>
+        </Button>
 
         {error && (
-          <p className="mt-4 text-sm text-red-700" role="alert">
+          <p className="ui-alert-danger mt-4" role="alert">
             {error}
           </p>
         )}
 
         <p className="mt-6 text-sm">
-          <Link to={backPath} className="text-brand-700 hover:underline">
+          <Link to={backPath} className="font-medium text-brand-700 hover:text-brand-800">
             Back to dashboard
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   )
 }

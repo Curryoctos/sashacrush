@@ -79,10 +79,10 @@ export function DocumentUpload({ landId, onUpload }: DocumentUploadProps) {
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
-        className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+        className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
           isDragging
-            ? 'border-brand-500 bg-brand-50'
-            : 'border-slate-300 bg-slate-50 hover:border-brand-400'
+            ? 'border-brand-600 bg-brand-50'
+            : 'border-border bg-surface hover:border-brand-500'
         }`}
       >
         <p className="text-sm font-medium text-ink">
@@ -108,9 +108,9 @@ export function DocumentUpload({ landId, onUpload }: DocumentUploadProps) {
 
       {progress !== null && (
         <div className="space-y-1">
-          <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+          <div className="h-2 overflow-hidden rounded-full bg-border">
             <div
-              className="h-full bg-brand-600 transition-all"
+              className="h-full bg-brand-700 transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -119,7 +119,7 @@ export function DocumentUpload({ landId, onUpload }: DocumentUploadProps) {
       )}
 
       {error && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="ui-alert-danger" role="alert">
           {error}
         </p>
       )}

@@ -44,21 +44,27 @@ export interface Database {
           email: string
           role: UserRole
           full_name: string | null
+          is_active: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id: string
           email: string
           role: UserRole
           full_name?: string | null
+          is_active?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           email?: string
           role?: UserRole
           full_name?: string | null
+          is_active?: boolean
           created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -113,6 +119,9 @@ export interface Database {
           method: PaymentMethod | null
           rate_used: number | null
           stripe_payment_intent_id: string | null
+          flutterwave_tx_ref: string | null
+          gateway_checkout_url: string | null
+          mobile_money_network: 'mtn' | 'airtel' | null
           status: string
           created_at: string
         }
@@ -124,6 +133,9 @@ export interface Database {
           method?: PaymentMethod | null
           rate_used?: number | null
           stripe_payment_intent_id?: string | null
+          flutterwave_tx_ref?: string | null
+          gateway_checkout_url?: string | null
+          mobile_money_network?: 'mtn' | 'airtel' | null
           status?: string
           created_at?: string
         }
@@ -135,6 +147,9 @@ export interface Database {
           method?: PaymentMethod | null
           rate_used?: number | null
           stripe_payment_intent_id?: string | null
+          flutterwave_tx_ref?: string | null
+          gateway_checkout_url?: string | null
+          mobile_money_network?: 'mtn' | 'airtel' | null
           status?: string
           created_at?: string
         }
@@ -148,6 +163,11 @@ export interface Database {
           receipt_number: string
           pdf_path: string | null
           created_at: string
+          amount_usd: number
+          amount_ugx: number | null
+          rate_used: number | null
+          land_id: string | null
+          land_title: string | null
         }
         Insert: {
           id?: string
@@ -156,6 +176,11 @@ export interface Database {
           receipt_number: string
           pdf_path?: string | null
           created_at?: string
+          amount_usd: number
+          amount_ugx?: number | null
+          rate_used?: number | null
+          land_id?: string | null
+          land_title?: string | null
         }
         Update: {
           id?: string
@@ -163,6 +188,41 @@ export interface Database {
           seller_id?: string
           receipt_number?: string
           pdf_path?: string | null
+          created_at?: string
+          amount_usd?: number
+          amount_ugx?: number | null
+          rate_used?: number | null
+          land_id?: string | null
+          land_title?: string | null
+        }
+        Relationships: []
+      }
+      gateway_webhook_events: {
+        Row: {
+          id: string
+          provider: 'stripe' | 'flutterwave'
+          event_key: string
+          function_name: string
+          payment_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          provider: 'stripe' | 'flutterwave'
+          event_key: string
+          function_name: string
+          payment_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          provider?: 'stripe' | 'flutterwave'
+          event_key?: string
+          function_name?: string
+          payment_id?: string | null
+          metadata?: Json | null
           created_at?: string
         }
         Relationships: []
@@ -329,6 +389,24 @@ export interface Database {
     }
     Views: Record<string, never>
     Functions: {
+      get_advisory_lock: {
+        Args: { lock_id: number }
+        Returns: undefined
+      }
+      allocate_receipt_number: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      write_audit_log_as: {
+        Args: {
+          p_actor_id: string | null
+          p_action: string
+          p_entity_type: string
+          p_entity_id: string
+          p_metadata?: Json | null
+        }
+        Returns: undefined
+      }
       send_chat_auto_reply: {
         Args: { p_land_id: string; p_body: string }
         Returns: undefined

@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button'
 import { mimeTypeFromPath } from '@/features/documents/signing'
 
 interface DocumentPreviewModalProps {
@@ -19,23 +20,19 @@ export function DocumentPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="preview-modal-title"
     >
-      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-lg">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+      <div className="ui-panel flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 id="preview-modal-title" className="text-lg font-semibold text-ink">
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-ink hover:bg-slate-50"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-[50vh] flex-1 overflow-auto p-4">
@@ -43,7 +40,7 @@ export function DocumentPreviewModal({
             <iframe
               src={previewUrl}
               title={title}
-              className="h-[70vh] w-full rounded-lg border border-slate-200"
+              className="h-[70vh] w-full rounded-lg border border-border"
             />
           )}
 
@@ -56,7 +53,7 @@ export function DocumentPreviewModal({
           )}
 
           {!isPdf && !isImage && (
-            <p className="rounded-lg bg-slate-50 px-4 py-8 text-center text-sm text-muted">
+            <p className="rounded-lg border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
               In-browser preview is not available for this file type. Use Download instead.
             </p>
           )}

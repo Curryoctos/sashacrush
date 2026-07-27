@@ -12,10 +12,12 @@ export interface ReceiptWithDetails {
   created_at: string
   amount_usd: number
   amount_ugx: number | null
+  land_id: string | null
   land_title: string
 }
 
-const RECEIPT_COLUMNS = 'id, payment_id, seller_id, receipt_number, pdf_path, created_at'
+const RECEIPT_COLUMNS =
+  'id, payment_id, seller_id, receipt_number, pdf_path, created_at, amount_usd, amount_ugx, land_id, land_title'
 
 export function useReceipts() {
   const { user } = useAuth()
@@ -42,33 +44,37 @@ export function useReceipts() {
         return []
       }
 
-      const paymentIds = receipts.map((receipt) => receipt.payment_id)
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('id, land_id, amount_usd, amount_ugx')
-        .in('id', paymentIds)
+      // Amounts and land title live on receipts (seller-safe).
+      // Fallback: resolve missing titles from land_records the seller can read.
+      const missingLandIds = [
+        ...new Set(
+          receipts
+            .filter((receipt) => !receipt.land_title && receipt.land_id)
+            .map((receipt) => receipt.land_id!),
+        ),
+      ]
 
-      const paymentMap = new Map((payments ?? []).map((payment) => [payment.id, payment]))
-      const landIds = [...new Set((payments ?? []).map((payment) => payment.land_id))]
+      const landMap = new Map<string, string>()
+      if (missingLandIds.length > 0) {
+        const { data: lands } = await supabase
+          .from('land_records')
+          .select('id, title')
+          .in('id', missingLandIds)
 
-      const { data: lands } = await supabase
-        .from('land_records')
-        .select('id, title')
-        .in('id', landIds)
-
-      const landMap = new Map((lands ?? []).map((land) => [land.id, land.title]))
-
-      return receipts.map((receipt) => {
-        const payment = paymentMap.get(receipt.payment_id)
-        const landTitle = payment ? (landMap.get(payment.land_id) ?? 'Unknown property') : 'Unknown property'
-
-        return {
-          ...receipt,
-          amount_usd: payment?.amount_usd ?? 0,
-          amount_ugx: payment?.amount_ugx ?? null,
-          land_title: landTitle,
+        for (const land of lands ?? []) {
+          landMap.set(land.id, land.title)
         }
-      })
+      }
+
+      return receipts.map((receipt) => ({
+        ...receipt,
+        amount_usd: Number(receipt.amount_usd ?? 0),
+        amount_ugx: receipt.amount_ugx != null ? Number(receipt.amount_ugx) : null,
+        land_title:
+          receipt.land_title ??
+          (receipt.land_id ? landMap.get(receipt.land_id) : undefined) ??
+          'Unknown property',
+      }))
     },
   })
 }

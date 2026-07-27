@@ -8,13 +8,19 @@ export function AgentDealPage() {
   const dealQuery = useDealSummary(landId, false)
 
   return (
-    <div className="p-8">
-      {dealQuery.isLoading && <p className="text-sm text-muted">Loading deal…</p>}
+    <div>
+      {dealQuery.isLoading && (
+        <div className="ui-page">
+          <p className="text-sm text-muted">Loading deal…</p>
+        </div>
+      )}
 
       {dealQuery.error && (
-        <p className="text-sm text-red-700" role="alert">
-          {formatSupabaseError(dealQuery.error as Error)}
-        </p>
+        <div className="ui-page">
+          <p className="ui-alert-danger" role="alert">
+            {formatSupabaseError(dealQuery.error as Error)}
+          </p>
+        </div>
       )}
 
       {dealQuery.data && (
@@ -26,6 +32,10 @@ export function AgentDealPage() {
               label: 'Field photos',
               to: `/agent/photos?land=${dealQuery.data.land.id}`,
               primary: true,
+            },
+            {
+              label: 'Documents',
+              to: `/agent/documents?land=${dealQuery.data.land.id}`,
             },
           ]}
         />

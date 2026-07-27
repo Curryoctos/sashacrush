@@ -1,18 +1,24 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useMemo } from 'react'
+import { ArrowLeft, Building2, MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import {
+  DealCards,
+  FolderCards,
+  HierarchyNav,
+} from '@/components/hierarchy/Hierarchy'
 import { ChatWindow } from '@/features/chat/components/ChatWindow'
 import { UnreadBadge } from '@/features/chat/components/UnreadBadge'
 import {
   countUnreadMessages,
   readLastReadAt,
 } from '@/features/chat/chat-utils'
+import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage, LandRecord } from '@/types'
 import type { ChatChannel } from '@/types/database'
-
-type AdminChatTab = 'land-owner' | 'executive'
 
 async function fetchMessagesSnapshot(
   channel: ChatChannel,
@@ -41,17 +47,12 @@ async function fetchMessagesSnapshot(
 
 export function AdminChatPage() {
   const { user } = useAuth()
-  const [searchParams] = useSearchParams()
-  const landFromQuery = searchParams.get('land') ?? ''
-  const [activeTab, setActiveTab] = useState<AdminChatTab>('land-owner')
-  const [selectedLandId, setSelectedLandId] = useState<string>(landFromQuery)
-
   const landsQuery = useQuery({
     queryKey: ['admin-land-records-options'],
     queryFn: async (): Promise<LandRecord[]> => {
       const { data, error } = await supabase
         .from('land_records')
-        .select('id, title, location')
+        .select('id, title')
         .eq('status', 'active')
         .order('title')
 
@@ -63,20 +64,21 @@ export function AdminChatPage() {
     },
   })
 
-  const resolvedLandId = useMemo(() => {
-    if (selectedLandId && landsQuery.data?.some((land) => land.id === selectedLandId)) {
-      return selectedLandId
-    }
-    if (landFromQuery && landsQuery.data?.some((land) => land.id === landFromQuery)) {
-      return landFromQuery
-    }
-    return landsQuery.data?.[0]?.id ?? null
-  }, [landsQuery.data, selectedLandId, landFromQuery])
+  const lands = landsQuery.data ?? []
+  const { selectedLandId, selectedLand, selectedFolder, setNavigation } =
+    useLandHierarchyNav(lands)
+
+  const channel =
+    selectedFolder === 'executive'
+      ? 'executive'
+      : selectedFolder === 'land-owner' || selectedLandId
+        ? 'land-owner'
+        : null
 
   const sellerUnreadQuery = useQuery({
-    queryKey: ['chat-unread', 'seller_channel', resolvedLandId],
-    enabled: Boolean(resolvedLandId),
-    queryFn: () => fetchMessagesSnapshot('seller_channel', resolvedLandId),
+    queryKey: ['chat-unread', 'seller_channel', selectedLandId],
+    enabled: Boolean(selectedLandId),
+    queryFn: () => fetchMessagesSnapshot('seller_channel', selectedLandId),
     refetchInterval: 10_000,
   })
 
@@ -89,7 +91,7 @@ export function AdminChatPage() {
   const sellerUnread = countUnreadMessages(
     sellerUnreadQuery.data ?? [],
     user?.id,
-    readLastReadAt('seller_channel', resolvedLandId),
+    readLastReadAt('seller_channel', selectedLandId),
   )
 
   const executiveUnread = countUnreadMessages(
@@ -98,75 +100,129 @@ export function AdminChatPage() {
     readLastReadAt('executive_channel', null),
   )
 
+  const dealCards = useMemo(
+    () =>
+      lands.map((land) => ({
+        id: land.id,
+        title: land.title,
+        hint: 'Open conversation',
+      })),
+    [lands],
+  )
+
   return (
-    <div className="min-h-screen bg-surface p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div>
-          <p className="text-sm text-muted">
-            <Link to="/admin/dashboard" className="text-brand-700 hover:underline">
-              ← Admin Dashboard
-            </Link>
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-ink">Messages</h1>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('land-owner')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              activeTab === 'land-owner'
-                ? 'bg-brand-600 text-white'
-                : 'bg-white text-ink ring-1 ring-slate-200'
-            }`}
-          >
-            Land Owner Chat
-            <UnreadBadge count={sellerUnread} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('executive')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              activeTab === 'executive'
-                ? 'bg-brand-600 text-white'
-                : 'bg-white text-ink ring-1 ring-slate-200'
-            }`}
-          >
-            Executive Chat
-            <UnreadBadge count={executiveUnread} />
-          </button>
-        </div>
-
-        {activeTab === 'land-owner' && (
-          <div className="space-y-4">
-            <label className="block max-w-md">
-              <span className="text-sm font-medium text-ink">Land record</span>
-              <select
-                value={resolvedLandId ?? ''}
-                onChange={(event) => setSelectedLandId(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                {(landsQuery.data ?? []).map((land) => (
-                  <option key={land.id} value={land.id}>
-                    {land.title}
-                    {land.location ? ` — ${land.location}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {resolvedLandId ? (
-              <ChatWindow landId={resolvedLandId} channel="seller_channel" />
-            ) : (
-              <p className="text-sm text-muted">Create a land record to start messaging.</p>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'executive' && (
-          <ChatWindow landId={null} channel="executive_channel" />
-        )}
+    <div className="ui-page max-w-4xl">
+      <div>
+        <PageBackLink to="/admin/dashboard" label="Admin Dashboard" />
+        <PageHeader
+          className="mt-3"
+          title="Messages"
+          description="Open a channel, then a deal when needed."
+        />
       </div>
+
+      {!channel && (
+        <FolderCards
+          folders={[
+            {
+              id: 'land-owner',
+              title: 'Land owner chat',
+              description: 'Deal-scoped seller conversations',
+              icon: <Building2 className="h-5 w-5" />,
+              onSelect: () => setNavigation(null, 'land-owner'),
+            },
+            {
+              id: 'executive',
+              title: 'Executive chat',
+              description: 'Staff leadership channel',
+              icon: <MessageSquare className="h-5 w-5" />,
+              count: executiveUnread > 0 ? executiveUnread : undefined,
+              onSelect: () => setNavigation(null, 'executive'),
+            },
+          ]}
+        />
+      )}
+
+      {channel === 'executive' && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'Channels', onClick: () => setNavigation(null, null) },
+              { label: 'Executive chat' },
+            ]}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="ui-section-title">Executive chat</h2>
+              <UnreadBadge count={executiveUnread} />
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
+              <ArrowLeft className="h-4 w-4" />
+              Channels
+            </Button>
+          </div>
+          <ChatWindow landId={null} channel="executive_channel" />
+        </div>
+      )}
+
+      {channel === 'land-owner' && !selectedLand && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'Channels', onClick: () => setNavigation(null, null) },
+              { label: 'Land owner chat' },
+            ]}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="ui-section-title">Land owner chat</h2>
+            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
+              <ArrowLeft className="h-4 w-4" />
+              Channels
+            </Button>
+          </div>
+          {landsQuery.isLoading ? (
+            <p className="text-sm text-muted">Loading deals…</p>
+          ) : (
+            <DealCards
+              deals={dealCards}
+              onSelect={(id) => setNavigation(id, 'land-owner')}
+              emptyTitle="No deals yet"
+              emptyDescription="Create a land record to start messaging."
+              prompt="Select a deal to open the conversation."
+            />
+          )}
+        </div>
+      )}
+
+      {channel === 'land-owner' && selectedLand && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'Channels', onClick: () => setNavigation(null, null) },
+              {
+                label: 'Land owner chat',
+                onClick: () => setNavigation(null, 'land-owner'),
+              },
+              { label: selectedLand.title },
+            ]}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="ui-section-title">{selectedLand.title}</h2>
+              <UnreadBadge count={sellerUnread} />
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(null, 'land-owner')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Deals
+            </Button>
+          </div>
+          <ChatWindow landId={selectedLand.id} channel="seller_channel" />
+        </div>
+      )}
     </div>
   )
 }

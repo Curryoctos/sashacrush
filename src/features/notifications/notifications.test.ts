@@ -111,7 +111,7 @@ describe('email templates', () => {
 })
 
 describe('sendEmail', () => {
-  it('throws if RESEND_API_KEY is missing', async () => {
+  it('skips delivery if RESEND_API_KEY is missing', async () => {
     const host = globalThis as { process?: { env?: Record<string, string | undefined> } }
     const saved = host.process?.env?.RESEND_API_KEY
     if (host.process?.env) {
@@ -124,7 +124,7 @@ describe('sendEmail', () => {
         subject: 'Test',
         html: '<p>Test</p>',
       }),
-    ).rejects.toThrow('RESEND_API_KEY')
+    ).resolves.toBeUndefined()
 
     if (saved !== undefined && host.process?.env) {
       host.process.env.RESEND_API_KEY = saved

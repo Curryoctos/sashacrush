@@ -257,3 +257,50 @@ export function sellerMagicLinkEmail(params: {
 
   return emailLayout({ bodyHtml })
 }
+
+export function staffInviteEmail(params: {
+  recipientName: string
+  roleLabel: string
+  setPasswordLink: string
+  portalUrl: string
+}): string {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.recipientName},</p>
+    <p style="margin:0 0 16px;">You have been provisioned on SashaCrush as <strong>${params.roleLabel}</strong>.</p>
+    <p style="margin:0 0 16px;">Set your password with the button below, then sign in with email and password.</p>
+    ${ctaButton('Set Password', params.setPasswordLink)}
+    <p style="margin:16px 0 0;font-size:14px;color:#6b7280;">Portal: ${params.portalUrl}</p>
+  `
+
+  return emailLayout({ bodyHtml })
+}
+
+export function staffPasswordResetEmail(params: {
+  recipientName: string
+  resetLink: string
+  portalUrl: string
+}): string {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.recipientName},</p>
+    <p style="margin:0 0 16px;">An administrator requested a password reset for your SashaCrush account.</p>
+    ${ctaButton('Reset Password', params.resetLink)}
+    <p style="margin:16px 0 0;font-size:14px;color:#6b7280;">If you did not expect this, contact your administrator. Portal: ${params.portalUrl}</p>
+  `
+
+  return emailLayout({ bodyHtml })
+}
+
+export function sellerWelcomeEmail(params: {
+  sellerName: string
+  magicLink: string
+  portalUrl: string
+}): string {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.sellerName},</p>
+    <p style="margin:0 0 16px;">Your SashaCrush seller account is ready. Use the button below to sign in — sellers use a one-time magic link (no password).</p>
+    ${ctaButton('Open Seller Portal', params.magicLink)}
+    <p style="margin:16px 0 0;font-size:14px;color:#6b7280;">You can request a new link anytime at ${params.portalUrl}</p>
+  `
+
+  return emailLayout({ bodyHtml })
+}

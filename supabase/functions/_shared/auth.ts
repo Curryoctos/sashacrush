@@ -67,11 +67,15 @@ async function authenticateRequest(req: Request): Promise<AuthenticatedUser> {
 
   const { data: profile, error: profileError } = await client
     .from('users')
-    .select('role')
+    .select('role, is_active')
     .eq('id', user.id)
     .single()
 
   if (profileError || !profile?.role) {
+    throw new Error('Forbidden')
+  }
+
+  if (profile.is_active === false) {
     throw new Error('Forbidden')
   }
 
@@ -98,6 +102,27 @@ export async function requireAuthenticatedStaff(req: Request): Promise<Authentic
   return {
     userId: user.userId,
     role: user.role,
+    client: user.client,
+  }
+}
+
+export interface AuthenticatedAdmin {
+  userId: string
+  role: 'admin'
+  client: SupabaseClient
+}
+
+/** Client-invoked functions: verify JWT and admin role only. */
+export async function requireAuthenticatedAdmin(req: Request): Promise<AuthenticatedAdmin> {
+  const user = await authenticateRequest(req)
+
+  if (user.role !== 'admin') {
+    throw new Error('Forbidden')
+  }
+
+  return {
+    userId: user.userId,
+    role: 'admin',
     client: user.client,
   }
 }

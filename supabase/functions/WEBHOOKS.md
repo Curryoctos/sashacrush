@@ -14,13 +14,32 @@ This guide explains how to connect database events to Edge Functions that send e
    supabase functions deploy notify-admin-message
    supabase functions deploy notify-payment-confirmed
    supabase functions deploy request-seller-magic-link
+   supabase functions deploy admin-manage-users
+   supabase functions deploy confirm-payment
+   supabase functions deploy initiate-gateway-payment
+   supabase functions deploy stripe-webhook
+   supabase functions deploy flutterwave-webhook
    ```
+
+   Or use `./scripts/deploy-functions.sh`.
 
 2. Set Edge Function secrets (Dashboard → Project Settings → Edge Functions → Secrets, or CLI):
    ```bash
    supabase secrets set RESEND_API_KEY=re_xxxxxxxx
    supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
    supabase secrets set APP_URL=https://your-production-url.com
+   supabase secrets set STRIPE_SECRET_KEY=sk_test_...
+   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
+   supabase secrets set FLUTTERWAVE_SECRET_KEY=FLWSECK_TEST-...
+   supabase secrets set FLUTTERWAVE_WEBHOOK_HASH=your_secret_hash
+   ```
+
+   **Local development:** copy `supabase/functions/.env.example` → `supabase/functions/.env`, fill `STRIPE_SECRET_KEY` / `FLUTTERWAVE_SECRET_KEY`, then restart:
+
+   ```bash
+   cp supabase/functions/.env.example supabase/functions/.env
+   # edit supabase/functions/.env
+   npx supabase stop && npx supabase start
    ```
 
    Optional:
@@ -32,7 +51,7 @@ This guide explains how to connect database events to Edge Functions that send e
 
 4. **Webhook authentication:** DB webhook functions (`notify-receipt-created`, `notify-payment-confirmed`) require `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`. When configuring webhooks in the Supabase Dashboard, use the **service role** key or the built-in Edge Function trigger (recommended).
 
-5. **Client-invoked functions:** `notify-document-sent`, `notify-seller-assigned`, and `notify-admin-message` require admin/agent JWT. `notify-document-signed` and `notify-seller-message` require an authenticated user JWT (seller for message alerts). `request-seller-magic-link` is public (no JWT) but rate-limited and only sends links for provisioned seller emails.
+5. **Client-invoked functions:** `notify-document-sent`, `notify-seller-assigned`, and `notify-admin-message` require admin/agent JWT. `notify-document-signed` and `notify-seller-message` require an authenticated user JWT (seller for message alerts). `admin-manage-users` requires an **admin** JWT (create / update / deactivate / send access). `request-seller-magic-link` is public (no JWT) but rate-limited and only sends links for active provisioned seller emails.
 
 6. **Idempotency:** Webhook and several invoke functions record events in `notification_events` to prevent duplicate emails on retries.
 
@@ -213,6 +232,53 @@ https://<project-ref>.supabase.co/functions/v1/notify-admin-message
 ```
 
 **Behavior:** Requires admin/agent JWT. Sends `adminMessageEmail` to the seller assigned to the land record.
+
+---
+
+## Payment gateways — Stripe & Flutterwave
+
+### Confirm payment (staff)
+
+**Not a DB webhook.** Admin/agent confirms a payment and issues the receipt PDF server-side.
+
+```
+POST /functions/v1/confirm-payment
+{ "paymentId": "uuid" }
+```
+
+### Initiate gateway checkout (staff)
+
+```
+POST /functions/v1/initiate-gateway-payment
+{ "paymentId": "uuid" }
+```
+
+Creates a Stripe Checkout session or Flutterwave payment link for a pending `stripe` / `flutterwave` payment and returns `{ checkoutUrl }`.
+
+### Stripe webhook
+
+```
+POST /functions/v1/stripe-webhook
+```
+
+- `verify_jwt = false` (authenticated via `Stripe-Signature` + `STRIPE_WEBHOOK_SECRET`)
+- Handles `checkout.session.completed` and `payment_intent.succeeded`
+- Confirms payment + issues receipt (same path as `confirm-payment`)
+
+Local forward:
+
+```bash
+stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook
+```
+
+### Flutterwave webhook
+
+```
+POST /functions/v1/flutterwave-webhook
+```
+
+- `verify_jwt = false` (authenticated via `verif-hash` + `FLUTTERWAVE_WEBHOOK_HASH`)
+- On successful charge, confirms payment + issues receipt
 
 ---
 

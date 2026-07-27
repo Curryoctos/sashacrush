@@ -1,73 +1,187 @@
-import { downloadReceiptPdf, useReceipts } from '@/features/payments/useReceipts'
+import { useMemo, useState } from 'react'
+import { ArrowLeft, Download, Receipt } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { IconActionButton } from '@/components/ui/IconActionButton'
+import {
+  DealCards,
+  FolderCards,
+  HierarchyNav,
+} from '@/components/hierarchy/Hierarchy'
+import { useReceipts } from '@/features/payments/useReceipts'
+import { useReceiptDownload } from '@/features/payments/useReceiptDownload'
+import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
-import { formatUsd } from '@/lib/land-records'
+import { formatDate, formatUgx, formatUsd } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
 export function SellerReceiptsPage() {
   const { user } = useAuth()
   const { data: receipts, isLoading, error } = useReceipts()
+  const { downloadReceipt, isDownloading } = useReceiptDownload()
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  const deals = useMemo(() => {
+    const map = new Map<string, { id: string; title: string; count: number }>()
+    for (const receipt of receipts ?? []) {
+      if (!receipt.land_id) {
+        continue
+      }
+      const current = map.get(receipt.land_id)
+      if (current) {
+        current.count += 1
+      } else {
+        map.set(receipt.land_id, {
+          id: receipt.land_id,
+          title: receipt.land_title || 'Untitled deal',
+          count: 1,
+        })
+      }
+    }
+    return [...map.values()]
+  }, [receipts])
+
+  const { selectedLandId, selectedLand, selectedFolder, setNavigation } =
+    useLandHierarchyNav(deals)
+
+  const landReceipts = (receipts ?? []).filter(
+    (receipt) => receipt.land_id === selectedLandId,
+  )
 
   return (
-    <div className="p-8">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold text-ink">Receipts</h1>
-          <p className="mt-1 text-sm text-muted">Signed in as {user?.email}</p>
+    <div className="ui-page max-w-4xl">
+      <div>
+        <PageBackLink to="/seller/dashboard" label="Seller Dashboard" />
+        <PageHeader
+          className="mt-3"
+          title="Receipts"
+          description={
+            user?.email
+              ? `Signed in as ${user.email}. Open a deal, then receipts.`
+              : 'Open a deal, then receipts.'
+          }
+        />
+      </div>
+
+      {isLoading && <p className="text-sm text-muted">Loading receipts…</p>}
+
+      {error && (
+        <p className="ui-alert-danger" role="alert">
+          {formatSupabaseError(error as Error)}
+        </p>
+      )}
+
+      {!isLoading && !error && !selectedLand && (
+        <DealCards
+          deals={deals.map((deal) => ({
+            id: deal.id,
+            title: deal.title,
+            hint: `${deal.count} receipt${deal.count === 1 ? '' : 's'}`,
+          }))}
+          onSelect={(id) => setNavigation(id, null)}
+          emptyTitle="No receipts yet"
+          emptyDescription="Receipts appear after each confirmed payment."
+          prompt="Select a deal to view receipts."
+        />
+      )}
+
+      {selectedLand && selectedFolder !== 'list' && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'All deals', onClick: () => setNavigation(null, null) },
+              { label: selectedLand.title },
+            ]}
+          />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="ui-section-title">{selectedLand.title}</h2>
+              <p className="ui-section-desc">Choose a folder</p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
+              <ArrowLeft className="h-4 w-4" />
+              All deals
+            </Button>
+          </div>
+          <FolderCards
+            folders={[
+              {
+                id: 'list',
+                title: 'Receipts',
+                description: 'Confirmed payment receipts for this deal',
+                icon: <Receipt className="h-5 w-5" />,
+                count: landReceipts.length,
+                onSelect: () => setNavigation(selectedLand.id, 'list'),
+              },
+            ]}
+          />
         </div>
+      )}
 
-        <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="text-lg font-semibold text-ink">Your payment receipts</h2>
-          <p className="mt-1 text-sm text-muted">
-            Receipts are issued after admin confirms your payment. Download the PDF for your
-            records.
-          </p>
+      {selectedLand && selectedFolder === 'list' && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'All deals', onClick: () => setNavigation(null, null) },
+              {
+                label: selectedLand.title,
+                onClick: () => setNavigation(selectedLand.id, null),
+              },
+              { label: 'Receipts' },
+            ]}
+          />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="ui-section-title">Receipts</h2>
+              <p className="ui-section-desc">{landReceipts.length} for {selectedLand.title}</p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(selectedLand.id, null)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Folders
+            </Button>
+          </div>
 
-          {isLoading && <p className="mt-6 text-sm text-muted">Loading receipts…</p>}
-
-          {error && (
-            <p className="mt-6 text-sm text-red-700" role="alert">
-              {formatSupabaseError(error as Error)}
-            </p>
-          )}
-
-          {!isLoading && !error && receipts?.length === 0 && (
-            <p className="mt-6 rounded-lg bg-slate-50 px-4 py-8 text-center text-sm text-muted">
-              No receipts yet. They will appear here once your payment is confirmed.
-            </p>
-          )}
-
-          {receipts && receipts.length > 0 && (
-            <div className="mt-6 space-y-3">
-              {receipts.map((receipt) => (
-                <article
-                  key={receipt.id}
-                  className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+          {landReceipts.length === 0 ? (
+            <EmptyState title="No receipts for this deal" />
+          ) : (
+            <div className="space-y-3">
+              {landReceipts.map((receipt) => (
+                <Card key={receipt.id} padding="sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-ink">{receipt.receipt_number}</h3>
-                      <p className="mt-1 text-sm text-muted">{receipt.land_title}</p>
-                      <p className="mt-1 text-sm text-ink">{formatUsd(receipt.amount_usd)}</p>
-                      <p className="mt-1 text-xs text-muted">
-                        Issued {new Date(receipt.created_at).toLocaleString()}
+                      <p className="text-sm font-semibold text-ink">{receipt.receipt_number}</p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {formatUsd(receipt.amount_usd)}
+                        {receipt.amount_ugx != null ? ` · ${formatUgx(receipt.amount_ugx)}` : ''}
+                        {' · '}
+                        {formatDate(receipt.created_at)}
                       </p>
                     </div>
                     {receipt.pdf_path && (
-                      <button
-                        type="button"
-                        onClick={() => void downloadReceiptPdf(receipt.pdf_path!)}
-                        className="rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
-                      >
-                        Download PDF
-                      </button>
+                      <IconActionButton
+                        label="Download receipt"
+                        icon={<Download className="h-4 w-4" />}
+                        disabled={isDownloading && downloadingId === receipt.id}
+                        onClick={() => {
+                          setDownloadingId(receipt.id)
+                          void downloadReceipt(receipt.pdf_path!).finally(() =>
+                            setDownloadingId(null),
+                          )
+                        }}
+                      />
                     )}
                   </div>
-                </article>
+                </Card>
               ))}
             </div>
           )}
-        </section>
-      </div>
+        </div>
+      )}
     </div>
   )
 }

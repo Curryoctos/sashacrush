@@ -1,12 +1,16 @@
-import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { DealCards, HierarchyNav } from '@/components/hierarchy/Hierarchy'
 import { ChatWindow } from '@/features/chat/components/ChatWindow'
 import { UnreadBadge } from '@/features/chat/components/UnreadBadge'
 import {
   countUnreadMessages,
   readLastReadAt,
 } from '@/features/chat/chat-utils'
-import { useQuery } from '@tanstack/react-query'
+import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage, LandRecord } from '@/types'
@@ -29,16 +33,13 @@ async function fetchMessagesSnapshot(landId: string): Promise<ChatMessage[]> {
 
 export function AgentChatPage() {
   const { user } = useAuth()
-  const [searchParams] = useSearchParams()
-  const landFromQuery = searchParams.get('land') ?? ''
-  const [selectedLandId, setSelectedLandId] = useState<string>(landFromQuery)
 
   const landsQuery = useQuery({
     queryKey: ['agent-land-records-chat'],
     queryFn: async (): Promise<LandRecord[]> => {
       const { data, error } = await supabase
         .from('land_records')
-        .select('id, title, location')
+        .select('id, title')
         .eq('status', 'active')
         .order('title')
 
@@ -50,72 +51,76 @@ export function AgentChatPage() {
     },
   })
 
-  const resolvedLandId = useMemo(() => {
-    if (selectedLandId && landsQuery.data?.some((land) => land.id === selectedLandId)) {
-      return selectedLandId
-    }
-    if (landFromQuery && landsQuery.data?.some((land) => land.id === landFromQuery)) {
-      return landFromQuery
-    }
-    return landsQuery.data?.[0]?.id ?? null
-  }, [landsQuery.data, selectedLandId, landFromQuery])
+  const lands = landsQuery.data ?? []
+  const { selectedLandId, selectedLand, setNavigation } = useLandHierarchyNav(lands)
 
   const unreadQuery = useQuery({
-    queryKey: ['agent-chat-unread', resolvedLandId],
-    enabled: Boolean(resolvedLandId),
-    queryFn: () => fetchMessagesSnapshot(resolvedLandId!),
+    queryKey: ['agent-chat-unread', selectedLandId],
+    enabled: Boolean(selectedLandId),
+    queryFn: () => fetchMessagesSnapshot(selectedLandId!),
     refetchInterval: 10_000,
   })
 
   const unreadCount = countUnreadMessages(
     unreadQuery.data ?? [],
     user?.id,
-    readLastReadAt('seller_channel', resolvedLandId),
+    readLastReadAt('seller_channel', selectedLandId),
+  )
+
+  const dealCards = useMemo(
+    () =>
+      lands.map((land) => ({
+        id: land.id,
+        title: land.title,
+        hint: 'Open conversation',
+      })),
+    [lands],
   )
 
   return (
-    <div className="p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div>
-          <p className="text-sm text-muted">
-            <Link to="/agent/dashboard" className="text-brand-700 hover:underline">
-              ← Agent Dashboard
-            </Link>
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-ink">Seller Messages</h1>
-          <p className="mt-1 text-sm text-muted">
-            Reply to land owners on behalf of the SashaCrush team.
-          </p>
-        </div>
-
-        <label className="block max-w-md">
-          <span className="text-sm font-medium text-ink">Land record</span>
-          <select
-            value={resolvedLandId ?? ''}
-            onChange={(event) => setSelectedLandId(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            {(landsQuery.data ?? []).map((land) => (
-              <option key={land.id} value={land.id}>
-                {land.title}
-                {land.location ? ` — ${land.location}` : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {resolvedLandId ? (
-          <div>
-            <p className="mb-2 text-sm text-muted">
-              Unread on this property
-              <UnreadBadge count={unreadCount} />
-            </p>
-            <ChatWindow landId={resolvedLandId} channel="seller_channel" />
-          </div>
-        ) : (
-          <p className="text-sm text-muted">No active land records to message.</p>
-        )}
+    <div className="ui-page max-w-4xl">
+      <div>
+        <PageBackLink to="/agent/dashboard" label="Agent Dashboard" />
+        <PageHeader
+          className="mt-3"
+          title="Seller Messages"
+          description="Select a deal to open the conversation."
+        />
       </div>
+
+      {landsQuery.isLoading && <p className="text-sm text-muted">Loading deals…</p>}
+
+      {!selectedLand && !landsQuery.isLoading && (
+        <DealCards
+          deals={dealCards}
+          onSelect={(id) => setNavigation(id, null)}
+          emptyTitle="No active deals"
+          emptyDescription="No land records to message yet."
+          prompt="Select a deal to message the land owner."
+        />
+      )}
+
+      {selectedLand && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'All deals', onClick: () => setNavigation(null, null) },
+              { label: selectedLand.title },
+            ]}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="ui-section-title">{selectedLand.title}</h2>
+              <UnreadBadge count={unreadCount} />
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
+              <ArrowLeft className="h-4 w-4" />
+              All deals
+            </Button>
+          </div>
+          <ChatWindow landId={selectedLand.id} channel="seller_channel" />
+        </div>
+      )}
     </div>
   )
 }

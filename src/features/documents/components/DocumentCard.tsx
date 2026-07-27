@@ -1,14 +1,20 @@
+import {
+  Download,
+  Eye,
+  FileSignature,
+  Lock,
+  Send,
+} from 'lucide-react'
 import type { Document, DocumentStatus } from '@/types'
+import { Badge, statusTone } from '@/components/ui/Badge'
 import { useAuth } from '@/hooks/useAuth'
+import { IconActionButton } from '@/components/ui/IconActionButton'
 
-const STATUS_BADGE: Record<
-  DocumentStatus,
-  { label: string; className: string }
-> = {
-  draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
-  sent: { label: 'Awaiting Signature', className: 'bg-blue-100 text-blue-800' },
-  signed: { label: 'Signed ✓', className: 'bg-green-100 text-green-800' },
-  archived: { label: 'Archived', className: 'bg-slate-100 text-slate-600' },
+const STATUS_LABEL: Record<DocumentStatus, string> = {
+  draft: 'Draft',
+  sent: 'Awaiting Signature',
+  signed: 'Signed',
+  archived: 'Archived',
 }
 
 function formatTimestamp(value: string): string {
@@ -38,7 +44,6 @@ export function DocumentCard({
   showNotSignableHint = false,
 }: DocumentCardProps) {
   const { user } = useAuth()
-  const badge = STATUS_BADGE[document.status]
   const fileName = document.title ?? document.file_path ?? 'Untitled document'
   const canSign =
     document.status === 'sent' &&
@@ -46,14 +51,12 @@ export function DocumentCard({
     Boolean(onSign)
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <article className="rounded-lg border border-border bg-surface-elevated p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {document.status === 'signed' && (
-              <span className="text-muted" title="Signed and locked" aria-hidden>
-                🔒
-              </span>
+              <Lock className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
             )}
             <h3 className="truncate text-sm font-semibold text-ink">{fileName}</h3>
           </div>
@@ -66,54 +69,43 @@ export function DocumentCard({
             </p>
           )}
         </div>
-        <span
-          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
-        >
-          {badge.label}
-        </span>
+        <Badge tone={statusTone(document.status)}>{STATUS_LABEL[document.status]}</Badge>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {onPreview && (
-          <button
-            type="button"
+          <IconActionButton
+            label="Preview"
+            icon={<Eye className="h-4 w-4" />}
             onClick={onPreview}
-            className="rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
-          >
-            Preview
-          </button>
+          />
         )}
-        <button
-          type="button"
+        <IconActionButton
+          label="Download"
+          icon={<Download className="h-4 w-4" />}
           onClick={onDownload}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-ink hover:bg-slate-50"
-        >
-          Download
-        </button>
+        />
 
         {canSign && (
-          <button
-            type="button"
+          <IconActionButton
+            label={isSigning ? 'Signing…' : 'Sign'}
+            icon={<FileSignature className="h-4 w-4" />}
+            variant="primary"
             onClick={onSign}
             disabled={isSigning}
-            className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-          >
-            {isSigning ? 'Signing…' : 'Sign'}
-          </button>
+          />
         )}
 
         {document.status === 'draft' && onSendForSigning && (
-          <button
-            type="button"
+          <IconActionButton
+            label="Send for signing"
+            icon={<Send className="h-4 w-4" />}
             onClick={onSendForSigning}
-            className="rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
-          >
-            Send for Signing
-          </button>
+          />
         )}
 
         {showNotSignableHint && (
-          <p className="w-full text-xs text-amber-700">
+          <p className="ui-alert-warning w-full">
             DOCX files must be converted to PDF before sending for signature.
           </p>
         )}

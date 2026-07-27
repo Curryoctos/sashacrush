@@ -1,4 +1,4 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+/// <reference path="../_shared/deno.d.ts" />
 import { RateLimitError, assertRateLimit } from '../_shared/rateLimit.ts'
 import { sellerMagicLinkEmail } from '../_shared/emailTemplates.ts'
 import { errorResponse, jsonResponse } from '../_shared/http.ts'
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
     const { data: seller, error: sellerError } = await supabase
       .from('users')
-      .select('id, email, full_name, role')
+      .select('id, email, full_name, role, is_active')
       .eq('email', email)
       .maybeSingle()
 
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       return errorResponse(`Could not verify seller: ${sellerError.message}`)
     }
 
-    if (!seller || seller.role !== 'seller') {
+    if (!seller || seller.role !== 'seller' || seller.is_active === false) {
       return jsonResponse({ success: true, message: GENERIC_SUCCESS })
     }
 
