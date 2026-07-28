@@ -12,11 +12,15 @@ interface AuthProviderProps {
 async function fetchProfile(session: Session): Promise<AuthUser | null> {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, role')
+    .select('id, email, role, is_active')
     .eq('id', session.user.id)
     .single()
 
   if (error || !data) {
+    return null
+  }
+
+  if (data.is_active === false) {
     return null
   }
 
@@ -28,50 +32,76 @@ async function fetchProfile(session: Session): Promise<AuthUser | null> {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [authReady, setAuthReady] = useState(false)
 
-  const applySession = useCallback(async (session: Session | null) => {
-    if (!session) {
-      setUser(null)
-      return
-    }
-
-    const profile = await fetchProfile(session)
-    if (!profile) {
-      await supabase.auth.signOut()
-      setUser(null)
-      return
-    }
-
-    setUser(profile)
-  }, [])
-
+  // Listen for session changes — must stay synchronous (no await / Supabase calls here).
+  // Async work inside onAuthStateChange deadlocks signInWithPassword and getSession.
   useEffect(() => {
     let mounted = true
 
-    void (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (mounted) {
-        await applySession(session)
-        setIsLoading(false)
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (!mounted) {
+        return
       }
-    })()
+      setSession(initialSession)
+      setAuthReady(true)
+    })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void applySession(session)
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+      setAuthReady(true)
     })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [applySession])
+  }, [])
+
+  // Load profile whenever the session changes — outside the auth listener.
+  useEffect(() => {
+    if (!authReady) {
+      return
+    }
+
+    let cancelled = false
+
+    void (async () => {
+      setIsLoading(true)
+
+      if (!session) {
+        if (!cancelled) {
+          setUser(null)
+          setIsLoading(false)
+        }
+        return
+      }
+
+      const profile = await fetchProfile(session)
+
+      if (cancelled) {
+        return
+      }
+
+      if (!profile) {
+        await supabase.auth.signOut()
+        setUser(null)
+      } else {
+        setUser(profile)
+      }
+
+      setIsLoading(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session, authReady])
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -91,11 +121,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!profile) {
       await supabase.auth.signOut()
       throw new Error(
-        'Your account is not provisioned. Contact an administrator.',
+        'Your account is not provisioned or has been deactivated. Contact an administrator.',
       )
     }
 
+    setSession(data.session)
     setUser(profile)
+    setIsLoading(false)
     return profile
   }, [])
 
@@ -104,19 +136,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (error) {
       throw error
     }
+    setSession(null)
     setUser(null)
   }, [])
 
   const signInWithMagicLink = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/seller/dashboard`,
-      },
+    const { data, error } = await supabase.functions.invoke('request-seller-magic-link', {
+      body: { email: email.trim().toLowerCase() },
     })
 
+    if (data && typeof data === 'object' && 'error' in data && data.error) {
+      throw new Error(String(data.error))
+    }
+
     if (error) {
-      throw error
+      const contextBody =
+        error && typeof error === 'object' && 'context' in error
+          ? (error as { context?: { body?: unknown } }).context?.body
+          : undefined
+      if (contextBody && typeof contextBody === 'object' && 'error' in contextBody) {
+        throw new Error(String((contextBody as { error: unknown }).error))
+      }
+      throw new Error(error.message || 'Could not request magic link.')
     }
   }, [])
 

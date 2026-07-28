@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Allow Vitest to import Deno edge-function shared modules
+      'npm:@supabase/supabase-js@2': '@supabase/supabase-js',
+      'npm:pdf-lib@1.17.1': 'pdf-lib',
     },
   },
   test: {

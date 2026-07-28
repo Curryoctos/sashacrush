@@ -140,5 +140,5 @@ VALUES (
   50000,
   185000000,
   'manual',
-  'completed'
+  'pending'
 );
