@@ -50,7 +50,7 @@ Point provider dashboards at your edge functions (JWT verification disabled for 
 | Provider | Event | URL |
 |----------|-------|-----|
 | Stripe | `checkout.session.completed`, `payment_intent.succeeded` | `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` |
-| Flutterwave | Successful charge | `https://<project-ref>.supabase.co/functions/v1/flutterwave-webhook` |
+| Flutterwave | Transfer terminal status (**SUCCESSFUL** / **FAILED**) | `https://<project-ref>.supabase.co/functions/v1/flutterwave-webhook` |
 
 Local Stripe testing: `stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook`
 
@@ -70,7 +70,9 @@ Deploy `dist/` to your static host (Vercel, Netlify, etc.).
 2. Admin Users → create a seller (or staff) and confirm access email / Mailpit link
 3. Seller magic link (provisioned active email only)
 3. Send document for signing → seller `?sign=` link
-4. Record payment → confirm → receipt PDF + emails
+4. Pay out seller (MoMo or manual) → Flutterwave transfer webhook / Confirm paid → receipt PDF + emails
+   - Fund Flutterwave UGX balance before MoMo tests
+   - Failed transfers mark the payout `failed` and free available-to-pay-out
 5. Chat message → email alert + in-app notification bell
 
 ## 6. CI

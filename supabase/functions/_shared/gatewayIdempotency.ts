@@ -33,3 +33,25 @@ export async function claimGatewayWebhookEvent(
 
   return true
 }
+
+/**
+ * Release a previously claimed webhook event so Flutterwave can safely retry
+ * after a transient processing failure (amount mismatch, confirm error, etc.).
+ */
+export async function releaseGatewayWebhookEvent(
+  supabase: SupabaseClient,
+  params: {
+    provider: 'stripe' | 'flutterwave'
+    eventKey: string
+  },
+): Promise<void> {
+  const { error } = await supabase
+    .from('gateway_webhook_events')
+    .delete()
+    .eq('provider', params.provider)
+    .eq('event_key', params.eventKey)
+
+  if (error) {
+    console.error('Failed to release gateway webhook claim:', params.eventKey, error.message)
+  }
+}

@@ -41,7 +41,7 @@ export function statusTone(status: string): BadgeTone {
   if (value === 'pending' || value === 'sent' || value === 'draft') {
     return 'warning'
   }
-  if (value === 'failed' || value === 'archived' || value === 'cancelled') {
+  if (value === 'failed' || value === 'archived' || value === 'cancelled' || value === 'rejected') {
     return 'danger'
   }
   return 'neutral'

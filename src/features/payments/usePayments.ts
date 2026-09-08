@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { confirmPaymentWithReceipt } from '@/features/payments/confirmPayment'
 import { initiateGatewayPayment } from '@/features/payments/initiateGatewayPayment'
 import {
+  normalizeUgandaPhone,
+  resolveRecipientPhone,
   validateCreatePayment,
   type CreatePaymentInput,
 } from '@/features/payments/validation'
@@ -21,13 +23,15 @@ export interface PaymentWithLand {
   flutterwave_tx_ref: string | null
   gateway_checkout_url: string | null
   mobile_money_network: 'mtn' | 'airtel' | null
+  manual_reference: string | null
+  payer_phone: string | null
   created_at: string
   receipt_number: string | null
   pdf_path: string | null
 }
 
 const PAYMENT_COLUMNS =
-  'id, land_id, amount_usd, amount_ugx, rate_used, method, status, stripe_payment_intent_id, flutterwave_tx_ref, gateway_checkout_url, mobile_money_network, created_at'
+  'id, land_id, amount_usd, amount_ugx, rate_used, method, status, stripe_payment_intent_id, flutterwave_tx_ref, gateway_checkout_url, mobile_money_network, manual_reference, payer_phone, created_at'
 
 async function fetchPaymentsWithLand(): Promise<PaymentWithLand[]> {
   const { data: payments, error } = await supabase
@@ -86,6 +90,7 @@ function invalidatePaymentQueries(queryClient: ReturnType<typeof useQueryClient>
   void queryClient.invalidateQueries({ queryKey: ['receipts'] })
   void queryClient.invalidateQueries({ queryKey: ['deal-summary'] })
   void queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] })
+  void queryClient.invalidateQueries({ queryKey: ['company-capital'] })
 }
 
 export function useAllPayments() {
@@ -107,6 +112,10 @@ export function useAllPayments() {
         throw new Error('Payment is already confirmed.')
       }
 
+      if (payment.status === 'failed') {
+        throw new Error('This payout failed. Create a new payout to try again.')
+      }
+
       return confirmPaymentWithReceipt(paymentId)
     },
     onSuccess: () => {
@@ -121,15 +130,23 @@ export function useAllPayments() {
         throw new Error(validationError)
       }
 
+      const method = input.method ?? 'manual'
+      const status = method === 'manual' ? 'pending_manual' : 'pending'
+      const rawPhone = resolveRecipientPhone(input)
+      const recipientPhone = rawPhone ? normalizeUgandaPhone(rawPhone) ?? rawPhone : null
+
       const { data, error } = await supabase
         .from('payments')
         .insert({
           land_id: input.landId,
           amount_usd: input.amountUsd,
           amount_ugx: input.amountUgx ?? null,
-          method: input.method ?? 'manual',
+          rate_used: input.rateUsed ?? null,
+          method,
           mobile_money_network: input.mobileMoneyNetwork ?? null,
-          status: 'pending',
+          manual_reference: input.manualReference ?? null,
+          payer_phone: recipientPhone,
+          status,
         })
         .select(PAYMENT_COLUMNS)
         .single()
@@ -145,7 +162,7 @@ export function useAllPayments() {
     },
   })
 
-  const startGatewayCheckout = useMutation({
+  const startGatewayPayout = useMutation({
     // The newly inserted payment may not be in the query cache yet. The edge
     // function is authoritative and validates status + gateway method.
     mutationFn: initiateGatewayPayment,
@@ -162,8 +179,8 @@ export function useAllPayments() {
     isConfirming: confirmPayment.isPending,
     createPayment: createPayment.mutateAsync,
     isCreating: createPayment.isPending,
-    startGatewayCheckout: startGatewayCheckout.mutateAsync,
-    isStartingCheckout: startGatewayCheckout.isPending,
+    startGatewayPayout: startGatewayPayout.mutateAsync,
+    isStartingPayout: startGatewayPayout.isPending,
     refresh: async () => {
       await queryClient.invalidateQueries({ queryKey: ['payments'] })
     },
@@ -183,8 +200,8 @@ export function usePayments(landId: string | null) {
     isConfirming: all.isConfirming,
     createPayment: all.createPayment,
     isCreating: all.isCreating,
-    startGatewayCheckout: all.startGatewayCheckout,
-    isStartingCheckout: all.isStartingCheckout,
+    startGatewayPayout: all.startGatewayPayout,
+    isStartingPayout: all.isStartingPayout,
     refresh: all.refresh,
   }
 }

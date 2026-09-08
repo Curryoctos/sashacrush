@@ -5,24 +5,52 @@ import {
 } from '../_shared/confirmPayment.ts'
 import {
   getFlutterwaveWebhookHash,
-  verifyFlutterwaveTransaction,
+  isFailedTransferStatus,
+  isSuccessfulTransferStatus,
+  verifyFlutterwaveTransfer,
   verifyFlutterwaveWebhookHash,
 } from '../_shared/flutterwave.ts'
-import { claimGatewayWebhookEvent } from '../_shared/gatewayIdempotency.ts'
+import {
+  claimGatewayWebhookEvent,
+  releaseGatewayWebhookEvent,
+} from '../_shared/gatewayIdempotency.ts'
 import { errorResponse, jsonResponse } from '../_shared/http.ts'
 import { flutterwaveAmountMatches } from '../_shared/paymentAmountGuard.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
 interface FlutterwaveWebhookPayload {
   event?: string
+  'event.type'?: string
   data?: {
     id?: number
+    reference?: string
     tx_ref?: string
     status?: string
     amount?: number
     currency?: string
-    meta?: { payment_id?: string }
+    meta?: unknown
   }
+}
+
+function extractMetaPaymentId(meta: unknown): string | null {
+  if (Array.isArray(meta)) {
+    for (const entry of meta) {
+      if (entry && typeof entry === 'object' && 'payment_id' in entry) {
+        const value = (entry as { payment_id?: unknown }).payment_id
+        if (typeof value === 'string' && value.trim()) {
+          return value.trim()
+        }
+      }
+    }
+    return null
+  }
+
+  if (meta && typeof meta === 'object' && 'payment_id' in meta) {
+    const value = (meta as { payment_id?: unknown }).payment_id
+    return typeof value === 'string' && value.trim() ? value.trim() : null
+  }
+
+  return null
 }
 
 Deno.serve(async (req) => {
@@ -42,126 +70,209 @@ Deno.serve(async (req) => {
     }
 
     const payload = (await req.json()) as FlutterwaveWebhookPayload
-    const webhookStatus = payload.data?.status?.toLowerCase()
+    const eventName = (payload.event ?? payload['event.type'] ?? '').toLowerCase()
 
-    if (webhookStatus !== 'successful') {
+    // Payout webhooks: transfer.completed / Transfer. Collect-in charge events are ignored.
+    const looksLikeTransfer =
+      eventName.includes('transfer') ||
+      Boolean(payload.data?.reference && !payload.data?.tx_ref)
+
+    if (!looksLikeTransfer) {
       return jsonResponse({
         success: true,
         skipped: true,
-        reason: `Ignored Flutterwave status ${webhookStatus ?? 'unknown'}`,
+        reason: `Ignored non-transfer Flutterwave event ${eventName || 'unknown'}`,
       })
     }
 
-    const transactionId = payload.data?.id
-    if (transactionId == null) {
-      return errorResponse('Flutterwave webhook missing transaction id', 400)
+    const transferId = payload.data?.id
+    if (transferId == null) {
+      return errorResponse('Flutterwave webhook missing transfer id', 400)
     }
 
-    const verified = await verifyFlutterwaveTransaction(transactionId)
+    // Authoritative status comes from verify API, not the webhook body alone.
+    const verified = await verifyFlutterwaveTransfer(transferId)
 
-    if (verified.status !== 'successful') {
+    if (
+      !isSuccessfulTransferStatus(verified.status) &&
+      !isFailedTransferStatus(verified.status)
+    ) {
       return jsonResponse({
         success: true,
         skipped: true,
-        reason: `Verify API status ${verified.status}`,
+        reason: `Transfer still in flight (${verified.status})`,
       })
     }
 
-    const txRef = verified.txRef.trim() || payload.data?.tx_ref?.trim() || ''
+    const reference =
+      verified.reference.trim() ||
+      payload.data?.reference?.trim() ||
+      payload.data?.tx_ref?.trim() ||
+      ''
     const metaPaymentId =
-      verified.metaPaymentId ?? payload.data?.meta?.payment_id?.trim() ?? null
+      verified.metaPaymentId ?? extractMetaPaymentId(payload.data?.meta)
 
     const supabase = createServiceClient()
 
     let paymentId = metaPaymentId
 
-    if (!paymentId && txRef) {
+    if (!paymentId && reference) {
       const { data: payment } = await supabase
         .from('payments')
         .select('id')
-        .eq('flutterwave_tx_ref', txRef)
+        .eq('flutterwave_tx_ref', reference)
         .maybeSingle()
       paymentId = payment?.id ?? null
     }
 
     if (!paymentId) {
-      return errorResponse('Could not resolve payment_id from Flutterwave event', 400)
+      return errorResponse('Could not resolve payment_id from Flutterwave transfer', 400)
     }
 
+    const eventKey = `flutterwave:transfer:${transferId}`
     const claimed = await claimGatewayWebhookEvent(supabase, {
       provider: 'flutterwave',
-      eventKey: `flutterwave:tx:${transactionId}`,
+      eventKey,
       functionName: 'flutterwave-webhook',
       paymentId,
-      metadata: { tx_ref: txRef },
+      metadata: { reference, status: verified.status },
     })
 
     if (!claimed) {
       return jsonResponse({
         success: true,
         skipped: true,
-        reason: 'Duplicate Flutterwave transaction',
-        transactionId,
+        reason: 'Duplicate Flutterwave transfer',
+        transferId,
       })
     }
 
-    const { data: payment, error: paymentError } = await supabase
-      .from('payments')
-      .select('id, amount_usd, amount_ugx, flutterwave_tx_ref, status')
-      .eq('id', paymentId)
-      .single()
-
-    if (paymentError || !payment) {
-      return errorResponse('Payment not found for Flutterwave event', 404)
-    }
-
-    if (
-      payment.flutterwave_tx_ref &&
-      txRef &&
-      payment.flutterwave_tx_ref !== txRef
-    ) {
-      return errorResponse('Flutterwave tx_ref does not match payment record', 409)
-    }
-
-    if (
-      !flutterwaveAmountMatches({
-        paidAmount: verified.amount,
-        paidCurrency: verified.currency,
-        expectedUsd: Number(payment.amount_usd),
-        expectedUgx: payment.amount_ugx != null ? Number(payment.amount_ugx) : null,
-      })
-    ) {
-      console.error('Flutterwave amount mismatch', {
-        paymentId,
-        expectedUsd: payment.amount_usd,
-        expectedUgx: payment.amount_ugx,
-        paidAmount: verified.amount,
-        paidCurrency: verified.currency,
-        transactionId,
-      })
-      return errorResponse('Paid amount does not match recorded payment', 409)
-    }
-
-    if (txRef && !payment.flutterwave_tx_ref) {
-      await supabase
+    try {
+      const { data: payment, error: paymentError } = await supabase
         .from('payments')
-        .update({ flutterwave_tx_ref: txRef })
+        .select('id, amount_usd, amount_ugx, flutterwave_tx_ref, status')
         .eq('id', paymentId)
+        .single()
+
+      if (paymentError || !payment) {
+        await releaseGatewayWebhookEvent(supabase, {
+          provider: 'flutterwave',
+          eventKey,
+        })
+        return errorResponse('Payment not found for Flutterwave transfer', 404)
+      }
+
+      if (payment.status === 'confirmed') {
+        return jsonResponse({
+          success: true,
+          skipped: true,
+          reason: 'Payment already confirmed',
+          transferId,
+        })
+      }
+
+      if (payment.status === 'failed') {
+        return jsonResponse({
+          success: true,
+          skipped: true,
+          reason: 'Payment already marked failed',
+          transferId,
+        })
+      }
+
+      if (
+        payment.flutterwave_tx_ref &&
+        reference &&
+        payment.flutterwave_tx_ref !== reference
+      ) {
+        await releaseGatewayWebhookEvent(supabase, {
+          provider: 'flutterwave',
+          eventKey,
+        })
+        return errorResponse('Flutterwave reference does not match payment record', 409)
+      }
+
+      if (isFailedTransferStatus(verified.status)) {
+        const { error: failError } = await supabase
+          .from('payments')
+          .update({ status: 'failed' })
+          .eq('id', paymentId)
+          .eq('status', 'pending')
+
+        if (failError) {
+          await releaseGatewayWebhookEvent(supabase, {
+            provider: 'flutterwave',
+            eventKey,
+          })
+          return errorResponse(`Could not mark payout failed: ${failError.message}`)
+        }
+
+        console.error('Flutterwave payout failed', {
+          paymentId,
+          transferId,
+          reference,
+          status: verified.status,
+        })
+
+        return jsonResponse({
+          success: true,
+          failed: true,
+          paymentId,
+          transferId,
+          status: verified.status,
+        })
+      }
+
+      if (
+        !flutterwaveAmountMatches({
+          paidAmount: verified.amount,
+          paidCurrency: verified.currency,
+          expectedUsd: Number(payment.amount_usd),
+          expectedUgx: payment.amount_ugx != null ? Number(payment.amount_ugx) : null,
+        })
+      ) {
+        console.error('Flutterwave payout amount mismatch', {
+          paymentId,
+          expectedUsd: payment.amount_usd,
+          expectedUgx: payment.amount_ugx,
+          paidAmount: verified.amount,
+          paidCurrency: verified.currency,
+          transferId,
+        })
+        await releaseGatewayWebhookEvent(supabase, {
+          provider: 'flutterwave',
+          eventKey,
+        })
+        return errorResponse('Payout amount does not match recorded payment', 409)
+      }
+
+      if (reference && !payment.flutterwave_tx_ref) {
+        await supabase
+          .from('payments')
+          .update({ flutterwave_tx_ref: reference })
+          .eq('id', paymentId)
+      }
+
+      const result = await confirmPaymentAndIssueReceipt(supabase, paymentId, {
+        source: 'flutterwave_webhook',
+        actorId: null,
+        providerEventKey: eventKey,
+        paidAmount: verified.amount,
+        paidCurrency: verified.currency,
+      })
+
+      return jsonResponse({
+        success: true,
+        receiptNumber: result.receiptNumber,
+        alreadyConfirmed: result.alreadyConfirmed,
+      })
+    } catch (processingError) {
+      await releaseGatewayWebhookEvent(supabase, {
+        provider: 'flutterwave',
+        eventKey,
+      })
+      throw processingError
     }
-
-    const result = await confirmPaymentAndIssueReceipt(supabase, paymentId, {
-      source: 'flutterwave_webhook',
-      actorId: null,
-      providerEventKey: `flutterwave:tx:${transactionId}`,
-      paidAmount: verified.amount,
-      paidCurrency: verified.currency,
-    })
-
-    return jsonResponse({
-      success: true,
-      receiptNumber: result.receiptNumber,
-      alreadyConfirmed: result.alreadyConfirmed,
-    })
   } catch (error) {
     if (error instanceof ConfirmPaymentError) {
       return errorResponse(error.message, error.status)

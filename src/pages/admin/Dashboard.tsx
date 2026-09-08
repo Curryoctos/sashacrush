@@ -5,6 +5,7 @@ import {
   ClipboardList,
   FileText,
   FolderKanban,
+  Landmark,
   MessageSquare,
   Users,
   Wallet,
@@ -20,7 +21,7 @@ import { useAdminDashboardStats } from '@/features/dashboard/useAdminDashboardSt
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-type AdminDashFolder = 'users' | 'deals' | 'documents' | 'payments' | 'messages' | 'audit'
+type AdminDashFolder = 'users' | 'deals' | 'documents' | 'payments' | 'capital' | 'messages' | 'audit'
 
 function isAdminDashFolder(value: string | null): value is AdminDashFolder {
   return (
@@ -28,6 +29,7 @@ function isAdminDashFolder(value: string | null): value is AdminDashFolder {
     value === 'deals' ||
     value === 'documents' ||
     value === 'payments' ||
+    value === 'capital' ||
     value === 'messages' ||
     value === 'audit'
   )
@@ -54,8 +56,13 @@ const FOLDER_META: Record<
   },
   payments: {
     title: 'Payments',
-    description: 'Collect and confirm deal payments',
+    description: 'Pay out and confirm seller disbursements',
     to: '/admin/payments',
+  },
+  capital: {
+    title: 'Capital',
+    description: 'Confirm executive investments into the company pool',
+    to: '/admin/capital',
   },
   messages: {
     title: 'Messages',
@@ -153,6 +160,13 @@ export function AdminDashboard() {
               icon: <Wallet className="h-5 w-5" />,
               count: stats.pendingPayments,
               onSelect: () => setFolder('payments'),
+            },
+            {
+              id: 'capital',
+              title: FOLDER_META.capital.title,
+              description: FOLDER_META.capital.description,
+              icon: <Landmark className="h-5 w-5" />,
+              onSelect: () => navigate(FOLDER_META.capital.to),
             },
             {
               id: 'messages',

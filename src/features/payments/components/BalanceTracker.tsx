@@ -17,7 +17,7 @@ export type { PaymentRow }
 interface BalanceTrackerProps {
   landId: string
   landTitle: string
-  landReference?: string
+  landReference: string
   totalValueUsd: number
 }
 
@@ -26,8 +26,10 @@ interface BalanceSummary {
   totalValueUgx: number
   paidUsd: number
   paidUgx: number
+  pendingUsd: number
   outstandingUsd: number
   outstandingUgx: number
+  availableToPayOutUsd: number
   pctPaid: number
   lastPaymentDate: string | null
   payments: PaymentRow[]
@@ -36,7 +38,7 @@ interface BalanceSummary {
 export function BalanceTracker({
   landId,
   landTitle,
-  landReference = 'SC-MBD-001',
+  landReference,
   totalValueUsd,
 }: BalanceTrackerProps) {
   const { user } = useAuth()
@@ -123,8 +125,10 @@ export function BalanceTracker({
         totalValueUgx: balance.totalValueUsd * ugxRate,
         paidUsd: balance.paidUsd,
         paidUgx,
+        pendingUsd: balance.pendingUsd,
         outstandingUsd,
         outstandingUgx: outstandingUsd * ugxRate,
+        availableToPayOutUsd: balance.availableToPayOutUsd,
         pctPaid,
         lastPaymentDate,
         payments: confirmed,
@@ -238,7 +242,7 @@ export function BalanceTracker({
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <BalanceStat
               label="Total Value"
               usd={formatUsd(summary.totalValueUsd)}
@@ -250,9 +254,14 @@ export function BalanceTracker({
               ugx={formatUgx(summary.paidUgx)}
             />
             <BalanceStat
+              label="Pending"
+              usd={formatUsd(summary.pendingUsd)}
+              ugx="In-flight payouts"
+            />
+            <BalanceStat
               label="Outstanding"
               usd={formatUsd(summary.outstandingUsd)}
-              ugx={formatUgx(summary.outstandingUgx)}
+              ugx={`Available ${formatUsd(summary.availableToPayOutUsd)}`}
               emphasize
             />
           </div>

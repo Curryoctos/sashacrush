@@ -4,11 +4,15 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ClipboardList, History, Scale, Wallet } from 'lucide-react'
 import { BalanceTracker } from '@/features/payments/components/BalanceTracker'
 import { PaymentCheckoutForm } from '@/features/payments/components/PaymentCheckoutForm'
+import { computeDealBalance } from '@/features/payments/balance'
 import {
-  GATEWAY_METHODS,
+  GATEWAY_PAYOUT_METHODS,
+  isAwaitingManualConfirm,
+  isConfirmablePending,
   isGatewayPayment,
   paymentMethodLabel,
 } from '@/features/payments/paymentMethods'
+import { landReferenceFromId } from '@/lib/landReference'
 import {
   PAYMENT_FOLDER_DESCRIPTIONS,
   PAYMENT_FOLDER_LABELS,
@@ -18,6 +22,7 @@ import {
 import { useAllPayments, type PaymentWithLand } from '@/features/payments/usePayments'
 import { useReceiptDownload } from '@/features/payments/useReceiptDownload'
 import type { CreatePaymentInput } from '@/features/payments/validation'
+import { useCompanyCapital } from '@/features/investments/useInvestments'
 import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
 import {
   DealCards,
@@ -37,19 +42,15 @@ import type { LandRecord } from '@/types'
 
 const LAND_COLUMNS = 'id, title, total_value_usd'
 
-function redirectToCheckout(checkoutUrl: string) {
-  window.location.assign(checkoutUrl)
-}
-
 export function AdminPaymentsPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const gatewayStatus = searchParams.get('gateway')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
-  const [checkoutId, setCheckoutId] = useState<string | null>(null)
+  const [payoutId, setPayoutId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [isCollecting, setIsCollecting] = useState(false)
-  const [awaitingWebhook, setAwaitingWebhook] = useState(gatewayStatus === 'success')
+  const [isPayingOut, setIsPayingOut] = useState(false)
+  const [awaitingPaymentId, setAwaitingPaymentId] = useState<string | null>(null)
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
 
   const landsQuery = useQuery({
@@ -80,43 +81,42 @@ export function AdminPaymentsPage() {
     error,
     confirmPayment,
     createPayment,
-    startGatewayCheckout,
+    startGatewayPayout,
     refresh,
   } = useAllPayments()
+  const { capital } = useCompanyCapital()
   const { downloadReceipt, isDownloading } = useReceiptDownload()
 
   const filteredPayments = selectedLandId
     ? payments.filter((payment) => payment.land_id === selectedLandId)
     : []
 
-  const outstandingUsd = useMemo(() => {
+  const dealBalance = useMemo(() => {
     if (!selectedLand) {
       return null
     }
-    const dealTotal = Number(selectedLand.total_value_usd)
-    const allocatedUsd = filteredPayments
-      .filter((payment) => payment.status !== 'failed')
-      .reduce((sum, payment) => sum + Number(payment.amount_usd), 0)
-    return Math.max(0, dealTotal - allocatedUsd)
+    return computeDealBalance(Number(selectedLand.total_value_usd), filteredPayments)
   }, [selectedLand, filteredPayments])
 
-  const awaitingCheckout = filteredPayments.filter(
+  const outstandingUsd = dealBalance?.outstandingUsd ?? null
+  const availableToPayOutUsd = dealBalance?.availableToPayOutUsd ?? null
+
+  const awaitingPayout = filteredPayments.filter(
     (payment) => payment.status === 'pending' && isGatewayPayment(payment.method),
   )
-  const pendingManual = filteredPayments.filter(
-    (payment) =>
-      payment.status === 'pending' &&
-      (payment.method === 'manual' || payment.method === 'crypto'),
+  const pendingManual = filteredPayments.filter((payment) =>
+    isAwaitingManualConfirm(payment.status, payment.method),
   )
-  const needsActionCount = awaitingCheckout.length + pendingManual.length
+  const needsActionCount = awaitingPayout.length + pendingManual.length
 
-  const landReference =
-    selectedLand?.title.toLowerCase().includes('mubende') ? 'SC-MBD-001' : 'SC-LAND'
+  const landReference = selectedLandId
+    ? landReferenceFromId(selectedLandId)
+    : 'SC-LAND'
 
   const pendingByLand = useMemo(() => {
     const map = new Map<string, number>()
     for (const payment of payments) {
-      if (payment.status !== 'pending') {
+      if (payment.status !== 'pending' && payment.status !== 'pending_manual') {
         continue
       }
       map.set(payment.land_id, (map.get(payment.land_id) ?? 0) + 1)
@@ -125,17 +125,16 @@ export function AdminPaymentsPage() {
   }, [payments])
 
   useEffect(() => {
-    if (gatewayStatus !== 'success') {
+    if (!awaitingPaymentId) {
       return
     }
 
-    setAwaitingWebhook(true)
     const interval = window.setInterval(() => {
       void refresh()
     }, 2500)
 
     const timeout = window.setTimeout(() => {
-      setAwaitingWebhook(false)
+      setAwaitingPaymentId(null)
       window.clearInterval(interval)
     }, 45_000)
 
@@ -143,28 +142,38 @@ export function AdminPaymentsPage() {
       window.clearInterval(interval)
       window.clearTimeout(timeout)
     }
-  }, [gatewayStatus, refresh])
+  }, [awaitingPaymentId, refresh])
 
   useEffect(() => {
-    if (gatewayStatus !== 'success' || !awaitingWebhook) {
+    if (!awaitingPaymentId) {
       return
     }
 
-    const recentlyConfirmed = filteredPayments.some(
-      (payment) =>
-        payment.status === 'confirmed' &&
-        isGatewayPayment(payment.method) &&
-        Date.now() - new Date(payment.created_at).getTime() < 15 * 60_000,
-    )
-
-    if (recentlyConfirmed) {
-      setAwaitingWebhook(false)
-      notifySuccess('Payment confirmed and receipt issued.')
-      const next = new URLSearchParams(searchParams)
-      next.delete('gateway')
-      setSearchParams(next, { replace: true })
+    const tracked = filteredPayments.find((payment) => payment.id === awaitingPaymentId)
+    if (!tracked) {
+      return
     }
-  }, [awaitingWebhook, filteredPayments, gatewayStatus, searchParams, setSearchParams])
+
+    if (tracked.status === 'confirmed') {
+      setAwaitingPaymentId(null)
+      notifySuccess('Payout confirmed and seller receipt issued.')
+      return
+    }
+
+    if (tracked.status === 'failed') {
+      setAwaitingPaymentId(null)
+      notifyInfo('MoMo payout failed at Flutterwave. Create a new payout to retry.')
+    }
+  }, [awaitingPaymentId, filteredPayments])
+
+  useEffect(() => {
+    if (!gatewayStatus) {
+      return
+    }
+    const next = new URLSearchParams(searchParams)
+    next.delete('gateway')
+    setSearchParams(next, { replace: true })
+  }, [gatewayStatus, searchParams, setSearchParams])
 
   const handleConfirm = async (paymentId: string) => {
     setActionError(null)
@@ -172,12 +181,12 @@ export function AdminPaymentsPage() {
 
     try {
       const receiptNumber = await confirmPayment(paymentId)
-      notifySuccess(`Payment confirmed. Receipt ${receiptNumber} created.`)
+      notifySuccess(`Payout confirmed. Receipt ${receiptNumber} created.`)
     } catch (confirmError) {
       const message =
         confirmError instanceof Error
           ? confirmError.message
-          : 'Could not confirm payment.'
+          : 'Could not confirm payout.'
       setActionError(message)
       notifyInfo(message)
     } finally {
@@ -185,50 +194,60 @@ export function AdminPaymentsPage() {
     }
   }
 
-  const handleGatewayCheckout = async (paymentId: string) => {
+  const handleGatewayPayout = async (paymentId: string) => {
     setActionError(null)
-    setCheckoutId(paymentId)
+    setPayoutId(paymentId)
 
     try {
-      const checkoutUrl = await startGatewayCheckout(paymentId)
-      notifySuccess('Opening secure checkout…')
-      redirectToCheckout(checkoutUrl)
-    } catch (checkoutError) {
+      const result = await startGatewayPayout(paymentId)
+      notifySuccess(
+        result.reused
+          ? 'Payout already submitted. Waiting for Flutterwave…'
+          : 'MoMo payout submitted. Waiting for Flutterwave to confirm…',
+      )
+      setAwaitingPaymentId(paymentId)
+      if (selectedLandId) {
+        setNavigation(selectedLandId, 'needs-action')
+      }
+    } catch (payoutError) {
       const message =
-        checkoutError instanceof Error
-          ? checkoutError.message
-          : 'Could not start gateway checkout.'
+        payoutError instanceof Error ? payoutError.message : 'Could not start seller payout.'
       setActionError(message)
       notifyInfo(message)
-      setCheckoutId(null)
+    } finally {
+      setPayoutId(null)
     }
   }
 
-  const handleCollectPayment = async (input: CreatePaymentInput) => {
+  const handlePayOut = async (input: CreatePaymentInput) => {
     setActionError(null)
-    setIsCollecting(true)
+    setIsPayingOut(true)
 
     try {
       const created = await createPayment(input)
 
-      if (GATEWAY_METHODS.has(input.method ?? 'manual')) {
-        notifySuccess('Starting secure checkout…')
-        const checkoutUrl = await startGatewayCheckout(created.id)
-        redirectToCheckout(checkoutUrl)
+      if (GATEWAY_PAYOUT_METHODS.has(input.method ?? 'manual')) {
+        notifySuccess('Submitting MoMo payout…')
+        await startGatewayPayout(created.id)
+        setAwaitingPaymentId(created.id)
+        if (selectedLandId) {
+          setNavigation(selectedLandId, 'needs-action')
+        }
+        notifySuccess('Payout queued. Waiting for Flutterwave to confirm…')
         return
       }
 
-      notifySuccess('Payment recorded as pending. Confirm once funds clear.')
+      notifySuccess('Manual payout recorded. Confirm once the seller is paid.')
       if (selectedLandId) {
         setNavigation(selectedLandId, 'needs-action')
       }
     } catch (recordError) {
       const message =
-        recordError instanceof Error ? recordError.message : 'Could not collect payment.'
+        recordError instanceof Error ? recordError.message : 'Could not create payout.'
       setActionError(message)
       throw recordError instanceof Error ? recordError : new Error(message)
     } finally {
-      setIsCollecting(false)
+      setIsPayingOut(false)
     }
   }
 
@@ -249,16 +268,9 @@ export function AdminPaymentsPage() {
         }
       />
 
-      {gatewayStatus === 'success' && (
+      {awaitingPaymentId && (
         <p className="rounded-md bg-success-soft px-4 py-3 text-sm text-success">
-          {awaitingWebhook
-            ? 'Checkout completed. Waiting for the payment provider to confirm…'
-            : 'Checkout completed. Confirm manually if still pending.'}
-        </p>
-      )}
-      {gatewayStatus === 'cancelled' && (
-        <p className="rounded-md bg-warning-soft px-4 py-3 text-sm text-warning">
-          Checkout was cancelled. Reopen from Needs action when ready.
+          MoMo payout submitted. Waiting for Flutterwave to confirm…
         </p>
       )}
 
@@ -282,8 +294,8 @@ export function AdminPaymentsPage() {
           })}
           onSelect={(id) => setNavigation(id, null)}
           emptyTitle="No active deals"
-          emptyDescription="Create a land record before collecting payments."
-          prompt="Select a deal to manage payments."
+          emptyDescription="Create a land record before paying out sellers."
+          prompt="Select a deal to manage payouts."
         />
       )}
 
@@ -381,9 +393,11 @@ export function AdminPaymentsPage() {
               landId={selectedLand.id}
               landTitle={selectedLand.title}
               outstandingUsd={outstandingUsd}
+              availableToPayOutUsd={availableToPayOutUsd}
               totalValueUsd={Number(selectedLand.total_value_usd)}
-              isSubmitting={isCollecting}
-              onSubmit={handleCollectPayment}
+              companyCapitalAvailableUsd={capital?.availableUsd ?? null}
+              isSubmitting={isPayingOut}
+              onSubmit={handlePayOut}
             />
           )}
 
@@ -392,17 +406,17 @@ export function AdminPaymentsPage() {
               {needsActionCount === 0 ? (
                 <EmptyState
                   title="Nothing needs action"
-                  description="Pending checkouts and offline confirms appear here."
+                  description="Queued MoMo payouts and offline confirms appear here."
                 />
               ) : (
                 <div className="space-y-3">
-                  {awaitingCheckout.map((payment) => (
-                    <PendingCheckoutRow
+                  {awaitingPayout.map((payment) => (
+                    <PendingPayoutRow
                       key={payment.id}
                       payment={payment}
-                      busy={checkoutId === payment.id}
+                      busy={payoutId === payment.id}
                       confirming={confirmingId === payment.id}
-                      onCheckout={() => void handleGatewayCheckout(payment.id)}
+                      onRetryPayout={() => void handleGatewayPayout(payment.id)}
                       onConfirm={() => void handleConfirm(payment.id)}
                     />
                   ))}
@@ -421,7 +435,7 @@ export function AdminPaymentsPage() {
 
           {activeFolder === 'history' && (
             <Card>
-              <CardHeader title="Payment history" />
+              <CardHeader title="Payout history" />
               {isLoading && (
                 <div className="space-y-3" aria-busy="true">
                   {[0, 1, 2].map((row) => (
@@ -430,7 +444,7 @@ export function AdminPaymentsPage() {
                 </div>
               )}
               {!isLoading && filteredPayments.length === 0 && (
-                <EmptyState title="No payments yet" description="Collect a payment to begin." />
+                <EmptyState title="No payouts yet" description="Pay out to a seller to begin." />
               )}
               {filteredPayments.length > 0 && (
                 <div className="space-y-3">
@@ -438,11 +452,11 @@ export function AdminPaymentsPage() {
                     <PaymentHistoryRow
                       key={payment.id}
                       payment={payment}
-                      checkoutId={checkoutId}
+                      payoutId={payoutId}
                       confirmingId={confirmingId}
                       isDownloading={isDownloading}
                       downloadingPath={downloadingPath}
-                      onCheckout={() => void handleGatewayCheckout(payment.id)}
+                      onRetryPayout={() => void handleGatewayPayout(payment.id)}
                       onConfirm={() => void handleConfirm(payment.id)}
                       onDownload={() => {
                         if (!payment.pdf_path) {
@@ -467,24 +481,25 @@ export function AdminPaymentsPage() {
 
 function PaymentHistoryRow({
   payment,
-  checkoutId,
+  payoutId,
   confirmingId,
   isDownloading,
   downloadingPath,
-  onCheckout,
+  onRetryPayout,
   onConfirm,
   onDownload,
 }: {
   payment: PaymentWithLand
-  checkoutId: string | null
+  payoutId: string | null
   confirmingId: string | null
   isDownloading: boolean
   downloadingPath: string | null
-  onCheckout: () => void
+  onRetryPayout: () => void
   onConfirm: () => void
   onDownload: () => void
 }) {
   const gateway = isGatewayPayment(payment.method)
+  const payoutSubmitted = Boolean(payment.flutterwave_tx_ref)
 
   return (
     <article className="rounded-lg border border-border bg-surface px-4 py-3">
@@ -498,6 +513,8 @@ function PaymentHistoryRow({
             {payment.amount_ugx != null ? ` · ${formatUgx(payment.amount_ugx)}` : ''}
             {' · '}
             {paymentMethodLabel(payment.method, payment.mobile_money_network)}
+            {payment.manual_reference ? ` · ${payment.manual_reference}` : ''}
+            {payment.payer_phone ? ` · ${payment.payer_phone}` : ''}
             {' · '}
             {formatDate(payment.created_at)}
           </p>
@@ -505,16 +522,12 @@ function PaymentHistoryRow({
         <Badge tone={statusTone(payment.status)}>{payment.status}</Badge>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {payment.status === 'pending' && gateway && (
-          <Button size="sm" onClick={onCheckout} disabled={checkoutId === payment.id}>
-            {checkoutId === payment.id
-              ? 'Opening…'
-              : payment.gateway_checkout_url
-                ? 'Resume checkout'
-                : 'Open checkout'}
+        {payment.status === 'pending' && gateway && !payoutSubmitted && (
+          <Button size="sm" onClick={onRetryPayout} disabled={payoutId === payment.id}>
+            {payoutId === payment.id ? 'Sending…' : 'Submit payout'}
           </Button>
         )}
-        {payment.status === 'pending' && (
+        {isConfirmablePending(payment.status) && (
           <Button
             size="sm"
             variant="secondary"
@@ -525,7 +538,7 @@ function PaymentHistoryRow({
               ? 'Confirming…'
               : gateway
                 ? 'Confirm manually'
-                : 'Confirm received'}
+                : 'Confirm paid'}
           </Button>
         )}
         {payment.status === 'confirmed' && payment.pdf_path ? (
@@ -543,34 +556,44 @@ function PaymentHistoryRow({
   )
 }
 
-function PendingCheckoutRow({
+function PendingPayoutRow({
   payment,
   busy,
   confirming,
-  onCheckout,
+  onRetryPayout,
   onConfirm,
 }: {
   payment: PaymentWithLand
   busy: boolean
   confirming: boolean
-  onCheckout: () => void
+  onRetryPayout: () => void
   onConfirm: () => void
 }) {
+  const submitted = Boolean(payment.flutterwave_tx_ref)
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50/50 px-4 py-3">
       <div>
         <p className="text-sm font-semibold text-ink">
-          Complete {paymentMethodLabel(payment.method, payment.mobile_money_network)} checkout
+          {submitted
+            ? `${paymentMethodLabel(payment.method, payment.mobile_money_network)} queued`
+            : `Submit ${paymentMethodLabel(payment.method, payment.mobile_money_network)}`}
         </p>
         <p className="mt-0.5 text-sm text-muted">
           {formatUsd(payment.amount_usd)}
           {payment.amount_ugx != null ? ` · ${formatUgx(payment.amount_ugx)}` : ''}
+          {payment.payer_phone ? ` · ${payment.payer_phone}` : ''}
+          {submitted && payment.flutterwave_tx_ref ? (
+            <span className="ml-2 font-mono text-xs text-ink">{payment.flutterwave_tx_ref}</span>
+          ) : null}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={onCheckout} disabled={busy}>
-          {busy ? 'Opening…' : payment.gateway_checkout_url ? 'Resume checkout' : 'Open checkout'}
-        </Button>
+        {!submitted && (
+          <Button size="sm" onClick={onRetryPayout} disabled={busy}>
+            {busy ? 'Sending…' : 'Submit payout'}
+          </Button>
+        )}
         <Button size="sm" variant="secondary" onClick={onConfirm} disabled={confirming}>
           {confirming ? 'Confirming…' : 'Confirm manually'}
         </Button>
@@ -594,10 +617,18 @@ function PendingManualRow({
         <p className="text-sm font-semibold text-ink">
           Confirm {paymentMethodLabel(payment.method, payment.mobile_money_network)}
         </p>
-        <p className="mt-0.5 text-sm text-muted">{formatUsd(payment.amount_usd)}</p>
+        <p className="mt-0.5 text-sm text-muted">
+          {formatUsd(payment.amount_usd)}
+          {payment.manual_reference ? (
+            <span className="ml-2 font-mono text-xs text-ink">{payment.manual_reference}</span>
+          ) : null}
+          {payment.payer_phone ? (
+            <span className="ml-2 text-xs">{payment.payer_phone}</span>
+          ) : null}
+        </p>
       </div>
       <Button size="sm" onClick={onConfirm} disabled={confirming}>
-        {confirming ? 'Confirming…' : 'Confirm received'}
+        {confirming ? 'Confirming…' : 'Confirm paid'}
       </Button>
     </div>
   )

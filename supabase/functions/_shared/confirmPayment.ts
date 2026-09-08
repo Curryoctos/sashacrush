@@ -32,6 +32,13 @@ export async function confirmPaymentAndIssueReceipt(
     throw new ConfirmPaymentError('Payment not found', 404)
   }
 
+  if (payment.status === 'failed') {
+    throw new ConfirmPaymentError(
+      'This payout failed at the gateway. Create a new payout instead of confirming.',
+      400,
+    )
+  }
+
   const { data: existingReceipt } = await supabase
     .from('receipts')
     .select('receipt_number')

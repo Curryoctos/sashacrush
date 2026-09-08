@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { claimGatewayWebhookEvent } from '../../../supabase/functions/_shared/gatewayIdempotency.ts'
+import {
+  claimGatewayWebhookEvent,
+  releaseGatewayWebhookEvent,
+} from '../../../supabase/functions/_shared/gatewayIdempotency.ts'
 
 describe('claimGatewayWebhookEvent', () => {
   it('returns true on first claim', async () => {
@@ -33,5 +36,28 @@ describe('claimGatewayWebhookEvent', () => {
     })
 
     expect(claimed).toBe(false)
+  })
+})
+
+describe('releaseGatewayWebhookEvent', () => {
+  it('deletes the claimed event by provider + key', async () => {
+    const eq2 = vi.fn().mockResolvedValue({ error: null })
+    const eq1 = vi.fn().mockReturnValue({ eq: eq2 })
+    const del = vi.fn().mockReturnValue({ eq: eq1 })
+    const supabase = {
+      from: vi.fn().mockReturnValue({
+        delete: del,
+      }),
+    }
+
+    await releaseGatewayWebhookEvent(supabase as never, {
+      provider: 'flutterwave',
+      eventKey: 'flutterwave:transfer:42',
+    })
+
+    expect(supabase.from).toHaveBeenCalledWith('gateway_webhook_events')
+    expect(del).toHaveBeenCalled()
+    expect(eq1).toHaveBeenCalledWith('provider', 'flutterwave')
+    expect(eq2).toHaveBeenCalledWith('event_key', 'flutterwave:transfer:42')
   })
 })

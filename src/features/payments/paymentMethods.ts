@@ -3,7 +3,11 @@ import type { PaymentMethod } from '@/types/database'
 
 export type PaymentChoice = 'stripe' | 'mtn' | 'airtel' | 'manual' | 'crypto'
 
-export const GATEWAY_METHODS = new Set<PaymentMethod>(['stripe', 'flutterwave'])
+/** Methods that call initiate-gateway-payment (Flutterwave MoMo payout). */
+export const GATEWAY_PAYOUT_METHODS = new Set<PaymentMethod>(['flutterwave'])
+
+/** @deprecated Use GATEWAY_PAYOUT_METHODS — Stripe checkout collect-in is retired. */
+export const GATEWAY_METHODS = GATEWAY_PAYOUT_METHODS
 
 export function paymentDetails(choice: PaymentChoice): {
   method: PaymentMethod
@@ -17,7 +21,7 @@ export function paymentDetails(choice: PaymentChoice): {
 }
 
 export function isGatewayChoice(choice: PaymentChoice): boolean {
-  return GATEWAY_METHODS.has(paymentDetails(choice).method)
+  return GATEWAY_PAYOUT_METHODS.has(paymentDetails(choice).method)
 }
 
 export function paymentMethodLabel(
@@ -25,19 +29,19 @@ export function paymentMethodLabel(
   network: MobileMoneyNetwork | null | undefined,
 ): string {
   if (method === 'stripe') {
-    return 'Card · Stripe'
+    return 'Card · Stripe (retired)'
   }
   if (method === 'flutterwave' && network === 'mtn') {
-    return 'MTN MoMo'
+    return 'MTN MoMo payout'
   }
   if (method === 'flutterwave' && network === 'airtel') {
-    return 'Airtel Money'
+    return 'Airtel Money payout'
   }
   if (method === 'flutterwave') {
-    return 'Mobile money · Flutterwave'
+    return 'Mobile money payout'
   }
   if (method === 'manual') {
-    return 'Manual transfer'
+    return 'Manual payout'
   }
   if (method === 'crypto') {
     return 'Crypto'
@@ -57,33 +61,44 @@ export function checkoutCtaLabel(choice: PaymentChoice, amountUsd: number | null
 
   switch (choice) {
     case 'stripe':
-      return amount ? `Pay ${amount} with card` : 'Continue to Stripe Checkout'
+      return 'Card payouts not available'
     case 'mtn':
-      return amount ? `Pay ${amount} with MTN MoMo` : 'Continue to MTN MoMo'
+      return amount ? `Pay out ${amount} via MTN MoMo` : 'Send MTN MoMo payout'
     case 'airtel':
-      return amount ? `Pay ${amount} with Airtel Money` : 'Continue to Airtel Money'
+      return amount ? `Pay out ${amount} via Airtel Money` : 'Send Airtel Money payout'
     case 'manual':
-      return 'Record manual transfer'
+      return 'Create manual payout + reference'
     case 'crypto':
-      return 'Record crypto payment'
+      return 'Crypto coming soon'
   }
 }
 
 export function checkoutProviderHint(choice: PaymentChoice): string {
   switch (choice) {
     case 'stripe':
-      return 'You will be redirected to Stripe Checkout to enter card details securely.'
+      return 'Card payouts to sellers are not enabled. Use MoMo or manual transfer.'
     case 'mtn':
-      return 'You will be redirected to Flutterwave to approve the MTN Mobile Money payment.'
+      return 'Sends UGX from the company Flutterwave balance to the seller’s MTN MoMo wallet.'
     case 'airtel':
-      return 'You will be redirected to Flutterwave to approve the Airtel Money payment.'
+      return 'Sends UGX from the company Flutterwave balance to the seller’s Airtel Money wallet.'
     case 'manual':
-      return 'Payment stays pending until an admin confirms the bank or cash transfer.'
+      return 'Creates a pending_manual record with a unique WU reference for the cash/wire payout. Confirm after the seller is paid.'
     case 'crypto':
-      return 'Payment stays pending until conversion is verified and confirmed.'
+      return 'Wallet payouts are planned for a later phase. Use MoMo or manual for now.'
   }
 }
 
 export function isGatewayPayment(method: PaymentMethod | null | undefined): boolean {
-  return method === 'stripe' || method === 'flutterwave'
+  return method === 'flutterwave'
+}
+
+export function isAwaitingManualConfirm(status: string, method: PaymentMethod | null): boolean {
+  return (
+    (status === 'pending' || status === 'pending_manual') &&
+    (method === 'manual' || method === 'crypto')
+  )
+}
+
+export function isConfirmablePending(status: string): boolean {
+  return status === 'pending' || status === 'pending_manual'
 }

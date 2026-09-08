@@ -246,14 +246,22 @@ POST /functions/v1/confirm-payment
 { "paymentId": "uuid" }
 ```
 
-### Initiate gateway checkout (staff)
+### Initiate gateway payout (staff)
 
 ```
 POST /functions/v1/initiate-gateway-payment
 { "paymentId": "uuid" }
 ```
 
-Creates a Stripe Checkout session or Flutterwave payment link for a pending `stripe` / `flutterwave` payment and returns `{ checkoutUrl }`.
+Creates a **Flutterwave Transfer** (company → seller MoMo) for a pending `flutterwave`
+payment and returns `{ reference, transferId, status, mode: "payout" }`.
+No hosted checkout URL — funds leave the Flutterwave balance.
+
+Idempotency:
+- Reserves a deterministic `flutterwave_tx_ref` (`sc-payout-{paymentId}`) **before** calling Flutterwave
+- Retries reuse the same reference (looks up existing transfer; never creates a second payout)
+
+Stripe Checkout collect-in is retired for this product (seller payouts only).
 
 ### Stripe webhook
 
@@ -261,9 +269,8 @@ Creates a Stripe Checkout session or Flutterwave payment link for a pending `str
 POST /functions/v1/stripe-webhook
 ```
 
+- Legacy collect-in handler (kept for any old sessions)
 - `verify_jwt = false` (authenticated via `Stripe-Signature` + `STRIPE_WEBHOOK_SECRET`)
-- Handles `checkout.session.completed` and `payment_intent.succeeded`
-- Confirms payment + issues receipt (same path as `confirm-payment`)
 
 Local forward:
 
@@ -278,8 +285,11 @@ POST /functions/v1/flutterwave-webhook
 ```
 
 - `verify_jwt = false` (authenticated via `verif-hash` + `FLUTTERWAVE_WEBHOOK_HASH`)
-- On successful charge, confirms payment + issues receipt
-
+- Verifies via `GET /v3/transfers/:id` (authoritative status)
+- **SUCCESSFUL** → confirm payment + issue seller receipt
+- **FAILED** / cancelled → mark payment `status=failed` (frees available-to-pay-out)
+- Releases the webhook claim on processing errors so Flutterwave can safely retry
+- Ensure the Flutterwave dashboard webhook includes transfer events (success and failure)
 ---
 
 ## Dashboard setup steps
