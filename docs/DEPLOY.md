@@ -49,8 +49,10 @@ Point provider dashboards at your edge functions (JWT verification disabled for 
 
 | Provider | Event | URL |
 |----------|-------|-----|
-| Stripe | `checkout.session.completed`, `payment_intent.succeeded` | `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` |
+| Stripe | `checkout.session.completed`, `payment_intent.succeeded` | `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` (capital funding + legacy) |
 | Flutterwave | Transfer terminal status (**SUCCESSFUL** / **FAILED**) | `https://<project-ref>.supabase.co/functions/v1/flutterwave-webhook` |
+
+Stripe is used for **executive capital funding** (`initiate-investment-checkout`). Seller MoMo payouts use Flutterwave.
 
 Local Stripe testing: `stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook`
 

@@ -92,6 +92,11 @@ export function isGatewayPayment(method: PaymentMethod | null | undefined): bool
   return method === 'flutterwave'
 }
 
+/** Provider-verified rails — staff must not manually confirm these. */
+export function requiresProviderConfirm(method: PaymentMethod | null | undefined): boolean {
+  return method === 'flutterwave' || method === 'stripe'
+}
+
 export function isAwaitingManualConfirm(status: string, method: PaymentMethod | null): boolean {
   return (
     (status === 'pending' || status === 'pending_manual') &&
@@ -99,6 +104,13 @@ export function isAwaitingManualConfirm(status: string, method: PaymentMethod | 
   )
 }
 
-export function isConfirmablePending(status: string): boolean {
-  return status === 'pending' || status === 'pending_manual'
+/** Staff can confirm only offline rails (manual / crypto), never Flutterwave/Stripe. */
+export function isConfirmablePending(
+  status: string,
+  method: PaymentMethod | null | undefined,
+): boolean {
+  if (status !== 'pending' && status !== 'pending_manual') {
+    return false
+  }
+  return !requiresProviderConfirm(method)
 }

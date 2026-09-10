@@ -17,6 +17,7 @@ This guide explains how to connect database events to Edge Functions that send e
    supabase functions deploy admin-manage-users
    supabase functions deploy confirm-payment
    supabase functions deploy initiate-gateway-payment
+   supabase functions deploy initiate-investment-checkout
    supabase functions deploy stripe-webhook
    supabase functions deploy flutterwave-webhook
    ```
@@ -239,7 +240,9 @@ https://<project-ref>.supabase.co/functions/v1/notify-admin-message
 
 ### Confirm payment (staff)
 
-**Not a DB webhook.** Admin/agent confirms a payment and issues the receipt PDF server-side.
+**Not a DB webhook.** Admin/agent confirms an **offline** payout (manual / crypto) and issues the receipt PDF server-side.
+
+Flutterwave and Stripe payments **cannot** be staff-confirmed — they confirm only via provider webhook after verified success.
 
 ```
 POST /functions/v1/confirm-payment
@@ -261,7 +264,19 @@ Idempotency:
 - Reserves a deterministic `flutterwave_tx_ref` (`sc-payout-{paymentId}`) **before** calling Flutterwave
 - Retries reuse the same reference (looks up existing transfer; never creates a second payout)
 
-Stripe Checkout collect-in is retired for this product (seller payouts only).
+Seller Stripe Checkout collect-in is retired (seller payouts use Flutterwave).
+
+### Initiate investment Checkout (executive)
+
+```
+POST /functions/v1/initiate-investment-checkout
+{ "amountUsd": 1000, "notes": "optional" }
+```
+
+Creates a pending `investments` row (`method=stripe`) and a Stripe Checkout Session to **fund company capital**.
+Returns `{ checkoutUrl, investmentId, reference, sessionId }`.
+
+Requires: executive JWT, `STRIPE_SECRET_KEY`, `APP_URL`.
 
 ### Stripe webhook
 
@@ -269,7 +284,8 @@ Stripe Checkout collect-in is retired for this product (seller payouts only).
 POST /functions/v1/stripe-webhook
 ```
 
-- Legacy collect-in handler (kept for any old sessions)
+- **Investments:** `metadata.investment_id` → confirm capital contribution (no seller receipt)
+- **Legacy payments:** `metadata.payment_id` → confirm payment + receipt
 - `verify_jwt = false` (authenticated via `Stripe-Signature` + `STRIPE_WEBHOOK_SECRET`)
 
 Local forward:

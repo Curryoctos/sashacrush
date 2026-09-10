@@ -24,7 +24,7 @@ export async function confirmPaymentAndIssueReceipt(
 ): Promise<ConfirmPaymentResult> {
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
-    .select('id, land_id, amount_usd, amount_ugx, rate_used, status')
+    .select('id, land_id, amount_usd, amount_ugx, rate_used, status, method')
     .eq('id', paymentId)
     .single()
 
@@ -35,6 +35,19 @@ export async function confirmPaymentAndIssueReceipt(
   if (payment.status === 'failed') {
     throw new ConfirmPaymentError(
       'This payout failed at the gateway. Create a new payout instead of confirming.',
+      400,
+    )
+  }
+
+  // Gateway payouts must confirm only via provider webhook (verified success + amount).
+  if (
+    audit?.source === 'staff' &&
+    (payment.method === 'flutterwave' || payment.method === 'stripe')
+  ) {
+    throw new ConfirmPaymentError(
+      payment.method === 'flutterwave'
+        ? 'Flutterwave payouts confirm automatically when Flutterwave reports success. Manual confirm is not allowed.'
+        : 'Stripe payments confirm automatically via webhook. Manual confirm is not allowed.',
       400,
     )
   }

@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { InvestmentList } from '@/features/investments/components/InvestmentList'
 import { InvestmentSubmitForm } from '@/features/investments/components/InvestmentSubmitForm'
 import { useMyInvestments } from '@/features/investments/useInvestments'
@@ -13,6 +14,7 @@ import type { CreateInvestmentInput } from '@/features/investments/validation'
 
 export function ExecutiveInvestmentsPage() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const {
     investments,
     confirmedTotalUsd,
@@ -20,12 +22,36 @@ export function ExecutiveInvestmentsPage() {
     error,
     createInvestment,
     isCreating,
+    refresh,
   } = useMyInvestments()
+
+  useEffect(() => {
+    const stripe = searchParams.get('stripe')
+    if (!stripe) {
+      return
+    }
+
+    if (stripe === 'success') {
+      notifySuccess(
+        'Card payment submitted. Capital updates when Stripe confirms — usually within a few seconds.',
+      )
+      void refresh()
+    } else if (stripe === 'cancel') {
+      notifyInfo('Stripe Checkout was cancelled. No funds were charged.')
+    }
+
+    const next = new URLSearchParams(searchParams)
+    next.delete('stripe')
+    next.delete('investment')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, refresh])
 
   const handleSubmit = async (input: CreateInvestmentInput) => {
     try {
       await createInvestment(input)
-      notifySuccess('Investment submitted. Admin will confirm once funds arrive.')
+      if (input.method !== 'stripe') {
+        notifySuccess('Investment submitted. Admin will confirm once funds arrive.')
+      }
     } catch (submitError) {
       const message =
         submitError instanceof Error
@@ -58,7 +84,7 @@ export function ExecutiveInvestmentsPage() {
         <Stat
           label="Awaiting confirmation"
           value={String(investments.filter((row) => row.status === 'pending').length)}
-          hint="Submitted transfers pending admin review"
+          hint="Card or offline contributions still pending"
         />
       </div>
 

@@ -116,6 +116,14 @@ export function useAllPayments() {
         throw new Error('This payout failed. Create a new payout to try again.')
       }
 
+      if (payment.method === 'flutterwave' || payment.method === 'stripe') {
+        throw new Error(
+          payment.method === 'flutterwave'
+            ? 'Flutterwave payouts confirm automatically when Flutterwave reports success. Manual confirm is not allowed.'
+            : 'Stripe payments confirm automatically via webhook. Manual confirm is not allowed.',
+        )
+      }
+
       return confirmPaymentWithReceipt(paymentId)
     },
     onSuccess: () => {

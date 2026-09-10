@@ -257,7 +257,7 @@ export function PaymentCheckoutForm({
                 Seller mobile money
               </p>
               <p className="mt-1 text-sm text-muted">
-                Confirm USD/UGX, then enter the seller’s receive number.
+                Review the converted amount, then enter the seller’s receive number.
               </p>
             </div>
 
@@ -269,19 +269,12 @@ export function PaymentCheckoutForm({
                 </p>
               </div>
               <div>
-                <label htmlFor="checkout-amount-ugx" className="ui-label">
-                  UGX (sent)
-                </label>
-                <input
-                  id="checkout-amount-ugx"
-                  type="number"
-                  min="1"
-                  step="1"
-                  required
-                  value={amountUgx}
-                  onChange={(event) => setAmountUgx(event.target.value)}
-                  className="ui-input mt-1"
-                />
+                <span className="ui-label">Seller receives (UGX)</span>
+                <p className="mt-1 font-display text-xl font-semibold text-ink">
+                  {amountUgx.trim() && Number(amountUgx) > 0
+                    ? formatUgx(Number(amountUgx))
+                    : '—'}
+                </p>
                 {ugxRate != null && (
                   <p className="ui-hint">
                     Live rate ~{Math.round(ugxRate).toLocaleString('en-UG')} UGX / USD

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   checkoutCtaLabel,
+  isConfirmablePending,
   isGatewayChoice,
   paymentDetails,
   paymentMethodLabel,
+  requiresProviderConfirm,
 } from '@/features/payments/paymentMethods'
 
 describe('paymentMethods', () => {
@@ -31,5 +33,16 @@ describe('paymentMethods', () => {
     expect(checkoutCtaLabel('mtn', 1500)).toBe('Pay out $1,500.00 via MTN MoMo')
     expect(checkoutCtaLabel('manual', 100)).toBe('Create manual payout + reference')
     expect(checkoutCtaLabel('crypto', 100)).toBe('Crypto coming soon')
+  })
+
+  it('blocks staff confirm for Flutterwave/Stripe; allows manual/crypto', () => {
+    expect(requiresProviderConfirm('flutterwave')).toBe(true)
+    expect(requiresProviderConfirm('stripe')).toBe(true)
+    expect(requiresProviderConfirm('manual')).toBe(false)
+    expect(isConfirmablePending('pending', 'flutterwave')).toBe(false)
+    expect(isConfirmablePending('pending', 'stripe')).toBe(false)
+    expect(isConfirmablePending('pending_manual', 'manual')).toBe(true)
+    expect(isConfirmablePending('pending', 'crypto')).toBe(true)
+    expect(isConfirmablePending('confirmed', 'manual')).toBe(false)
   })
 })

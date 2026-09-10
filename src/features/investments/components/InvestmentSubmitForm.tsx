@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
 import {
   investmentMethodLabel,
+  isStripeInvestmentMethod,
   type CreateInvestmentInput,
 } from '@/features/investments/validation'
 import { formatUsd } from '@/lib/formatters'
@@ -13,17 +14,19 @@ interface InvestmentSubmitFormProps {
   onSubmit: (input: CreateInvestmentInput) => Promise<void>
 }
 
-const METHODS: InvestmentMethod[] = ['bank_transfer', 'mobile_money', 'other']
+const METHODS: InvestmentMethod[] = ['stripe', 'bank_transfer', 'mobile_money', 'other']
 
 export function InvestmentSubmitForm({
   isSubmitting,
   onSubmit,
 }: InvestmentSubmitFormProps) {
   const [amountUsd, setAmountUsd] = useState('')
-  const [method, setMethod] = useState<InvestmentMethod>('bank_transfer')
+  const [method, setMethod] = useState<InvestmentMethod>('stripe')
   const [reference, setReference] = useState('')
   const [notes, setNotes] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
+
+  const isStripe = isStripeInvestmentMethod(method)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -33,13 +36,15 @@ export function InvestmentSubmitForm({
       await onSubmit({
         amountUsd: Number(amountUsd),
         method,
-        reference,
+        reference: isStripe ? null : reference,
         notes: notes.trim() || null,
       })
-      setAmountUsd('')
-      setReference('')
-      setNotes('')
-      setMethod('bank_transfer')
+      if (!isStripe) {
+        setAmountUsd('')
+        setReference('')
+        setNotes('')
+        setMethod('stripe')
+      }
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : 'Could not submit investment.'
@@ -50,8 +55,12 @@ export function InvestmentSubmitForm({
   return (
     <Card>
       <CardHeader
-        title="Submit investment"
-        description="Transfer funds to the company account, then record the amount and reference here for admin confirmation."
+        title="Fund company capital"
+        description={
+          isStripe
+            ? 'Pay by card via Stripe. Funds confirm automatically into the company pool when payment succeeds.'
+            : 'Transfer funds offline, then record the amount and reference here for admin confirmation.'
+        }
       />
       <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
         {formError && (
@@ -65,7 +74,7 @@ export function InvestmentSubmitForm({
           <input
             className="ui-input max-w-xs text-lg font-semibold"
             type="number"
-            min="0.01"
+            min={isStripe ? '0.50' : '0.01'}
             step="0.01"
             value={amountUsd}
             onChange={(event) => setAmountUsd(event.target.value)}
@@ -92,17 +101,19 @@ export function InvestmentSubmitForm({
           </select>
         </label>
 
-        <label className="block space-y-1.5">
-          <span className="ui-label">Payment reference</span>
-          <input
-            className="ui-input"
-            type="text"
-            value={reference}
-            onChange={(event) => setReference(event.target.value)}
-            placeholder="Bank or MoMo transaction reference"
-            required
-          />
-        </label>
+        {!isStripe && (
+          <label className="block space-y-1.5">
+            <span className="ui-label">Payment reference</span>
+            <input
+              className="ui-input"
+              type="text"
+              value={reference}
+              onChange={(event) => setReference(event.target.value)}
+              placeholder="Bank or MoMo transaction reference"
+              required
+            />
+          </label>
+        )}
 
         <label className="block space-y-1.5">
           <span className="ui-label">Notes (optional)</span>
@@ -110,12 +121,22 @@ export function InvestmentSubmitForm({
             className="ui-input min-h-20"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Any detail that helps reconcile this transfer"
+            placeholder={
+              isStripe
+                ? 'Optional note for this contribution'
+                : 'Any detail that helps reconcile this transfer'
+            }
           />
         </label>
 
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Submitting…' : 'Submit for confirmation'}
+          {isSubmitting
+            ? isStripe
+              ? 'Redirecting to Stripe…'
+              : 'Submitting…'
+            : isStripe
+              ? 'Pay with card'
+              : 'Submit for confirmation'}
         </Button>
       </form>
     </Card>

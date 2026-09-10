@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { computeCompanyCapital } from '@/features/investments/companyCapital'
+import { initiateInvestmentCheckout } from '@/features/investments/initiateInvestmentCheckout'
 import {
+  isStripeInvestmentMethod,
   normalizeInvestmentReference,
   validateCreateInvestment,
   type CreateInvestmentInput,
@@ -11,7 +13,7 @@ import { supabase } from '@/lib/supabase'
 import type { Investment, InvestmentStatus } from '@/types/database'
 
 const INVESTMENT_COLUMNS =
-  'id, executive_id, amount_usd, amount_ugx, rate_used, method, reference, notes, status, confirmed_by, confirmed_at, rejection_reason, created_at, updated_at'
+  'id, executive_id, amount_usd, amount_ugx, rate_used, method, reference, notes, status, confirmed_by, confirmed_at, rejection_reason, stripe_checkout_session_id, stripe_payment_intent_id, created_at, updated_at'
 
 export interface InvestmentWithExecutive extends Investment {
   executive_email: string | null
@@ -95,6 +97,15 @@ export function useMyInvestments() {
         throw new Error(validationError)
       }
 
+      if (input.method === 'stripe') {
+        const checkout = await initiateInvestmentCheckout({
+          amountUsd: input.amountUsd,
+          notes: input.notes?.trim() || null,
+        })
+        window.location.assign(checkout.checkoutUrl)
+        return { redirected: true as const, investmentId: checkout.investmentId }
+      }
+
       const { data, error } = await supabase
         .from('investments')
         .insert({
@@ -103,7 +114,7 @@ export function useMyInvestments() {
           amount_ugx: input.amountUgx ?? null,
           rate_used: input.rateUsed ?? null,
           method: input.method,
-          reference: normalizeInvestmentReference(input.reference),
+          reference: normalizeInvestmentReference(input.reference ?? ''),
           notes: input.notes?.trim() || null,
           status: 'pending',
         })
@@ -119,7 +130,10 @@ export function useMyInvestments() {
 
       return data as Investment
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result && typeof result === 'object' && 'redirected' in result && result.redirected) {
+        return
+      }
       invalidateInvestmentQueries(queryClient)
     },
   })
@@ -153,6 +167,13 @@ export function useAdminInvestments(statusFilter?: InvestmentStatus | 'all') {
 
   const confirmInvestment = useMutation({
     mutationFn: async (investmentId: string) => {
+      const row = investmentsQuery.data?.find((item) => item.id === investmentId)
+      if (row && isStripeInvestmentMethod(row.method)) {
+        throw new Error(
+          'Card contributions confirm automatically when Stripe reports payment success.',
+        )
+      }
+
       const { data, error } = await supabase
         .from('investments')
         .update({ status: 'confirmed' })

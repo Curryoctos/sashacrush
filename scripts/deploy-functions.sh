@@ -13,6 +13,7 @@ FUNCTIONS=(
   admin-manage-users
   confirm-payment
   initiate-gateway-payment
+  initiate-investment-checkout
   stripe-webhook
   flutterwave-webhook
 )

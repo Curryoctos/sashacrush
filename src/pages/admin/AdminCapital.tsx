@@ -9,7 +9,7 @@ import {
   useAdminInvestments,
   useCompanyCapital,
 } from '@/features/investments/useInvestments'
-import { investmentMethodLabel } from '@/features/investments/validation'
+import { investmentMethodLabel, isStripeInvestmentMethod } from '@/features/investments/validation'
 import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDate, formatUsd } from '@/lib/formatters'
@@ -149,7 +149,7 @@ export function AdminCapitalPage() {
       <Card>
         <CardHeader
           title="Pending confirmation"
-          description="Match each reference against the company bank or MoMo account, then confirm."
+          description="Offline transfers need admin confirm. Card (Stripe) contributions confirm automatically when Stripe reports success."
         />
         {isLoading ? (
           <p className="text-sm text-muted">Loading…</p>
@@ -157,47 +157,57 @@ export function AdminCapitalPage() {
           <EmptyState title="No pending investments." />
         ) : (
           <div className="space-y-3">
-            {pending.map((investment) => (
-              <div
-                key={investment.id}
-                className="rounded-lg border border-border bg-surface px-4 py-3"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
-                    <p className="font-medium text-ink">
-                      {formatUsd(Number(investment.amount_usd))} ·{' '}
-                      {investmentMethodLabel(investment.method)}
-                    </p>
-                    <p className="text-sm text-muted">
-                      {investment.executive_name || investment.executive_email || 'Executive'} ·{' '}
-                      {formatDate(investment.created_at)}
-                    </p>
-                    <p className="font-mono text-xs text-ink">{investment.reference}</p>
-                    {investment.notes ? (
-                      <p className="text-xs text-muted">{investment.notes}</p>
-                    ) : null}
+            {pending.map((investment) => {
+              const stripePending = isStripeInvestmentMethod(investment.method)
+              return (
+                <div
+                  key={investment.id}
+                  className="rounded-lg border border-border bg-surface px-4 py-3"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-medium text-ink">
+                        {formatUsd(Number(investment.amount_usd))} ·{' '}
+                        {investmentMethodLabel(investment.method)}
+                      </p>
+                      <p className="text-sm text-muted">
+                        {investment.executive_name || investment.executive_email || 'Executive'} ·{' '}
+                        {formatDate(investment.created_at)}
+                      </p>
+                      <p className="font-mono text-xs text-ink">{investment.reference}</p>
+                      {investment.notes ? (
+                        <p className="text-xs text-muted">{investment.notes}</p>
+                      ) : null}
+                      {stripePending ? (
+                        <p className="text-xs text-muted">
+                          Waiting for Stripe — capital updates automatically on successful payment.
+                        </p>
+                      ) : null}
+                    </div>
+                    <Badge tone={statusTone(investment.status)}>{investment.status}</Badge>
                   </div>
-                  <Badge tone={statusTone(investment.status)}>{investment.status}</Badge>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {!stripePending && (
+                      <Button
+                        size="sm"
+                        disabled={confirmingId === investment.id || rejectingId === investment.id}
+                        onClick={() => void handleConfirm(investment.id)}
+                      >
+                        {confirmingId === investment.id ? 'Confirming…' : 'Confirm'}
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={confirmingId === investment.id || rejectingId === investment.id}
+                      onClick={() => void handleReject(investment.id)}
+                    >
+                      {rejectingId === investment.id ? 'Rejecting…' : 'Reject'}
+                    </Button>
+                  </div>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    disabled={confirmingId === investment.id || rejectingId === investment.id}
-                    onClick={() => void handleConfirm(investment.id)}
-                  >
-                    {confirmingId === investment.id ? 'Confirming…' : 'Confirm'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={confirmingId === investment.id || rejectingId === investment.id}
-                    onClick={() => void handleReject(investment.id)}
-                  >
-                    {rejectingId === investment.id ? 'Rejecting…' : 'Reject'}
-                  </Button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
             <label className="block space-y-1.5 pt-1">
               <span className="ui-label">Rejection reason (optional)</span>
               <input

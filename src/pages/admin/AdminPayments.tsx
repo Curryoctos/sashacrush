@@ -406,7 +406,7 @@ export function AdminPaymentsPage() {
               {needsActionCount === 0 ? (
                 <EmptyState
                   title="Nothing needs action"
-                  description="Queued MoMo payouts and offline confirms appear here."
+                  description="Queued MoMo payouts wait for Flutterwave; offline confirms appear here."
                 />
               ) : (
                 <div className="space-y-3">
@@ -415,9 +415,7 @@ export function AdminPaymentsPage() {
                       key={payment.id}
                       payment={payment}
                       busy={payoutId === payment.id}
-                      confirming={confirmingId === payment.id}
                       onRetryPayout={() => void handleGatewayPayout(payment.id)}
-                      onConfirm={() => void handleConfirm(payment.id)}
                     />
                   ))}
                   {pendingManual.map((payment) => (
@@ -527,18 +525,14 @@ function PaymentHistoryRow({
             {payoutId === payment.id ? 'Sending…' : 'Submit payout'}
           </Button>
         )}
-        {isConfirmablePending(payment.status) && (
+        {isConfirmablePending(payment.status, payment.method) && (
           <Button
             size="sm"
             variant="secondary"
             onClick={onConfirm}
             disabled={confirmingId === payment.id}
           >
-            {confirmingId === payment.id
-              ? 'Confirming…'
-              : gateway
-                ? 'Confirm manually'
-                : 'Confirm paid'}
+            {confirmingId === payment.id ? 'Confirming…' : 'Confirm paid'}
           </Button>
         )}
         {payment.status === 'confirmed' && payment.pdf_path ? (
@@ -559,15 +553,11 @@ function PaymentHistoryRow({
 function PendingPayoutRow({
   payment,
   busy,
-  confirming,
   onRetryPayout,
-  onConfirm,
 }: {
   payment: PaymentWithLand
   busy: boolean
-  confirming: boolean
   onRetryPayout: () => void
-  onConfirm: () => void
 }) {
   const submitted = Boolean(payment.flutterwave_tx_ref)
 
@@ -587,6 +577,11 @@ function PendingPayoutRow({
             <span className="ml-2 font-mono text-xs text-ink">{payment.flutterwave_tx_ref}</span>
           ) : null}
         </p>
+        {submitted && (
+          <p className="mt-1 text-xs text-muted">
+            Waiting for Flutterwave — receipt issues automatically on success.
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         {!submitted && (
@@ -594,9 +589,6 @@ function PendingPayoutRow({
             {busy ? 'Sending…' : 'Submit payout'}
           </Button>
         )}
-        <Button size="sm" variant="secondary" onClick={onConfirm} disabled={confirming}>
-          {confirming ? 'Confirming…' : 'Confirm manually'}
-        </Button>
       </div>
     </div>
   )

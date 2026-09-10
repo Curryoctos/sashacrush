@@ -18,7 +18,7 @@ export type UserRole = 'admin' | 'executive' | 'agent' | 'seller'
 
 export type PaymentMethod = 'stripe' | 'flutterwave' | 'crypto' | 'manual'
 
-export type InvestmentMethod = 'bank_transfer' | 'mobile_money' | 'other'
+export type InvestmentMethod = 'bank_transfer' | 'mobile_money' | 'other' | 'stripe'
 
 export type InvestmentStatus = 'pending' | 'confirmed' | 'rejected'
 
@@ -179,6 +179,8 @@ export interface Database {
           confirmed_by: string | null
           confirmed_at: string | null
           rejection_reason: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
           created_at: string
           updated_at: string
         }
@@ -195,6 +197,8 @@ export interface Database {
           confirmed_by?: string | null
           confirmed_at?: string | null
           rejection_reason?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -211,6 +215,8 @@ export interface Database {
           confirmed_by?: string | null
           confirmed_at?: string | null
           rejection_reason?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -265,6 +271,7 @@ export interface Database {
           event_key: string
           function_name: string
           payment_id: string | null
+          investment_id: string | null
           metadata: Json | null
           created_at: string
         }
@@ -274,6 +281,7 @@ export interface Database {
           event_key: string
           function_name: string
           payment_id?: string | null
+          investment_id?: string | null
           metadata?: Json | null
           created_at?: string
         }
@@ -283,6 +291,7 @@ export interface Database {
           event_key?: string
           function_name?: string
           payment_id?: string | null
+          investment_id?: string | null
           metadata?: Json | null
           created_at?: string
         }

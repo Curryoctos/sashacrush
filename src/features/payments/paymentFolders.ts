@@ -17,7 +17,7 @@ export const PAYMENT_FOLDER_LABELS: Record<PaymentFolderId, string> = {
 export const PAYMENT_FOLDER_DESCRIPTIONS: Record<PaymentFolderId, string> = {
   balance: 'Paid vs outstanding for this deal',
   collect: 'Disburse funds to the seller',
-  'needs-action': 'Queued MoMo payouts and manual confirms',
+  'needs-action': 'Queued MoMo payouts (auto-confirm) and offline confirms',
   history: 'Past payouts and receipts',
 }
 
