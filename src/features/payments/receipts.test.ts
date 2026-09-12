@@ -36,7 +36,7 @@ describe('generateReceiptPdf', () => {
   const params = {
     receiptNumber: 'SC-2026-000001',
     landTitle: 'Mubende Land',
-    landReference: 'SC-MBD-001',
+    landReference: 'SC-E4EEBC99',
     sellerName: 'Mubende Seller',
     amountUsd: 50_000,
     amountUgx: 185_000_000,

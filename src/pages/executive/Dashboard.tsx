@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, FolderKanban, MessageSquare } from 'lucide-react'
+import { ArrowLeft, FolderKanban, MessageSquare, PiggyBank } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import {
@@ -9,13 +9,14 @@ import {
   HierarchyNav,
 } from '@/components/hierarchy/Hierarchy'
 import { useExecutiveDeals } from '@/features/deals/useDealSummary'
+import { useMyInvestments } from '@/features/investments/useInvestments'
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-type ExecDashFolder = 'deals' | 'messages'
+type ExecDashFolder = 'deals' | 'messages' | 'investments'
 
 function isExecDashFolder(value: string | null): value is ExecDashFolder {
-  return value === 'deals' || value === 'messages'
+  return value === 'deals' || value === 'messages' || value === 'investments'
 }
 
 export function ExecutiveDashboard() {
@@ -23,6 +24,7 @@ export function ExecutiveDashboard() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: deals, isLoading, error } = useExecutiveDeals()
+  const { investments } = useMyInvestments()
 
   const selectedFolder = isExecDashFolder(searchParams.get('folder'))
     ? (searchParams.get('folder') as ExecDashFolder)
@@ -90,6 +92,14 @@ export function ExecutiveDashboard() {
               icon: <FolderKanban className="h-5 w-5" />,
               count: deals.length,
               onSelect: () => setFolder('deals'),
+            },
+            {
+              id: 'investments',
+              title: 'Investments',
+              description: 'Contribute to the company capital pool',
+              icon: <PiggyBank className="h-5 w-5" />,
+              count: investments.filter((row) => row.status === 'pending').length || undefined,
+              onSelect: () => navigate('/executive/investments'),
             },
             {
               id: 'messages',

@@ -63,7 +63,7 @@ export async function createReceipt(
   }
 
   // ── 2. Fetch supporting data ──────────────────────────────
-  const [landResult, sellerResult] = await Promise.all([
+  const [landResult, sellerResult, paymentResult] = await Promise.all([
     params.supabase
       .from('land_records')
       .select('title, location')
@@ -74,6 +74,11 @@ export async function createReceipt(
       .select('full_name, email')
       .eq('id', params.sellerId)
       .single(),
+    params.supabase
+      .from('payments')
+      .select('manual_reference')
+      .eq('id', params.paymentId)
+      .maybeSingle(),
   ])
 
   if (landResult.error || !landResult.data) {
@@ -92,15 +97,13 @@ export async function createReceipt(
 
   const land = landResult.data
   const seller = sellerResult.data
+  const manualReference = paymentResult.data?.manual_reference ?? null
 
   // ── 3. Generate receipt number (advisory lock inside) ─────
   const receiptNumber = await generateReceiptNumber(params.supabase)
 
   // ── 4. Generate PDF bytes ─────────────────────────────────
-  const landReference =
-    land.location?.toLowerCase().includes('mubende') || land.title.toLowerCase().includes('mubende')
-      ? 'SC-MBD-001'
-      : `SC-${params.landId.slice(0, 8).toUpperCase()}`
+  const landReference = `SC-${params.landId.replace(/-/g, '').slice(0, 8).toUpperCase()}`
 
   const pdfBytes = await generateReceiptPdf({
     receiptNumber,
@@ -112,6 +115,7 @@ export async function createReceipt(
     rateUsed: params.rateUsed,
     transactionId: params.transactionId,
     confirmedAt: params.confirmedAt,
+    manualReference,
   })
 
   // ── 5. Upload PDF to Storage ──────────────────────────────

@@ -10,6 +10,7 @@ export const ADMIN_NAV: PortalNavItem[] = [
   { label: 'Land Records', to: '/admin/land-records' },
   { label: 'Documents', to: '/admin/documents' },
   { label: 'Payments', to: '/admin/payments' },
+  { label: 'Capital', to: '/admin/capital' },
   { label: 'Messages', to: '/admin/chat' },
   { label: 'Audit Log', to: '/admin/audit-log' },
 ]
@@ -33,5 +34,6 @@ export const AGENT_NAV: PortalNavItem[] = [
 export const EXECUTIVE_NAV: PortalNavItem[] = [
   { label: 'Dashboard', to: '/executive/dashboard' },
   { label: 'Deals', to: '/executive/deals' },
+  { label: 'Investments', to: '/executive/investments' },
   { label: 'Messages', to: '/executive/chat' },
 ]

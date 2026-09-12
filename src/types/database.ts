@@ -18,6 +18,10 @@ export type UserRole = 'admin' | 'executive' | 'agent' | 'seller'
 
 export type PaymentMethod = 'stripe' | 'flutterwave' | 'crypto' | 'manual'
 
+export type InvestmentMethod = 'bank_transfer' | 'mobile_money' | 'other' | 'stripe'
+
+export type InvestmentStatus = 'pending' | 'confirmed' | 'rejected'
+
 export type DocumentStatus = 'draft' | 'sent' | 'signed' | 'archived'
 
 export type ChatChannel = 'seller_channel' | 'executive_channel'
@@ -122,6 +126,8 @@ export interface Database {
           flutterwave_tx_ref: string | null
           gateway_checkout_url: string | null
           mobile_money_network: 'mtn' | 'airtel' | null
+          manual_reference: string | null
+          payer_phone: string | null
           status: string
           created_at: string
         }
@@ -136,6 +142,8 @@ export interface Database {
           flutterwave_tx_ref?: string | null
           gateway_checkout_url?: string | null
           mobile_money_network?: 'mtn' | 'airtel' | null
+          manual_reference?: string | null
+          payer_phone?: string | null
           status?: string
           created_at?: string
         }
@@ -150,8 +158,67 @@ export interface Database {
           flutterwave_tx_ref?: string | null
           gateway_checkout_url?: string | null
           mobile_money_network?: 'mtn' | 'airtel' | null
+          manual_reference?: string | null
+          payer_phone?: string | null
           status?: string
           created_at?: string
+        }
+        Relationships: []
+      }
+      investments: {
+        Row: {
+          id: string
+          executive_id: string
+          amount_usd: number
+          amount_ugx: number | null
+          rate_used: number | null
+          method: InvestmentMethod
+          reference: string
+          notes: string | null
+          status: InvestmentStatus
+          confirmed_by: string | null
+          confirmed_at: string | null
+          rejection_reason: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          executive_id: string
+          amount_usd: number
+          amount_ugx?: number | null
+          rate_used?: number | null
+          method: InvestmentMethod
+          reference: string
+          notes?: string | null
+          status?: InvestmentStatus
+          confirmed_by?: string | null
+          confirmed_at?: string | null
+          rejection_reason?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          executive_id?: string
+          amount_usd?: number
+          amount_ugx?: number | null
+          rate_used?: number | null
+          method?: InvestmentMethod
+          reference?: string
+          notes?: string | null
+          status?: InvestmentStatus
+          confirmed_by?: string | null
+          confirmed_at?: string | null
+          rejection_reason?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -204,6 +271,7 @@ export interface Database {
           event_key: string
           function_name: string
           payment_id: string | null
+          investment_id: string | null
           metadata: Json | null
           created_at: string
         }
@@ -213,6 +281,7 @@ export interface Database {
           event_key: string
           function_name: string
           payment_id?: string | null
+          investment_id?: string | null
           metadata?: Json | null
           created_at?: string
         }
@@ -222,6 +291,7 @@ export interface Database {
           event_key?: string
           function_name?: string
           payment_id?: string | null
+          investment_id?: string | null
           metadata?: Json | null
           created_at?: string
         }
@@ -457,3 +527,9 @@ export type SellerOption = Pick<
   Database['public']['Tables']['users']['Row'],
   'id' | 'email' | 'full_name'
 >
+
+export type Investment = Database['public']['Tables']['investments']['Row']
+
+export type InvestmentInsert = Database['public']['Tables']['investments']['Insert']
+
+export type InvestmentUpdate = Database['public']['Tables']['investments']['Update']

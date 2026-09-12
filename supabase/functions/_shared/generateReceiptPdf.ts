@@ -10,6 +10,8 @@ export interface ReceiptPdfParams {
   rateUsed: number // 1 USD = X UGX
   transactionId: string
   confirmedAt: string // ISO datetime string
+  /** Manual wire reference when applicable (C-15); omitted for gateway payments. */
+  manualReference?: string | null
 }
 
 /**
@@ -102,8 +104,13 @@ export async function generateReceiptPdf(p: ReceiptPdfParams): Promise<Uint8Arra
       value: `1 USD = ${p.rateUsed.toLocaleString('en-US', { minimumFractionDigits: 2 })} UGX`,
     },
     { label: 'Transaction ID', value: p.transactionId },
-    { label: 'Payment Status', value: 'CONFIRMED', highlight: true },
   ]
+
+  if (p.manualReference) {
+    fields.push({ label: 'Payment Reference', value: p.manualReference })
+  }
+
+  fields.push({ label: 'Payment Status', value: 'CONFIRMED', highlight: true })
 
   const labelX = 50
   const valueX = 230

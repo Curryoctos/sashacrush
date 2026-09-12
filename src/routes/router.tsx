@@ -6,6 +6,7 @@ import { AgentPortalLayout } from '@/components/layout/AgentPortalLayout'
 import { ExecutivePortalLayout } from '@/components/layout/ExecutivePortalLayout'
 import { SellerPortalLayout } from '@/components/layout/SellerPortalLayout'
 import { AdminAuditLogPage } from '@/pages/admin/AdminAuditLog'
+import { AdminCapitalPage } from '@/pages/admin/AdminCapital'
 import { AdminChatPage } from '@/pages/admin/AdminChat'
 import { AdminDealPage } from '@/pages/admin/AdminDeal'
 import { AdminDashboard } from '@/pages/admin/Dashboard'
@@ -23,6 +24,7 @@ import { ExecutiveDashboard } from '@/pages/executive/Dashboard'
 import { ExecutiveChatPage } from '@/pages/executive/ExecutiveChat'
 import { ExecutiveDealPage } from '@/pages/executive/ExecutiveDeal'
 import { ExecutiveDealsPage } from '@/pages/executive/ExecutiveDeals'
+import { ExecutiveInvestmentsPage } from '@/pages/executive/ExecutiveInvestments'
 import { LoginPage } from '@/pages/Login'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { SellerDashboard } from '@/pages/seller/Dashboard'
@@ -51,6 +53,7 @@ export const router = createBrowserRouter([
           { path: 'deals/:landId', element: <AdminDealPage /> },
           { path: 'documents', element: <AdminDocumentsPage /> },
           { path: 'payments', element: <AdminPaymentsPage /> },
+          { path: 'capital', element: <AdminCapitalPage /> },
           { path: 'chat', element: <AdminChatPage /> },
           { path: 'audit-log', element: <AdminAuditLogPage /> },
           // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/admin/dashboard" /> },
@@ -70,6 +73,7 @@ export const router = createBrowserRouter([
           { path: 'dashboard', element: <ExecutiveDashboard /> },
           { path: 'deals', element: <ExecutiveDealsPage /> },
           { path: 'deals/:landId', element: <ExecutiveDealPage /> },
+          { path: 'investments', element: <ExecutiveInvestmentsPage /> },
           { path: 'chat', element: <ExecutiveChatPage /> },
           // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/executive/dashboard" /> },
           // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/executive/dashboard" /> },
