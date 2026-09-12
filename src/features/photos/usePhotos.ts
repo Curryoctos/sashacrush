@@ -8,6 +8,10 @@ import {
   PHOTO_MIME_TYPES,
   type LandPhoto,
 } from '@/types/photos'
+import {
+  readGeolocation,
+  type GeoCoords,
+} from '@/features/photos/geolocation'
 
 const PHOTO_COLUMNS =
   'id, land_id, uploader_id, file_path, latitude, longitude, captured_at'
@@ -39,7 +43,11 @@ export function usePhotos(landId: string | null) {
     async (
       file: File,
       targetLandId: string,
-      coords: { latitude: number | null; longitude: number | null },
+      coords: GeoCoords = {
+        latitude: null,
+        longitude: null,
+        accuracyM: null,
+      },
     ): Promise<LandPhoto> => {
       setActionError(null)
 
@@ -86,10 +94,57 @@ export function usePhotos(landId: string | null) {
         throw new Error('Could not save photo record.')
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['photos', targetLandId] })
-      return data as LandPhoto
+      const photo = data as LandPhoto
+      queryClient.setQueryData<LandPhoto[]>(['photos', targetLandId], (current) => {
+        const existing = current ?? []
+        return [photo, ...existing.filter((row) => row.id !== photo.id)]
+      })
+      void queryClient.invalidateQueries({ queryKey: ['land-map', targetLandId] })
+      return photo
     },
     [queryClient, user],
+  )
+
+  const attachPhotoGps = useCallback(
+    async (photoId: string, targetLandId: string, coords: GeoCoords): Promise<LandPhoto | null> => {
+      if (coords.latitude == null || coords.longitude == null) {
+        return null
+      }
+
+      const { data, error } = await supabase
+        .from('photos')
+        .update({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        })
+        .eq('id', photoId)
+        .select(PHOTO_COLUMNS)
+        .maybeSingle()
+
+      if (error || !data) {
+        return null
+      }
+
+      const photo = data as LandPhoto
+      queryClient.setQueryData<LandPhoto[]>(['photos', targetLandId], (current) =>
+        (current ?? []).map((row) => (row.id === photo.id ? photo : row)),
+      )
+      void queryClient.invalidateQueries({ queryKey: ['land-map', targetLandId] })
+      return photo
+    },
+    [queryClient],
+  )
+
+  /** Refine GPS after upload without blocking the gallery. */
+  const refinePhotoGps = useCallback(
+    async (photoId: string, targetLandId: string): Promise<GeoCoords> => {
+      const coords = await readGeolocation()
+      if (coords.latitude != null && coords.longitude != null) {
+        await attachPhotoGps(photoId, targetLandId, coords)
+      }
+      return coords
+    },
+    [attachPhotoGps],
   )
 
   const getPhotoUrl = useCallback(async (filePath: string): Promise<string> => {
@@ -109,29 +164,12 @@ export function usePhotos(landId: string | null) {
     isLoading: photosQuery.isLoading,
     error: photosQuery.error ?? actionError,
     uploadPhoto,
+    attachPhotoGps,
+    refinePhotoGps,
     getPhotoUrl,
     setActionError,
   }
 }
 
-function readGeolocation(): Promise<{ latitude: number | null; longitude: number | null }> {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      resolve({ latitude: null, longitude: null })
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        })
-      },
-      () => resolve({ latitude: null, longitude: null }),
-      { enableHighAccuracy: true, timeout: 10_000 },
-    )
-  })
-}
-
 export { readGeolocation }
+export type { GeoCoords }

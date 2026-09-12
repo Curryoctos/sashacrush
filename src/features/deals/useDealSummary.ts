@@ -6,6 +6,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage, Document, LandRecord } from '@/types'
+import type { Json } from '@/types/database'
 
 export interface DealSummary {
   land: LandRecord & { seller_name: string | null }
@@ -24,7 +25,7 @@ export function useDealSummary(landId: string, includeUnread = false) {
       const { data: land, error: landError } = await supabase
         .from('land_records')
         .select(
-          'id, title, description, location, total_value_usd, seller_id, latitude, longitude, status, created_at',
+          'id, title, description, location, total_value_usd, seller_id, latitude, longitude, boundary_geojson, status, created_at',
         )
         .eq('id', landId)
         .single()
@@ -125,6 +126,29 @@ export function useExecutiveDeal(landId: string) {
 
       const rows = (data ?? []) as ExecutiveDealSummary[]
       return rows[0] ?? null
+    },
+  })
+}
+
+export interface ExecutiveLandMapParcel {
+  land_id: string
+  title: string
+  location: string | null
+  status: string
+  latitude: number | null
+  longitude: number | null
+  boundary_geojson: Json | null
+}
+
+export function useExecutiveLandMap() {
+  return useQuery({
+    queryKey: ['executive-land-map'],
+    queryFn: async (): Promise<ExecutiveLandMapParcel[]> => {
+      const { data, error } = await supabase.rpc('executive_land_map')
+      if (error) {
+        throw error
+      }
+      return (data ?? []) as ExecutiveLandMapParcel[]
     },
   })
 }

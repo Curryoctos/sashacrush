@@ -511,6 +511,19 @@ export interface Database {
           pending_payments: number
         }[]
       }
+
+      executive_land_map: {
+        Args: Record<string, never>
+        Returns: {
+          land_id: string
+          title: string
+          location: string | null
+          status: string
+          latitude: number | null
+          longitude: number | null
+          boundary_geojson: Json | null
+        }[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

@@ -8,6 +8,7 @@ export const ADMIN_NAV: PortalNavItem[] = [
   { label: 'Dashboard', to: '/admin/dashboard' },
   { label: 'Users', to: '/admin/users' },
   { label: 'Land Records', to: '/admin/land-records' },
+  { label: 'Field Photos', to: '/admin/photos' },
   { label: 'Documents', to: '/admin/documents' },
   { label: 'Payments', to: '/admin/payments' },
   { label: 'Capital', to: '/admin/capital' },

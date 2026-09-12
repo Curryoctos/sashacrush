@@ -26,6 +26,8 @@ import {
   type LandFolderId,
 } from '@/features/land-records/landFolders'
 import { computeDealBalance } from '@/features/payments/balance'
+import { DealsMap } from '@/features/maps/components/DealsMap'
+import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
 import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import type { LandRecord, LandRecordFormValues, SellerOption } from '@/types'
@@ -317,7 +319,9 @@ export function LandRecordsBrowser({
           }
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-4">
+          <DealsMap parcels={lands} onSelect={(id) => setNavigation(id, null)} />
+          <div className="grid gap-3 sm:grid-cols-2">
           {lands.map((land) => (
             <button
               key={land.id}
@@ -336,6 +340,7 @@ export function LandRecordsBrowser({
               </p>
             </button>
           ))}
+          </div>
         </div>
       )}
     </div>
@@ -406,7 +411,11 @@ function FolderDetail({
       </div>
 
       {folder === 'overview' && (
-        <OverviewPanel landId={land.id} includeUnread={includeUnread} />
+        <OverviewPanel
+          landId={land.id}
+          includeUnread={includeUnread}
+          canEditBoundary={roleBasePath === '/admin'}
+        />
       )}
 
       {folder === 'edit' && editForm && (
@@ -447,9 +456,11 @@ function FolderDetail({
 function OverviewPanel({
   landId,
   includeUnread,
+  canEditBoundary,
 }: {
   landId: string
   includeUnread: boolean
+  canEditBoundary: boolean
 }) {
   const dealQuery = useDealSummary(landId, includeUnread)
 
@@ -501,6 +512,8 @@ function OverviewPanel({
           value={`${confirmedPayments} confirmed / ${pendingPayments} pending`}
         />
       </StatGrid>
+
+      <LandMapPanel landId={landId} canEditBoundary={canEditBoundary} />
     </div>
   )
 }
@@ -527,7 +540,7 @@ function folderDestination(
     case 'payments':
       return roleBasePath === '/admin' ? `/admin/payments?land=${landId}` : null
     case 'photos':
-      return roleBasePath === '/agent' ? `/agent/photos?land=${landId}` : null
+      return `${roleBasePath}/photos?land=${landId}`
     default:
       return null
   }

@@ -20,13 +20,14 @@ import type {
 } from '@/types/database'
 
 const LAND_RECORD_COLUMNS =
-  'id, title, description, location, total_value_usd, seller_id, latitude, longitude, status, created_at'
+  'id, title, description, location, total_value_usd, seller_id, latitude, longitude, boundary_geojson, status, created_at'
 
 const ADMIN_FOLDERS = [
   'overview',
   'documents',
   'messages',
   'payments',
+  'photos',
   'edit',
 ] as const
 

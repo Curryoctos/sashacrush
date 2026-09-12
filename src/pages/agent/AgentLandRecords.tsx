@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import type { LandRecord } from '@/types'
 
 const LAND_COLUMNS =
-  'id, title, description, location, total_value_usd, seller_id, latitude, longitude, status, created_at'
+  'id, title, description, location, total_value_usd, seller_id, latitude, longitude, boundary_geojson, status, created_at'
 
 const AGENT_FOLDERS = ['overview', 'documents', 'messages', 'photos'] as const
 

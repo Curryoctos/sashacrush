@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { ArrowLeft, Camera, FileText, MessageSquare, Receipt } from 'lucide-react'
+import { ArrowLeft, Camera, FileText, MapPin, MessageSquare, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import {
@@ -14,6 +14,7 @@ import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import { supabase } from '@/lib/supabase'
+import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
 import type { LandRecord } from '@/types/database'
 
 const SELLER_LAND_COLUMNS = 'id, title, status'
@@ -42,7 +43,7 @@ export function SellerDashboard() {
   })
 
   const lands = data ?? []
-  const { selectedLand, setNavigation } = useLandHierarchyNav(lands)
+  const { selectedLand, selectedFolder, setNavigation } = useLandHierarchyNav(lands)
 
   const dealCards = useMemo(
     () =>
@@ -84,7 +85,41 @@ export function SellerDashboard() {
         />
       )}
 
-      {selectedLand && (
+      {selectedLand && selectedFolder === 'map' && (
+        <div className="space-y-5">
+          <HierarchyNav
+            crumbs={[
+              { label: 'Workspace', onClick: () => setNavigation(null, null) },
+              {
+                label: selectedLand.title,
+                onClick: () => setNavigation(selectedLand.id, null),
+              },
+              { label: 'Map' },
+            ]}
+          />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="ui-section-title">Site map</h2>
+              <p className="ui-section-desc">Your land boundary and field photo pins</p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(selectedLand.id, null)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Folders
+            </Button>
+          </div>
+          <LandMapPanel
+            landId={selectedLand.id}
+            title="Your land"
+            description="Only your assigned parcel is shown on this map."
+          />
+        </div>
+      )}
+
+      {selectedLand && selectedFolder !== 'map' && (
         <div className="space-y-5">
           <HierarchyNav
             crumbs={[
@@ -105,6 +140,13 @@ export function SellerDashboard() {
 
           <FolderCards
             folders={[
+              {
+                id: 'map',
+                title: 'Map',
+                description: 'Boundary and site photo locations',
+                icon: <MapPin className="h-5 w-5" />,
+                onSelect: () => setNavigation(selectedLand.id, 'map'),
+              },
               {
                 id: 'messages',
                 title: 'Messages',

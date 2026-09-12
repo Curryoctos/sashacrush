@@ -26,6 +26,7 @@ export function AdminDealPage() {
       {dealQuery.data && (
         <DealSummaryPanel
           deal={dealQuery.data}
+          canEditBoundary
           backLink={{ to: '/admin/land-records', label: 'Land Records' }}
           quickActions={[
             {
@@ -35,6 +36,10 @@ export function AdminDealPage() {
                   : 'Open messages',
               to: `/admin/chat?land=${dealQuery.data.land.id}`,
               primary: true,
+            },
+            {
+              label: 'Field photos',
+              to: `/admin/photos?land=${dealQuery.data.land.id}&folder=gallery`,
             },
             {
               label: 'Documents',

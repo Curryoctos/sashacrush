@@ -6,14 +6,16 @@ import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { computeDealBalance } from '@/features/payments/balance'
 import { formatUsd } from '@/lib/land-records'
 import type { DealSummary } from '@/features/deals/useDealSummary'
+import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
 
 interface DealSummaryPanelProps {
   deal: DealSummary
   backLink: { to: string; label: string }
   quickActions?: Array<{ label: string; to: string; primary?: boolean }>
+  canEditBoundary?: boolean
 }
 
-export function DealSummaryPanel({ deal, backLink, quickActions }: DealSummaryPanelProps) {
+export function DealSummaryPanel({ deal, backLink, quickActions, canEditBoundary = false }: DealSummaryPanelProps) {
   const pendingDocs = deal.documents.filter((doc) => doc.status === 'sent').length
   const signedDocs = deal.documents.filter((doc) => doc.status === 'signed').length
   const confirmedPayments = deal.payments.filter((payment) => payment.status === 'confirmed').length
@@ -57,6 +59,8 @@ export function DealSummaryPanel({ deal, backLink, quickActions }: DealSummaryPa
           value={`${confirmedPayments} confirmed / ${pendingPayments} pending`}
         />
       </StatGrid>
+
+      <LandMapPanel landId={deal.land.id} canEditBoundary={canEditBoundary} />
 
       {quickActions && quickActions.length > 0 && (
         <Card>

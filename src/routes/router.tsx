@@ -13,6 +13,7 @@ import { AdminDashboard } from '@/pages/admin/Dashboard'
 import { AdminDocumentsPage } from '@/pages/admin/AdminDocuments'
 import { AdminLandRecordsPage } from '@/pages/admin/LandRecords'
 import { AdminPaymentsPage } from '@/pages/admin/AdminPayments'
+import { AdminPhotosPage } from '@/pages/admin/AdminPhotos'
 import { AdminUsersPage } from '@/pages/admin/AdminUsers'
 import { AgentChatPage } from '@/pages/agent/AgentChat'
 import { AgentDashboard } from '@/pages/agent/Dashboard'
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
           { path: 'land-records', element: <AdminLandRecordsPage /> },
           { path: 'deals/:landId', element: <AdminDealPage /> },
           { path: 'documents', element: <AdminDocumentsPage /> },
+          { path: 'photos', element: <AdminPhotosPage /> },
           { path: 'payments', element: <AdminPaymentsPage /> },
           { path: 'capital', element: <AdminCapitalPage /> },
           { path: 'chat', element: <AdminChatPage /> },

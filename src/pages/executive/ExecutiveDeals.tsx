@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/Button'
 import { Card, Stat, StatGrid } from '@/components/ui/Card'
 import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { DealCards, HierarchyNav } from '@/components/hierarchy/Hierarchy'
-import { useExecutiveDeals } from '@/features/deals/useDealSummary'
+import { useExecutiveDeals, useExecutiveLandMap } from '@/features/deals/useDealSummary'
+import { DealsMap } from '@/features/maps/components/DealsMap'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
@@ -15,6 +16,7 @@ import { formatSupabaseError } from '@/lib/supabase-errors'
 export function ExecutiveDealsPage() {
   const { user } = useAuth()
   const dealsQuery = useExecutiveDeals()
+  const mapQuery = useExecutiveLandMap()
 
   const deals = useMemo(
     () =>
@@ -59,7 +61,21 @@ export function ExecutiveDealsPage() {
       )}
 
       {!dealsQuery.isLoading && !selectedLand && (
-        <DealCards
+        <div className="space-y-4">
+          <DealsMap
+            parcels={(mapQuery.data ?? []).map((parcel) => ({
+              id: parcel.land_id,
+              title: parcel.title,
+              status: parcel.status,
+              latitude: parcel.latitude,
+              longitude: parcel.longitude,
+              boundary_geojson: parcel.boundary_geojson,
+            }))}
+            onSelect={(id) => setNavigation(id, null)}
+            title="Portfolio map"
+            description="Read-only view of every parcel. Open a deal for the rest of the summary."
+          />
+          <DealCards
           deals={deals.map((deal) => ({
             id: deal.id,
             title: deal.title,
@@ -68,7 +84,8 @@ export function ExecutiveDealsPage() {
           onSelect={(id) => setNavigation(id, null)}
           emptyTitle="No active deals to display."
           prompt="Select a deal to review status."
-        />
+          />
+        </div>
       )}
 
       {selectedLand && (
@@ -98,6 +115,22 @@ export function ExecutiveDealsPage() {
               </Link>
             </div>
           </div>
+
+          <DealsMap
+            parcels={(mapQuery.data ?? [])
+              .filter((parcel) => parcel.land_id === selectedLand.id)
+              .map((parcel) => ({
+                id: parcel.land_id,
+                title: parcel.title,
+                status: parcel.status,
+                latitude: parcel.latitude,
+                longitude: parcel.longitude,
+                boundary_geojson: parcel.boundary_geojson,
+              }))}
+            onSelect={() => undefined}
+            title="Site map"
+            description="Parcel boundary for this deal."
+          />
 
           <Card>
             <dl className="grid gap-4 sm:grid-cols-2">
