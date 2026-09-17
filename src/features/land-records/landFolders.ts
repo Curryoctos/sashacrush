@@ -29,7 +29,7 @@ export const LAND_FOLDER_DESCRIPTIONS: Record<LandFolderId, string> = {
   documents: 'Upload, send, and track signing',
   messages: 'Seller channel conversation',
   payments: 'Confirm and track deal payments',
-  photos: 'GPS-tagged field photos',
+  photos: 'Camera GPS within 10m; library uploads use the land site',
   edit: 'Title, location, seller, and status',
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Camera, MapPin, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/PageHeader'
@@ -9,22 +9,29 @@ import {
   HierarchyNav,
 } from '@/components/hierarchy/Hierarchy'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
+import { openCameraStream } from '@/features/photos/cameraAccess'
+import { compressImageFile } from '@/features/photos/captureImage'
+import { FieldCamera } from '@/features/photos/components/FieldCamera'
 import {
   getLastKnownGeolocation,
   isAccurateFix,
-  NULL_COORDS,
   startGeolocationWarmup,
+  TARGET_ACCURACY_M,
+  type GeoCoords,
 } from '@/features/photos/geolocation'
 import { usePhotos } from '@/features/photos/usePhotos'
+import { siteCoordinate } from '@/lib/land-records'
 import { notifySuccess } from '@/features/notifications/useNotifications'
 import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
 import { PhotoDetailDrawer } from '@/features/photos/components/PhotoDetailDrawer'
 import { formatSupabaseError } from '@/lib/supabase-errors'
-import type { LandPhoto } from '@/types/photos'
+import { PHOTO_MIME_TYPES, type LandPhoto } from '@/types/photos'
 
 interface LandOption {
   id: string
   title: string
+  latitude?: number | string | null
+  longitude?: number | string | null
 }
 
 interface PhotosBrowserProps {
@@ -47,12 +54,14 @@ export function PhotosBrowser({
   const { searchParams, setSearchParams, selectedLandId, selectedLand, selectedFolder, setNavigation } =
     useLandHierarchyNav(lands)
   const [uploading, setUploading] = useState(false)
+  const [cameraStream, setCameraStream] = useState<Promise<MediaStream> | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null)
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({})
 
-  const { photos, isLoading, error, uploadPhoto, refinePhotoGps, getPhotoUrl } =
-    usePhotos(selectedLandId)
+  const { photos, isLoading, error, uploadPhoto, getPhotoUrl } = usePhotos(selectedLandId)
+  const siteLatitude = siteCoordinate(selectedLand?.latitude)
+  const siteLongitude = siteCoordinate(selectedLand?.longitude)
 
   useEffect(() => {
     setSelectedPhotoId(null)
@@ -86,6 +95,7 @@ export function PhotosBrowser({
           file_path: null,
           latitude: null,
           longitude: null,
+          accuracy_m: null,
           captured_at: new Date().toISOString(),
         })),
     [previewUrls, selectedLandId],
@@ -96,9 +106,22 @@ export function PhotosBrowser({
     [optimisticPhotos, photos],
   )
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file || !selectedLandId) {
+  const openCamera = () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setActionError('This browser cannot open a camera. Upload a photo from your library instead.')
+      return
+    }
+    setActionError(null)
+    setCameraStream(openCameraStream('environment'))
+  }
+
+  const saveCapture = async (
+    file: File,
+    capturedAt: string,
+    pin: GeoCoords,
+    source: 'gps' | 'land',
+  ) => {
+    if (!selectedLandId) {
       return
     }
 
@@ -106,6 +129,7 @@ export function PhotosBrowser({
     const previewUrl = URL.createObjectURL(file)
     const tempId = `local-${crypto.randomUUID()}`
 
+    setCameraStream(null)
     setActionError(null)
     setPreviewUrls((current) => ({ ...current, [tempId]: previewUrl }))
     setSelectedPhotoId(tempId)
@@ -113,11 +137,17 @@ export function PhotosBrowser({
       setNavigation(landId, 'gallery')
     }
     setUploading(true)
-    event.target.value = ''
 
     try {
-      const seedCoords = getLastKnownGeolocation() ?? NULL_COORDS
-      const photo = await uploadPhoto(file, landId, seedCoords)
+      if (source === 'gps' && !isAccurateFix(pin, TARGET_ACCURACY_M)) {
+        throw new Error('GPS must be within 10m before this photo can be saved.')
+      }
+      const photo = await uploadPhoto(
+        file,
+        landId,
+        capturedAt,
+        source === 'gps' ? pin : undefined,
+      )
 
       setPreviewUrls((current) => {
         const next = { ...current }
@@ -126,21 +156,14 @@ export function PhotosBrowser({
         return next
       })
       setSelectedPhotoId(photo.id)
-      notifySuccess('Photo uploaded.')
+      if (source === 'gps' && pin.accuracyM != null) {
+        notifySuccess(`Photo saved with GPS (±${Math.round(pin.accuracyM)}m).`)
+      } else if (photo.latitude != null && photo.longitude != null) {
+        notifySuccess('Photo saved at the land site.')
+      } else {
+        notifySuccess('Photo saved. This land has no site coordinates yet.')
+      }
       setUploading(false)
-
-      void refinePhotoGps(photo.id, landId).then((coords) => {
-        if (coords.latitude == null || coords.longitude == null) {
-          return
-        }
-        const meters =
-          coords.accuracyM != null ? ` (±${Math.round(coords.accuracyM)}m)` : ''
-        if (isAccurateFix(coords)) {
-          notifySuccess(`GPS attached${meters}.`)
-        } else {
-          notifySuccess(`GPS attached with a coarse fix${meters}.`)
-        }
-      })
     } catch (uploadError) {
       setPreviewUrls((current) => {
         const next = { ...current }
@@ -153,6 +176,43 @@ export function PhotosBrowser({
       })
       setSelectedPhotoId(null)
       setActionError(uploadError instanceof Error ? uploadError.message : 'Upload failed.')
+      setUploading(false)
+    }
+  }
+
+  const saveCameraShot = async (file: File, capturedAt: string) => {
+    const coords = getLastKnownGeolocation()
+    if (!coords || !isAccurateFix(coords, TARGET_ACCURACY_M)) {
+      setActionError('GPS must be within 10m before this photo can be saved.')
+      return
+    }
+    await saveCapture(file, capturedAt, coords, 'gps')
+  }
+
+  const saveLibraryFile = async (file: File) => {
+    if (!selectedLandId) {
+      return
+    }
+    if (!(PHOTO_MIME_TYPES as readonly string[]).includes(file.type)) {
+      setCameraStream(null)
+      setActionError('Only PNG, JPG, and WebP images are accepted.')
+      return
+    }
+
+    const capturedAt = new Date().toISOString()
+    setCameraStream(null)
+    setUploading(true)
+    setActionError(null)
+    try {
+      const compressed = await compressImageFile(file, Date.parse(capturedAt))
+      await saveCapture(
+        compressed,
+        capturedAt,
+        { latitude: siteLatitude, longitude: siteLongitude, accuracyM: null },
+        'land',
+      )
+    } catch (uploadError) {
+      setActionError(uploadError instanceof Error ? uploadError.message : 'Could not prepare the photo.')
       setUploading(false)
     }
   }
@@ -242,7 +302,9 @@ export function PhotosBrowser({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="ui-section-title">{selectedLand.title}</h2>
-            <p className="ui-section-desc">Choose a folder</p>
+            <p className="ui-section-desc">
+              Camera photos need a GPS fix within 10m. Library uploads use the land site pin.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
@@ -250,24 +312,11 @@ export function PhotosBrowser({
               All deals
             </Button>
             {canUpload && (
-              <label className="inline-flex">
-                <IconActionButton
-                  label={uploading ? 'Uploading…' : 'Upload photo'}
-                  icon={<Upload className="h-4 w-4" />}
-                  variant="primary"
-                  disabled={uploading}
-                  onClick={() => document.getElementById('hierarchy-photo-upload')?.click()}
-                />
-                <input
-                  id="hierarchy-photo-upload"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  capture="environment"
-                  className="sr-only"
-                  disabled={uploading}
-                  onChange={(event) => void handleUpload(event)}
-                />
-              </label>
+              <CaptureControls
+                uploading={uploading}
+                onOpenCamera={openCamera}
+                onLibraryFile={(file) => void saveLibraryFile(file)}
+              />
             )}
           </div>
         </div>
@@ -277,6 +326,16 @@ export function PhotosBrowser({
             {actionError ??
               (error instanceof Error ? formatSupabaseError(error) : 'Could not load photos.')}
           </p>
+        )}
+
+        {cameraStream && (
+          <FieldCamera
+            landTitle={selectedLand.title}
+            initialStream={cameraStream}
+            onClose={() => setCameraStream(null)}
+            onCapture={(shot) => void saveCameraShot(shot.file, shot.capturedAt)}
+            onPickLibrary={(file) => void saveLibraryFile(file)}
+          />
         )}
 
         <FolderCards
@@ -319,8 +378,8 @@ export function PhotosBrowser({
         <div>
           <h2 className="ui-section-title">Gallery</h2>
           <p className="ui-section-desc">
-            {displayPhotos.length} photo{displayPhotos.length === 1 ? '' : 's'} · open one to
-            review
+            {displayPhotos.length} photo{displayPhotos.length === 1 ? '' : 's'}
+            {' · camera GPS within 10m'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -329,24 +388,11 @@ export function PhotosBrowser({
             Folders
           </Button>
           {canUpload && (
-            <label className="inline-flex">
-              <IconActionButton
-                label={uploading ? 'Uploading…' : 'Upload photo'}
-                icon={<Upload className="h-4 w-4" />}
-                variant="primary"
-                disabled={uploading}
-                onClick={() => document.getElementById('hierarchy-photo-upload-gallery')?.click()}
-              />
-              <input
-                id="hierarchy-photo-upload-gallery"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                capture="environment"
-                className="sr-only"
-                disabled={uploading}
-                onChange={(event) => void handleUpload(event)}
-              />
-            </label>
+            <CaptureControls
+              uploading={uploading}
+              onOpenCamera={openCamera}
+              onLibraryFile={(file) => void saveLibraryFile(file)}
+            />
           )}
         </div>
       </div>
@@ -363,7 +409,7 @@ export function PhotosBrowser({
       )}
 
       {!isLoading && displayPhotos.length === 0 && (
-        <EmptyState title="No photos yet" description="Upload a capture to get started." />
+        <EmptyState title="No photos yet" description="Take a site photo to get started." />
       )}
 
       {displayPhotos.length > 0 && (
@@ -379,6 +425,16 @@ export function PhotosBrowser({
             />
           ))}
         </div>
+      )}
+
+      {cameraStream && (
+        <FieldCamera
+          landTitle={selectedLand.title}
+          initialStream={cameraStream}
+          onClose={() => setCameraStream(null)}
+          onCapture={(shot) => void saveCameraShot(shot.file, shot.capturedAt)}
+          onPickLibrary={(file) => void saveLibraryFile(file)}
+        />
       )}
 
       <PhotoDetailDrawer
@@ -399,6 +455,47 @@ export function PhotosBrowser({
             }
             return next
           })
+        }}
+      />
+    </div>
+  )
+}
+
+function CaptureControls({
+  uploading,
+  onOpenCamera,
+  onLibraryFile,
+}: {
+  uploading: boolean
+  onOpenCamera: () => void
+  onLibraryFile: (file: File) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button size="sm" disabled={uploading} onClick={onOpenCamera}>
+        <Camera className="h-4 w-4" />
+        {uploading ? 'Saving…' : 'Take photo'}
+      </Button>
+      <IconActionButton
+        label="Upload from library"
+        icon={<Upload className="h-4 w-4" />}
+        disabled={uploading}
+        onClick={() => inputRef.current?.click()}
+      />
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="sr-only"
+        disabled={uploading}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (file) {
+            onLibraryFile(file)
+          }
         }}
       />
     </div>

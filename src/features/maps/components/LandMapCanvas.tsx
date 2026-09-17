@@ -17,7 +17,7 @@ import {
   type LatLngTuple,
 } from '@/features/maps/geojson'
 import { ensureLeafletDefaults } from '@/features/maps/leafletSetup'
-import type { LandPhoto } from '@/types/photos'
+import { photoAccuracyMeters, type LandPhoto } from '@/types/photos'
 
 ensureLeafletDefaults()
 
@@ -282,6 +282,9 @@ export function LandMapCanvas({
                   )}
                   <p className="text-xs text-muted">
                     {new Date(photo.captured_at).toLocaleString()}
+                    {photoAccuracyMeters(photo.accuracy_m) != null
+                      ? ` · GPS ±${Math.round(photoAccuracyMeters(photo.accuracy_m)!)}m`
+                      : ''}
                   </p>
                   {outsideBoundary ? (
                     <p className="text-xs font-medium text-red-700">

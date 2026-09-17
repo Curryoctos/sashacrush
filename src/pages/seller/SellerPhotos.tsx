@@ -16,8 +16,8 @@ export function SellerPhotosPage() {
           title="Property Photos"
           description={
             user?.email
-              ? `Signed in as ${user.email}. Open a deal, then the gallery.`
-              : 'Open a deal, then the gallery.'
+              ? `Signed in as ${user.email}. Open a deal, then take a site photo.`
+              : 'Open a deal, then take a site photo.'
           }
         />
       </div>

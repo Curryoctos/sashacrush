@@ -44,7 +44,7 @@ const FOLDER_META: Record<
   },
   photos: {
     title: 'Field photos',
-    description: 'GPS-tagged captures',
+    description: 'On-site camera captures',
     to: '/agent/photos',
   },
 }

@@ -3,7 +3,7 @@ import { ExternalLink, MapPin } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Drawer } from '@/components/ui/Drawer'
-import type { LandPhoto } from '@/types/photos'
+import { photoAccuracyMeters, type LandPhoto } from '@/types/photos'
 
 interface PhotoDetailDrawerProps {
   photo: LandPhoto | null
@@ -76,6 +76,8 @@ export function PhotoDetailDrawer({
   }
 
   const hasGps = photo.latitude != null && photo.longitude != null
+  const accuracyM = photoAccuracyMeters(photo.accuracy_m)
+  const withinTen = accuracyM != null && accuracyM <= 10
   const pending =
     photo.id.startsWith('local-') || uploading || (!hasGps && uploading)
 
@@ -131,18 +133,20 @@ export function PhotoDetailDrawer({
             </h3>
             {outsideBoundary ? (
               <Badge tone="danger">Outside parcel</Badge>
+            ) : withinTen ? (
+              <Badge tone="success">GPS within 10m</Badge>
             ) : hasGps ? (
-              <Badge tone="success">GPS tagged</Badge>
+              <Badge tone="success">Site pin</Badge>
             ) : pending ? (
-              <Badge tone="warning">Attaching GPS…</Badge>
+              <Badge tone="warning">Saving…</Badge>
             ) : (
-              <Badge tone="neutral">No GPS</Badge>
+              <Badge tone="neutral">No site pin</Badge>
             )}
           </div>
 
           {outsideBoundary ? (
             <p className="text-sm text-danger">
-              This pin sits outside the saved parcel. The GPS fix may be wrong.
+              This pin sits outside the saved parcel.
             </p>
           ) : null}
           {hasGps ? (
@@ -163,12 +167,22 @@ export function PhotoDetailDrawer({
                   {photo.longitude!.toFixed(6)}
                 </dd>
               </div>
+              {withinTen ? (
+                <div className="col-span-2">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                    GPS accuracy
+                  </dt>
+                  <dd className="mt-1 font-medium tabular-nums text-ink">
+                    ±{Math.round(accuracyM!)}m at capture
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           ) : (
             <p className="text-sm text-muted">
               {pending
-                ? 'The photo is saved. Coordinates will appear here once GPS locks in.'
-                : 'This capture has no coordinates yet.'}
+                ? 'Saving this photo…'
+                : 'This photo has no coordinates.'}
             </p>
           )}
         </section>

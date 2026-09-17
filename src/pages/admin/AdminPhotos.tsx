@@ -13,7 +13,7 @@ export function AdminPhotosPage() {
     queryFn: async (): Promise<LandRecord[]> => {
       const { data, error } = await supabase
         .from('land_records')
-        .select('id, title')
+        .select('id, title, latitude, longitude')
         .eq('status', 'active')
         .order('title')
 
@@ -34,8 +34,8 @@ export function AdminPhotosPage() {
           title="Field Photos"
           description={
             user?.email
-              ? `Signed in as ${user.email}. Open a deal, then the gallery.`
-              : 'Open a deal, then the gallery.'
+              ? `Signed in as ${user.email}. Open a deal, then take a site photo.`
+              : 'Open a deal, then take a site photo.'
           }
         />
       </div>

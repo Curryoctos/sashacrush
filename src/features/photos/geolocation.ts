@@ -47,6 +47,24 @@ export function getLastKnownGeolocation(): GeoCoords | null {
   return lastKnownCoords
 }
 
+/** Test helper — clears the in-memory GPS sample. */
+export function resetGeolocationCache() {
+  lastKnownCoords = null
+}
+
+function betterCoords(next: GeoCoords, previous: GeoCoords | null): GeoCoords {
+  if (next.latitude == null || next.longitude == null) {
+    return previous ?? NULL_COORDS
+  }
+  if (previous?.latitude == null || previous.longitude == null) {
+    return next
+  }
+  return (next.accuracyM ?? Number.POSITIVE_INFINITY) <=
+    (previous.accuracyM ?? Number.POSITIVE_INFINITY)
+    ? next
+    : previous
+}
+
 async function queryGeolocationPermission(): Promise<
   PermissionState | 'unsupported'
 > {
@@ -141,6 +159,29 @@ export async function readGeolocation(): Promise<GeoCoords> {
   }
 
   return watchBestPosition(WATCH_BUDGET_MS)
+}
+
+/**
+ * GPS to stamp on a shutter press.
+ * Uses a warm ≤10m fix immediately so the photo can upload without waiting.
+ */
+export async function readCaptureGeolocation(maxWaitMs = 2_500): Promise<GeoCoords> {
+  const known = getLastKnownGeolocation()
+  if (known && isAccurateFix(known, TARGET_ACCURACY_M)) {
+    return known
+  }
+
+  if (!navigator.geolocation) {
+    return known ?? NULL_COORDS
+  }
+
+  const permission = await queryGeolocationPermission()
+  if (permission === 'denied') {
+    return known ?? NULL_COORDS
+  }
+
+  const fresh = await watchBestPosition(maxWaitMs)
+  return betterCoords(fresh, getLastKnownGeolocation())
 }
 
 /** Keep a background fix warm so uploads can start with a last-known point. */

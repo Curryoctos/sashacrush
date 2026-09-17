@@ -347,6 +347,7 @@ export interface Database {
           file_path: string | null
           latitude: number | null
           longitude: number | null
+          accuracy_m: number | null
           captured_at: string
         }
         Insert: {
@@ -356,6 +357,7 @@ export interface Database {
           file_path?: string | null
           latitude?: number | null
           longitude?: number | null
+          accuracy_m?: number | null
           captured_at?: string
         }
         Update: {
@@ -365,6 +367,7 @@ export interface Database {
           file_path?: string | null
           latitude?: number | null
           longitude?: number | null
+          accuracy_m?: number | null
           captured_at?: string
         }
         Relationships: []

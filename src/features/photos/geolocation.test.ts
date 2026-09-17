@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ACCEPTABLE_ACCURACY_M,
+  readCaptureGeolocation,
   readGeolocation,
+  resetGeolocationCache,
   TARGET_ACCURACY_M,
 } from '@/features/photos/geolocation'
 
@@ -23,6 +25,7 @@ describe('readGeolocation', () => {
       configurable: true,
       value: originalPermissions,
     })
+    resetGeolocationCache()
   })
 
   function mockGeo(watchPosition: ReturnType<typeof vi.fn>) {
@@ -114,5 +117,30 @@ describe('readGeolocation', () => {
       longitude: null,
       accuracyM: null,
     })
+  })
+
+  it('stamps a warm high-accuracy fix without waiting on another sample', async () => {
+    const seed = vi.fn((success: PositionCallback) => {
+      success({
+        coords: {
+          latitude: 0.5601,
+          longitude: 31.3952,
+          accuracy: 8,
+        },
+      } as GeolocationPosition)
+      return 1
+    })
+    mockGeo(seed)
+    await readGeolocation()
+
+    const watchPosition = vi.fn()
+    mockGeo(watchPosition)
+
+    await expect(readCaptureGeolocation()).resolves.toEqual({
+      latitude: 0.5601,
+      longitude: 31.3952,
+      accuracyM: 8,
+    })
+    expect(watchPosition).not.toHaveBeenCalled()
   })
 })

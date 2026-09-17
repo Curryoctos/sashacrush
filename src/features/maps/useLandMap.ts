@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { LandPhoto } from '@/types/photos'
+import { photoAccuracyMeters, type LandPhoto } from '@/types/photos'
 import type { Json, LandRecord } from '@/types/database'
 import { parseBoundaryGeoJson, type GeoJsonPolygon } from '@/features/maps/geojson'
 
 const LAND_MAP_COLUMNS =
   'id, title, location, latitude, longitude, boundary_geojson, status, seller_id'
 const PHOTO_COLUMNS =
-  'id, land_id, uploader_id, file_path, latitude, longitude, captured_at'
+  'id, land_id, uploader_id, file_path, latitude, longitude, accuracy_m, captured_at'
 
 export type LandMapRecord = Pick<
   LandRecord,
@@ -55,7 +55,10 @@ export function useLandMap(landId: string | null | undefined) {
       const record = land as LandMapRecord
       return {
         land: record,
-        photos: (photos ?? []) as LandPhoto[],
+        photos: ((photos ?? []) as LandPhoto[]).map((photo) => ({
+          ...photo,
+          accuracy_m: photoAccuracyMeters(photo.accuracy_m),
+        })),
         boundary: parseBoundaryGeoJson(record.boundary_geojson),
       }
     },

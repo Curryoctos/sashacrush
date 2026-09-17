@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { LandRecord } from '@/types'
 
-const SELLER_LAND_COLUMNS = 'id, title, location, status, created_at'
+const SELLER_LAND_COLUMNS = 'id, title, location, status, created_at, latitude, longitude'
 
 export function useSellerLands(signDocumentId?: string | null) {
   const { user } = useAuth()

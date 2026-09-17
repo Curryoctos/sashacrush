@@ -1,5 +1,14 @@
 import type { LandRecordFormValues, LandRecordStatus } from '@/types/database'
 
+/** Coerce a PostgREST numeric into a finite coordinate, or null. */
+export function siteCoordinate(value: unknown): number | null {
+  if (value == null || value === '') {
+    return null
+  }
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export function formatUsd(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
