@@ -14,7 +14,7 @@ export type {
 } from './database'
 export type { ChatChannel } from './database'
 export type { ChatMessage, ChatMessageInsert } from './chat'
-export type { Document, DocumentStatus, AllowedMimeType } from './documents'
+export type { Document, DocumentScope, DocumentStatus, AllowedMimeType } from './documents'
 export {
   ALLOWED_MIME_TYPES,
   DOCUMENT_BUCKET,

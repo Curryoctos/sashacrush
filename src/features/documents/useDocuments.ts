@@ -14,7 +14,7 @@ import {
 } from '@/features/documents/validation'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import type { Document } from '@/types'
+import type { Document, DocumentScope } from '@/types'
 import {
   DOCUMENT_BUCKET,
   FILE_SIZE_ERROR,
@@ -23,29 +23,42 @@ import {
 } from '@/types/documents'
 
 const DOCUMENT_COLUMNS =
-  'id, land_id, uploader_id, assigned_to, signed_by, file_path, title, status, signature_hash, signed_at, created_at'
+  'id, land_id, investor_id, investment_id, uploader_id, assigned_to, signed_by, file_path, title, status, signature_hash, signed_at, created_at'
 
 function mapDocument(row: Document): Document {
   return row
 }
 
-export function useDocuments(landId: string | null) {
+function isAssigneeRole(role: string | null | undefined): boolean {
+  return role === 'seller' || role === 'executive'
+}
+
+export function useDocuments(
+  scopeId: string | null,
+  options?: { scope?: DocumentScope },
+) {
+  const scope = options?.scope ?? 'land'
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [actionError, setActionError] = useState<string | null>(null)
 
   const documentsQuery = useQuery({
-    queryKey: ['documents', landId, user?.role, user?.id],
-    enabled: Boolean(landId && user),
+    queryKey: ['documents', scope, scopeId, user?.role, user?.id],
+    enabled: Boolean(scopeId && user),
     queryFn: async (): Promise<Document[]> => {
       let query = supabase
         .from('documents')
         .select(DOCUMENT_COLUMNS)
-        .eq('land_id', landId!)
         .order('created_at', { ascending: false })
 
-      if (user?.role === 'seller') {
-        query = query.eq('assigned_to', user.id)
+      if (scope === 'investor') {
+        query = query.eq('investor_id', scopeId!)
+      } else {
+        query = query.eq('land_id', scopeId!)
+      }
+
+      if (isAssigneeRole(user?.role)) {
+        query = query.eq('assigned_to', user!.id)
       }
 
       const { data, error } = await query
@@ -58,35 +71,13 @@ export function useDocuments(landId: string | null) {
   })
 
   const refresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['documents', landId] })
-  }, [queryClient, landId])
-
-  const fetchDocuments = useCallback(
-    async (targetLandId: string): Promise<Document[]> => {
-      let query = supabase
-        .from('documents')
-        .select(DOCUMENT_COLUMNS)
-        .eq('land_id', targetLandId)
-        .order('created_at', { ascending: false })
-
-      if (user?.role === 'seller') {
-        query = query.eq('assigned_to', user.id)
-      }
-
-      const { data, error } = await query
-      if (error) {
-        throw error
-      }
-
-      return (data ?? []).map(mapDocument)
-    },
-    [user?.id, user?.role],
-  )
+    await queryClient.invalidateQueries({ queryKey: ['documents', scope, scopeId] })
+  }, [queryClient, scope, scopeId])
 
   const uploadDocument = useCallback(
     async (
       file: File,
-      targetLandId: string,
+      targetScopeId: string,
       onProgress?: (percent: number) => void,
     ): Promise<Document> => {
       setActionError(null)
@@ -106,7 +97,10 @@ export function useDocuments(landId: string | null) {
       onProgress?.(10)
 
       const objectId = crypto.randomUUID()
-      const storagePath = `${targetLandId}/${objectId}-${file.name}`
+      const storagePath =
+        scope === 'investor'
+          ? `investor/${targetScopeId}/${objectId}-${file.name}`
+          : `${targetScopeId}/${objectId}-${file.name}`
 
       onProgress?.(35)
 
@@ -123,15 +117,28 @@ export function useDocuments(landId: string | null) {
 
       onProgress?.(75)
 
+      const insertRow =
+        scope === 'investor'
+          ? {
+              land_id: null,
+              investor_id: targetScopeId,
+              uploader_id: user.id,
+              file_path: storagePath,
+              title: file.name,
+              status: 'draft' as const,
+            }
+          : {
+              land_id: targetScopeId,
+              investor_id: null,
+              uploader_id: user.id,
+              file_path: storagePath,
+              title: file.name,
+              status: 'draft' as const,
+            }
+
       const { data, error: insertError } = await supabase
         .from('documents')
-        .insert({
-          land_id: targetLandId,
-          uploader_id: user.id,
-          file_path: storagePath,
-          title: file.name,
-          status: 'draft',
-        })
+        .insert(insertRow)
         .select(DOCUMENT_COLUMNS)
         .single()
 
@@ -144,16 +151,16 @@ export function useDocuments(landId: string | null) {
       await refresh()
       return mapDocument(data as Document)
     },
-    [refresh, user],
+    [refresh, scope, user],
   )
 
   const sendForSigning = useCallback(
-    async (documentId: string, sellerId: string): Promise<Document> => {
+    async (documentId: string, assigneeId: string): Promise<Document> => {
       setActionError(null)
 
       const { data: existing, error: fetchError } = await supabase
         .from('documents')
-        .select(`${DOCUMENT_COLUMNS}, land_id`)
+        .select(DOCUMENT_COLUMNS)
         .eq('id', documentId)
         .single()
 
@@ -173,25 +180,45 @@ export function useDocuments(landId: string | null) {
         )
       }
 
-      const { data: land, error: landError } = await supabase
-        .from('land_records')
-        .select('seller_id')
-        .eq('id', doc.land_id)
-        .single()
+      if (doc.investor_id) {
+        if (doc.investor_id !== assigneeId) {
+          throw new Error('Selected investor does not match this agreement.')
+        }
 
-      if (landError || !land?.seller_id) {
-        throw new Error('This land record has no seller assigned.')
-      }
+        const { data: investor, error: investorError } = await supabase
+          .from('users')
+          .select('id, role')
+          .eq('id', assigneeId)
+          .single()
 
-      if (land.seller_id !== sellerId) {
-        throw new Error('Selected seller does not match the land record owner.')
+        if (investorError || !investor || investor.role !== 'executive') {
+          throw new Error('This agreement has no investor assigned.')
+        }
+      } else {
+        if (!doc.land_id) {
+          throw new Error('Document is missing a land or investor scope.')
+        }
+
+        const { data: land, error: landError } = await supabase
+          .from('land_records')
+          .select('seller_id')
+          .eq('id', doc.land_id)
+          .single()
+
+        if (landError || !land?.seller_id) {
+          throw new Error('This land record has no seller assigned.')
+        }
+
+        if (land.seller_id !== assigneeId) {
+          throw new Error('Selected seller does not match the land record owner.')
+        }
       }
 
       const { data, error } = await supabase
         .from('documents')
         .update({
           status: 'sent',
-          assigned_to: sellerId,
+          assigned_to: assigneeId,
         })
         .eq('id', documentId)
         .select(DOCUMENT_COLUMNS)
@@ -202,7 +229,7 @@ export function useDocuments(landId: string | null) {
       }
 
       try {
-        await notifyDocumentSent(documentId, sellerId)
+        await notifyDocumentSent(documentId, assigneeId)
       } catch (notificationError) {
         await supabase
           .from('documents')
@@ -213,7 +240,7 @@ export function useDocuments(landId: string | null) {
           notificationError instanceof Error
             ? notificationError.message
             : 'unknown error'
-        throw new Error(`Could not notify seller: ${detail}`)
+        throw new Error(`Could not notify signer: ${detail}`)
       }
 
       await refresh()
@@ -223,7 +250,10 @@ export function useDocuments(landId: string | null) {
   )
 
   const signDocument = useCallback(
-    async (documentId: string): Promise<Document> => {
+    async (
+      documentId: string,
+      handSignature?: { pngBytes: Uint8Array } | null,
+    ): Promise<Document> => {
       setActionError(null)
 
       if (!user) {
@@ -274,11 +304,16 @@ export function useDocuments(landId: string | null) {
 
       const signerName = profile?.full_name ?? profile?.email ?? user.email
 
+      if (!handSignature?.pngBytes?.length) {
+        throw new Error('A handwritten signature is required to sign this document.')
+      }
+
       const signedBytes = await signDocumentBytes(
         originalBytes,
         mimeType,
         signerName,
         documentId,
+        handSignature,
       )
 
       const signatureHash = await hashSignedDocument(signedBytes)
@@ -319,16 +354,21 @@ export function useDocuments(landId: string | null) {
       void notifyDocumentSigned(documentId)
 
       await refresh()
+      if (doc.investor_id || scope === 'investor') {
+        void queryClient.invalidateQueries({
+          queryKey: ['investor-pending-agreements'],
+        })
+      }
       return mapDocument(updated as Document)
     },
-    [refresh, user],
+    [queryClient, refresh, scope, user],
   )
 
   const setDocumentStage = useCallback(
     async (
       documentId: string,
       nextStatus: Document['status'],
-      options?: { sellerId?: string | null },
+      options?: { sellerId?: string | null; assigneeId?: string | null },
     ): Promise<Document> => {
       setActionError(null)
 
@@ -349,14 +389,19 @@ export function useDocuments(landId: string | null) {
       }
 
       if (nextStatus === 'signed') {
-        throw new Error('Only the assigned seller can sign a document.')
+        throw new Error('Only the assigned signer can sign a document.')
       }
 
       if (doc.status === 'draft' && nextStatus === 'sent') {
-        if (!options?.sellerId) {
-          throw new Error('This land record has no seller assigned.')
+        const assigneeId = options?.assigneeId ?? options?.sellerId
+        if (!assigneeId) {
+          throw new Error(
+            scope === 'investor'
+              ? 'Select an investor before sending for signature.'
+              : 'This land record has no seller assigned.',
+          )
         }
-        return sendForSigning(documentId, options.sellerId)
+        return sendForSigning(documentId, assigneeId)
       }
 
       const patch: {
@@ -383,7 +428,7 @@ export function useDocuments(landId: string | null) {
       void queryClient.invalidateQueries({ queryKey: ['document-counts'] })
       return mapDocument(data as Document)
     },
-    [queryClient, refresh, sendForSigning],
+    [queryClient, refresh, scope, sendForSigning],
   )
 
   const downloadDocument = useCallback(async (document: Document) => {
@@ -422,7 +467,6 @@ export function useDocuments(landId: string | null) {
     documents: documentsQuery.data ?? [],
     isLoading: documentsQuery.isLoading,
     error: documentsQuery.error ?? actionError,
-    fetchDocuments,
     uploadDocument,
     sendForSigning,
     setDocumentStage,

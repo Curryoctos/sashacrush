@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { photoAccuracyMeters, type LandPhoto } from '@/types/photos'
 import type { Json, LandRecord } from '@/types/database'
@@ -27,11 +28,89 @@ export interface LandMapData {
   boundary: GeoJsonPolygon | null
 }
 
+type ExecutiveParcel = {
+  land_id: string
+  title: string
+  location: string | null
+  status: string
+  latitude: number | null
+  longitude: number | null
+  boundary_geojson: Json | null
+}
+
+async function loadLandPhotos(landId: string): Promise<LandPhoto[]> {
+  const { data: photos, error: photosError } = await supabase
+    .from('photos')
+    .select(PHOTO_COLUMNS)
+    .eq('land_id', landId)
+    .order('captured_at', { ascending: false })
+
+  if (photosError) {
+    throw photosError
+  }
+
+  return ((photos ?? []) as LandPhoto[]).map((photo) => ({
+    ...photo,
+    accuracy_m: photoAccuracyMeters(photo.accuracy_m),
+  }))
+}
+
+async function loadExecutiveParcel(landId: string): Promise<LandMapRecord> {
+  const { data: siteRows, error: siteError } = await supabase.rpc('executive_land_site', {
+    p_land_id: landId,
+  })
+
+  let parcel: ExecutiveParcel | undefined = (siteRows ?? [])[0]
+
+  // Site RPC may not be migrated yet — fall back to the portfolio map RPC.
+  if (siteError || !parcel) {
+    const { data: mapRows, error: mapError } = await supabase.rpc('executive_land_map')
+    if (mapError) {
+      throw siteError ?? mapError
+    }
+    parcel = ((mapRows ?? []) as ExecutiveParcel[]).find((row) => row.land_id === landId)
+  }
+
+  if (!parcel) {
+    throw new Error('Land record not found')
+  }
+
+  return {
+    id: parcel.land_id,
+    title: parcel.title,
+    location: parcel.location,
+    latitude: parcel.latitude,
+    longitude: parcel.longitude,
+    boundary_geojson: parcel.boundary_geojson,
+    status: parcel.status,
+    seller_id: null,
+  }
+}
+
 export function useLandMap(landId: string | null | undefined) {
+  const { role } = useAuth()
+
   return useQuery({
-    queryKey: ['land-map', landId],
-    enabled: Boolean(landId),
+    queryKey: ['land-map', landId, role],
+    enabled: Boolean(landId && role),
     queryFn: async (): Promise<LandMapData> => {
+      if (role === 'executive') {
+        const record = await loadExecutiveParcel(landId!)
+        let photos: LandPhoto[] = []
+        try {
+          photos = await loadLandPhotos(landId!)
+        } catch {
+          // Photos RLS may lag behind map access; still show Uber / Open in maps.
+          photos = []
+        }
+
+        return {
+          land: record,
+          photos,
+          boundary: parseBoundaryGeoJson(record.boundary_geojson),
+        }
+      }
+
       const { data: land, error: landError } = await supabase
         .from('land_records')
         .select(LAND_MAP_COLUMNS)
@@ -42,23 +121,10 @@ export function useLandMap(landId: string | null | undefined) {
         throw landError ?? new Error('Land record not found')
       }
 
-      const { data: photos, error: photosError } = await supabase
-        .from('photos')
-        .select(PHOTO_COLUMNS)
-        .eq('land_id', landId!)
-        .order('captured_at', { ascending: false })
-
-      if (photosError) {
-        throw photosError
-      }
-
       const record = land as LandMapRecord
       return {
         land: record,
-        photos: ((photos ?? []) as LandPhoto[]).map((photo) => ({
-          ...photo,
-          accuracy_m: photoAccuracyMeters(photo.accuracy_m),
-        })),
+        photos: await loadLandPhotos(landId!),
         boundary: parseBoundaryGeoJson(record.boundary_geojson),
       }
     },

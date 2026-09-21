@@ -144,6 +144,36 @@ export function useMyInvestments() {
       .reduce((sum, row) => sum + Number(row.amount_usd), 0)
   }, [investmentsQuery.data])
 
+  const cancelStripeCheckout = useMutation({
+    mutationFn: async (investmentId: string) => {
+      if (!executiveId) {
+        throw new Error('You must be signed in to cancel checkout.')
+      }
+
+      const { data, error } = await supabase
+        .from('investments')
+        .update({
+          status: 'rejected',
+          rejection_reason: 'Stripe Checkout cancelled by investor',
+        })
+        .eq('id', investmentId)
+        .eq('executive_id', executiveId)
+        .eq('status', 'pending')
+        .eq('method', 'stripe')
+        .select(INVESTMENT_COLUMNS)
+        .maybeSingle()
+
+      if (error) {
+        throw new Error(error.message || 'Could not cancel checkout.')
+      }
+
+      return data as Investment | null
+    },
+    onSuccess: () => {
+      invalidateInvestmentQueries(queryClient)
+    },
+  })
+
   return {
     investments: investmentsQuery.data ?? [],
     confirmedTotalUsd,
@@ -151,6 +181,7 @@ export function useMyInvestments() {
     error: investmentsQuery.error,
     createInvestment: createInvestment.mutateAsync,
     isCreating: createInvestment.isPending,
+    cancelStripeCheckout: cancelStripeCheckout.mutateAsync,
     refresh: async () => {
       await queryClient.invalidateQueries({ queryKey: ['investments', 'mine'] })
     },

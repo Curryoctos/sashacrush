@@ -21,7 +21,7 @@ export function canEditDocumentPipeline(role: UserRole | null | undefined): bool
 }
 
 /**
- * Staff pipeline rules (signed is seller-only and locked):
+ * Staff pipeline rules (signed is assignee-only and locked):
  * - draft → sent (confirm send)
  * - draft → archived (confirm)
  * - sent → archived (confirm)
@@ -41,7 +41,7 @@ export function evaluateDocumentStageMove(
       kind: 'blocked',
       reason:
         to === 'signed'
-          ? 'Only the assigned seller can sign a document.'
+          ? 'Only the assigned signer can sign a document.'
           : 'Signed documents are locked and cannot change stage.',
     }
   }
@@ -49,7 +49,7 @@ export function evaluateDocumentStageMove(
   if (from === 'draft' && to === 'sent') {
     return {
       kind: 'confirm',
-      reason: 'Send this draft to the assigned seller for signature?',
+      reason: 'Send this draft to the assigned signer for signature?',
       confirmLabel: 'Send for signing',
       tone: 'primary',
     }
@@ -76,7 +76,7 @@ export function evaluateDocumentStageMove(
   if (from === 'sent' && to === 'draft') {
     return {
       kind: 'confirm',
-      reason: 'Recall this document to draft? The seller assignment will be cleared.',
+      reason: 'Recall this document to draft? The signer assignment will be cleared.',
       confirmLabel: 'Recall to draft',
       tone: 'primary',
     }

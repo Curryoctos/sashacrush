@@ -1,17 +1,18 @@
 import { useCallback, useRef, useState, type DragEvent } from 'react'
-import type { Document } from '@/types'
+import type { Document, DocumentScope } from '@/types'
 import { FILE_SIZE_ERROR, FILE_TYPE_ERROR, UPLOAD_FAILED_ERROR } from '@/types/documents'
 import { useDocuments } from '@/features/documents/useDocuments'
 import { validateFileSize, validateFileType } from '@/features/documents/validation'
 
 interface DocumentUploadProps {
   landId: string
+  scope?: DocumentScope
   onUpload: (doc: Document) => void
 }
 
-export function DocumentUpload({ landId, onUpload }: DocumentUploadProps) {
+export function DocumentUpload({ landId, scope = 'land', onUpload }: DocumentUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const { uploadDocument } = useDocuments(landId)
+  const { uploadDocument } = useDocuments(landId, { scope })
   const [isDragging, setIsDragging] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)

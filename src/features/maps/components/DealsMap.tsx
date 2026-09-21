@@ -8,6 +8,7 @@ import {
   polygonToLatLngs,
   type LatLngTuple,
 } from '@/features/maps/geojson'
+import { SiteTravelLinks } from '@/features/maps/components/SiteTravelLinks'
 import { ensureLeafletDefaults } from '@/features/maps/leafletSetup'
 import type { Json } from '@/types/database'
 
@@ -40,6 +41,39 @@ function FitAll({ points }: { points: LatLngTuple[] }) {
   }, [map, points])
 
   return null
+}
+
+function ParcelPopup({
+  parcel,
+  onSelect,
+}: {
+  parcel: DealMapParcel
+  onSelect: (landId: string) => void
+}) {
+  const hasSite = parcel.latitude != null && parcel.longitude != null
+
+  return (
+    <div className="min-w-[10rem] space-y-2">
+      <button
+        type="button"
+        className="text-sm font-medium text-ink underline"
+        onClick={() => onSelect(parcel.id)}
+      >
+        {parcel.title}
+      </button>
+      {hasSite ? (
+        <SiteTravelLinks
+          compact
+          className="flex flex-col items-start gap-1"
+          destination={{
+            latitude: parcel.latitude!,
+            longitude: parcel.longitude!,
+            label: parcel.title,
+          }}
+        />
+      ) : null}
+    </div>
+  )
 }
 
 export function DealsMap({
@@ -113,13 +147,7 @@ export function DealsMap({
                   }}
                 >
                   <Popup>
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-ink underline"
-                      onClick={() => onSelect(parcel.id)}
-                    >
-                      {parcel.title}
-                    </button>
+                    <ParcelPopup parcel={parcel} onSelect={onSelect} />
                   </Popup>
                 </Polygon>
               ) : null,
@@ -128,13 +156,7 @@ export function DealsMap({
               parcel.latitude != null && parcel.longitude != null ? (
                 <Marker key={`${parcel.id}-pin`} position={[parcel.latitude, parcel.longitude]}>
                   <Popup>
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-ink underline"
-                      onClick={() => onSelect(parcel.id)}
-                    >
-                      {parcel.title}
-                    </button>
+                    <ParcelPopup parcel={parcel} onSelect={onSelect} />
                   </Popup>
                 </Marker>
               ) : null,

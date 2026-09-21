@@ -12,6 +12,8 @@ import type { Document, DocumentStatus } from '@/types'
 interface DocumentDetailDrawerProps {
   document: Document | null
   landTitle?: string
+  /** Overrides the drawer subtitle prefix (default "Deal"). Use "Investor" for capital agreements. */
+  contextLabel?: string
   canEditStages: boolean
   busy?: boolean
   isSigning?: boolean
@@ -33,6 +35,7 @@ function formatWhen(value: string): string {
 export function DocumentDetailDrawer({
   document,
   landTitle,
+  contextLabel = 'Deal',
   canEditStages,
   busy = false,
   isSigning = false,
@@ -58,7 +61,7 @@ export function DocumentDetailDrawer({
     <Drawer
       open
       title={title}
-      description={landTitle ? `Deal · ${landTitle}` : undefined}
+      description={landTitle ? `${contextLabel} · ${landTitle}` : undefined}
       onClose={onClose}
       footer={
         <div className="flex flex-wrap gap-2">
@@ -95,7 +98,7 @@ export function DocumentDetailDrawer({
           {showSign ? (
             <Button type="button" size="sm" onClick={onSign} disabled={disabled}>
               <FileSignature className="h-4 w-4" aria-hidden />
-              {isSigning ? 'Signing…' : 'Sign document'}
+              {isSigning ? 'Signing…' : 'Sign with hand'}
             </Button>
           ) : null}
         </div>

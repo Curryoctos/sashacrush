@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
     const { data: document, error: documentError } = await supabase
       .from('documents')
-      .select('id, title, file_path, land_id, status, signed_by')
+      .select('id, title, file_path, land_id, investor_id, status, signed_by')
       .eq('id', body.documentId)
       .single()
 
@@ -92,18 +92,27 @@ Deno.serve(async (req) => {
       return errorResponse(`Signer profile not found: ${signerError?.message ?? 'unknown error'}`)
     }
 
-    const { data: land, error: landError } = await supabase
-      .from('land_records')
-      .select('title')
-      .eq('id', document.land_id)
-      .single()
+    let contextTitle = 'Investment agreement'
+    let portalUrl = `${getAppUrl()}/admin/investor-documents`
 
-    if (landError || !land) {
-      return errorResponse(`Land record not found: ${landError?.message ?? 'unknown error'}`)
+    if (document.land_id) {
+      const { data: land, error: landError } = await supabase
+        .from('land_records')
+        .select('title')
+        .eq('id', document.land_id)
+        .single()
+
+      if (landError || !land) {
+        return errorResponse(`Land record not found: ${landError?.message ?? 'unknown error'}`)
+      }
+
+      contextTitle = land.title
+      portalUrl = `${getAppUrl()}/admin/documents?land=${document.land_id}`
+    } else if (document.investor_id) {
+      portalUrl = `${getAppUrl()}/admin/investor-documents?land=${document.investor_id}`
     }
 
     const documentName = document.title ?? document.file_path ?? 'Document'
-    const portalUrl = `${getAppUrl()}/admin/documents?land=${document.land_id}`
     const adminName = admin.full_name ?? admin.email
     const signedByName = signer.full_name ?? signer.email
 
@@ -111,13 +120,13 @@ Deno.serve(async (req) => {
       adminName,
       documentName,
       signedByName,
-      landTitle: land.title,
+      landTitle: contextTitle,
       portalUrl,
     })
 
     await sendEmail({
       to: admin.email,
-      subject: `Document signed — ${land.title}`,
+      subject: `Document signed — ${contextTitle}`,
       html,
     })
 

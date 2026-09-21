@@ -6,9 +6,9 @@ import {
   useBoundaryDraft,
   type LandMapPhotoPin,
 } from '@/features/maps/components/LandMapCanvas'
+import { SiteTravelLinks } from '@/features/maps/components/SiteTravelLinks'
 import { useLandMap, useSaveLandBoundary, useSaveSitePin } from '@/features/maps/useLandMap'
 import { formatHectares, pointInPolygon, polygonAreaHectares } from '@/features/maps/geojson'
-import { googleMapsDirectionsUrl, uberDropoffUrl } from '@/features/maps/siteTravel'
 import { PhotoDetailDrawer } from '@/features/photos/components/PhotoDetailDrawer'
 import { notifySuccess } from '@/features/notifications/useNotifications'
 import { formatSupabaseError } from '@/lib/supabase-errors'
@@ -221,26 +221,7 @@ export function LandMapPanel({
               onSave={() => void handleSave()}
             />
           )}
-          {destination && (
-            <>
-              <a
-                href={uberDropoffUrl(destination)}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-md bg-ink px-3 py-1.5 text-xs font-medium text-white hover:bg-ink/90"
-              >
-                Get Uber to this site
-              </a>
-              <a
-                href={googleMapsDirectionsUrl(destination)}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-ink"
-              >
-                Google Maps directions
-              </a>
-            </>
-          )}
+          {destination && <SiteTravelLinks destination={destination} />}
         </div>
 
         {(actionError || saveBoundary.error || savePin.error) && (

@@ -9,7 +9,10 @@ import { createServiceClient, getAppUrl } from '../_shared/supabaseAdmin.ts'
 
 interface NotifyPayload {
   documentId: string
-  sellerId: string
+  /** Preferred: seller or executive assignee */
+  assigneeId?: string
+  /** Legacy alias for assigneeId */
+  sellerId?: string
 }
 
 Deno.serve(async (req) => {
@@ -21,9 +24,10 @@ Deno.serve(async (req) => {
     const caller = await requireAuthenticatedStaff(req)
 
     const body = (await req.json()) as NotifyPayload
+    const assigneeId = body.assigneeId ?? body.sellerId
 
-    if (!body.documentId || !body.sellerId) {
-      return errorResponse('Invalid payload: documentId and sellerId are required', 400)
+    if (!body.documentId || !assigneeId) {
+      return errorResponse('Invalid payload: documentId and assigneeId are required', 400)
     }
 
     const supabase = createServiceClient()
@@ -42,7 +46,7 @@ Deno.serve(async (req) => {
       throw error
     }
 
-    const eventKey = `document-sent:${body.documentId}:${body.sellerId}`
+    const eventKey = `document-sent:${body.documentId}:${assigneeId}`
     const shouldSend = await claimNotificationEvent(
       supabase,
       eventKey,
@@ -55,7 +59,7 @@ Deno.serve(async (req) => {
 
     const { data: document, error: documentError } = await supabase
       .from('documents')
-      .select('id, title, file_path, land_id, status, assigned_to')
+      .select('id, title, file_path, land_id, investor_id, status, assigned_to')
       .eq('id', body.documentId)
       .single()
 
@@ -67,48 +71,71 @@ Deno.serve(async (req) => {
       return errorResponse('Document must be in sent status before notification', 400)
     }
 
-    if (document.assigned_to !== body.sellerId) {
-      return errorResponse('Seller is not assigned to this document', 403)
+    if (document.assigned_to !== assigneeId) {
+      return errorResponse('Assignee is not assigned to this document', 403)
     }
 
-    const { data: land, error: landError } = await supabase
-      .from('land_records')
-      .select('title, seller_id')
-      .eq('id', document.land_id)
-      .single()
-
-    if (landError || !land) {
-      return errorResponse(`Land record not found: ${landError?.message ?? 'unknown error'}`, 404)
-    }
-
-    if (land.seller_id !== body.sellerId) {
-      return errorResponse('Seller is not assigned to this land record', 403)
-    }
-
-    const { data: seller, error: sellerError } = await supabase
+    const { data: assignee, error: assigneeError } = await supabase
       .from('users')
       .select('email, full_name, role')
-      .eq('id', body.sellerId)
+      .eq('id', assigneeId)
       .single()
 
-    if (sellerError || !seller?.email || seller.role !== 'seller') {
-      return errorResponse(`Seller profile not found: ${sellerError?.message ?? 'invalid seller'}`, 404)
+    if (
+      assigneeError ||
+      !assignee?.email ||
+      (assignee.role !== 'seller' && assignee.role !== 'executive')
+    ) {
+      return errorResponse(
+        `Signer profile not found: ${assigneeError?.message ?? 'invalid assignee'}`,
+        404,
+      )
+    }
+
+    let contextTitle = 'Investment agreement'
+    let signingPath = `/executive/documents?sign=${body.documentId}`
+
+    if (document.land_id) {
+      const { data: land, error: landError } = await supabase
+        .from('land_records')
+        .select('title, seller_id')
+        .eq('id', document.land_id)
+        .single()
+
+      if (landError || !land) {
+        return errorResponse(`Land record not found: ${landError?.message ?? 'unknown error'}`, 404)
+      }
+
+      if (land.seller_id !== assigneeId) {
+        return errorResponse('Seller is not assigned to this land record', 403)
+      }
+
+      if (assignee.role !== 'seller') {
+        return errorResponse('Deal documents must be signed by the land seller', 403)
+      }
+
+      contextTitle = land.title
+      signingPath = `/seller/documents?sign=${body.documentId}`
+    } else {
+      if (document.investor_id !== assigneeId || assignee.role !== 'executive') {
+        return errorResponse('Investor is not assigned to this agreement', 403)
+      }
     }
 
     const documentName = document.title ?? document.file_path ?? 'Document'
-    const signingUrl = `${getAppUrl()}/seller/documents?sign=${body.documentId}`
-    const recipientName = seller.full_name ?? seller.email
+    const signingUrl = `${getAppUrl()}${signingPath}`
+    const recipientName = assignee.full_name ?? assignee.email
 
     const html = documentSentEmail({
       recipientName,
       documentName,
-      landTitle: land.title,
+      landTitle: contextTitle,
       signingUrl,
     })
 
     await sendEmail({
-      to: seller.email,
-      subject: `Document ready to sign — ${land.title}`,
+      to: assignee.email,
+      subject: `Document ready to sign — ${contextTitle}`,
       html,
     })
 

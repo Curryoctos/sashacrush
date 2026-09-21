@@ -8,6 +8,7 @@ import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { DealCards, HierarchyNav } from '@/components/hierarchy/Hierarchy'
 import { useExecutiveDeals, useExecutiveLandMap } from '@/features/deals/useDealSummary'
 import { DealsMap } from '@/features/maps/components/DealsMap'
+import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
@@ -110,26 +111,22 @@ export function ExecutiveDealsPage() {
                 <ArrowLeft className="h-4 w-4" />
                 All deals
               </Button>
+              <Link to={`/executive/photos?land=${selectedLand.id}`}>
+                <Button variant="secondary" size="sm">
+                  Photos
+                </Button>
+              </Link>
               <Link to={`/executive/deals/${selectedLand.id}`}>
                 <Button size="sm">Full detail</Button>
               </Link>
             </div>
           </div>
 
-          <DealsMap
-            parcels={(mapQuery.data ?? [])
-              .filter((parcel) => parcel.land_id === selectedLand.id)
-              .map((parcel) => ({
-                id: parcel.land_id,
-                title: parcel.title,
-                status: parcel.status,
-                latitude: parcel.latitude,
-                longitude: parcel.longitude,
-                boundary_geojson: parcel.boundary_geojson,
-              }))}
-            onSelect={() => undefined}
+          <LandMapPanel
+            landId={selectedLand.id}
+            canEditBoundary={false}
             title="Site map"
-            description="Parcel boundary for this deal."
+            description="Parcel boundary, field photo pins, Uber, and directions."
           />
 
           <Card>

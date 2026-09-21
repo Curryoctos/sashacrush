@@ -300,7 +300,9 @@ export interface Database {
       documents: {
         Row: {
           id: string
-          land_id: string
+          land_id: string | null
+          investor_id: string | null
+          investment_id: string | null
           uploader_id: string
           assigned_to: string | null
           signed_by: string | null
@@ -313,7 +315,9 @@ export interface Database {
         }
         Insert: {
           id?: string
-          land_id: string
+          land_id?: string | null
+          investor_id?: string | null
+          investment_id?: string | null
           uploader_id: string
           assigned_to?: string | null
           signed_by?: string | null
@@ -326,7 +330,9 @@ export interface Database {
         }
         Update: {
           id?: string
-          land_id?: string
+          land_id?: string | null
+          investor_id?: string | null
+          investment_id?: string | null
           uploader_id?: string
           assigned_to?: string | null
           signed_by?: string | null
@@ -432,6 +438,27 @@ export interface Database {
         }
         Relationships: []
       }
+      investor_consents: {
+        Row: {
+          id: string
+          executive_id: string
+          terms_version: string
+          accepted_at: string
+        }
+        Insert: {
+          id?: string
+          executive_id: string
+          terms_version: string
+          accepted_at?: string
+        }
+        Update: {
+          id?: string
+          executive_id?: string
+          terms_version?: string
+          accepted_at?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           id: string
@@ -526,6 +553,26 @@ export interface Database {
           longitude: number | null
           boundary_geojson: Json | null
         }[]
+      }
+      executive_land_site: {
+        Args: { p_land_id: string }
+        Returns: {
+          land_id: string
+          title: string
+          location: string | null
+          status: string
+          latitude: number | null
+          longitude: number | null
+          boundary_geojson: Json | null
+        }[]
+      }
+      current_investment_terms_version: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      executive_contribution_block_reason: {
+        Args: { p_executive_id: string }
+        Returns: string | null
       }
     }
     Enums: Record<string, never>

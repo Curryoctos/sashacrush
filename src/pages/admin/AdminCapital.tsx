@@ -107,9 +107,14 @@ export function AdminCapitalPage() {
             : 'Confirm executive contributions into the company pool.'
         }
         actions={
-          <Link to="/admin/payments">
-            <Button variant="secondary">Seller payouts</Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/admin/investor-documents">
+              <Button variant="secondary">Investor agreements</Button>
+            </Link>
+            <Link to="/admin/payments">
+              <Button variant="secondary">Seller payouts</Button>
+            </Link>
+          </div>
         }
       />
 

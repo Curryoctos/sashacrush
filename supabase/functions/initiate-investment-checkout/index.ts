@@ -49,6 +49,19 @@ Deno.serve(async (req) => {
 
     const supabase = createServiceClient()
 
+    const { data: blockReason, error: gateError } = await supabase.rpc(
+      'executive_contribution_block_reason',
+      { p_executive_id: user.userId },
+    )
+
+    if (gateError) {
+      return errorResponse(gateError.message || 'Could not verify contribution access', 500)
+    }
+
+    if (typeof blockReason === 'string' && blockReason.length > 0) {
+      return errorResponse(blockReason, 403)
+    }
+
     try {
       await assertRateLimit(
         supabase,

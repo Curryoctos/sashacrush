@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, MapPin, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { SignatureCaptureModal } from '@/features/documents/components/SignatureCaptureModal'
 import { EmptyState } from '@/components/ui/PageHeader'
 import { IconActionButton } from '@/components/ui/IconActionButton'
 import { ViewModeToggle } from '@/components/ui/ViewModeToggle'
@@ -27,10 +28,12 @@ import { notifyInfo } from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/cn'
 import { formatSupabaseError } from '@/lib/supabase-errors'
-import type { Document, DocumentStatus } from '@/types'
+import type { Document, DocumentScope, DocumentStatus } from '@/types'
 
 interface DocumentsBrowserProps {
   lands: LandSummary[]
+  /** Deal docs are land-scoped; investor agreements are grouped by executive. */
+  mode?: DocumentScope
   isLoadingLands?: boolean
   landsError?: Error | null
   canUpload?: boolean
@@ -52,6 +55,7 @@ interface PendingStageMove {
 
 export function DocumentsBrowser({
   lands,
+  mode = 'land',
   isLoadingLands = false,
   landsError = null,
   canUpload = false,
@@ -66,7 +70,9 @@ export function DocumentsBrowser({
   const canEditStages = canEditDocumentPipeline(user?.role)
   const workspace = useDocumentWorkspace(lands)
   const landIds = useMemo(() => lands.map((land) => land.id), [lands])
-  const countsQuery = useDocumentCounts(landIds)
+  const countsQuery = useDocumentCounts(landIds, { scope: mode })
+  const groupNoun = mode === 'investor' ? 'investor' : 'land deal'
+  const allGroupsLabel = mode === 'investor' ? 'All investors' : 'All deals'
 
   const [showUploadFor, setShowUploadFor] = useState<string | null>(null)
   const [pendingMove, setPendingMove] = useState<PendingStageMove | null>(null)
@@ -78,7 +84,7 @@ export function DocumentsBrowser({
       (
         documentId: string,
         nextStatus: DocumentStatus,
-        options?: { sellerId?: string | null },
+        options?: { sellerId?: string | null; assigneeId?: string | null },
       ) => Promise<Document>
     >
   >({})
@@ -92,6 +98,9 @@ export function DocumentsBrowser({
     }
     if (!workspace.expandedLandIds.has(workspace.focusedLandId)) {
       workspace.toggleLandExpanded(workspace.focusedLandId)
+    }
+    if (!workspace.expandedStages.has('sent')) {
+      workspace.toggleStageExpanded('sent')
     }
     workspace.setDrawerDocumentId(highlightDocumentId)
     // Intentionally only react to deep-link changes.
@@ -113,7 +122,8 @@ export function DocumentsBrowser({
       return
     }
 
-    const land = lands.find((item) => item.id === document.land_id)
+    const scopeKey = mode === 'investor' ? document.investor_id : document.land_id
+    const land = lands.find((item) => item.id === scopeKey)
     setMoveError(null)
     setPendingMove({
       document,
@@ -121,7 +131,7 @@ export function DocumentsBrowser({
       reason: evaluation.reason,
       confirmLabel: evaluation.confirmLabel,
       tone: evaluation.tone ?? 'primary',
-      sellerId: land?.seller_id ?? null,
+      sellerId: land?.seller_id ?? (mode === 'investor' ? land?.id ?? null : null),
     })
   }
 
@@ -130,9 +140,13 @@ export function DocumentsBrowser({
       return
     }
 
-    const mover = stageMovers[pendingMove.document.land_id]
+    const scopeKey =
+      mode === 'investor'
+        ? pendingMove.document.investor_id
+        : pendingMove.document.land_id
+    const mover = scopeKey ? stageMovers[scopeKey] : undefined
     if (!mover) {
-      setMoveError('Open the land group before changing stages.')
+      setMoveError(`Open the ${groupNoun} group before changing stages.`)
       return
     }
 
@@ -142,11 +156,12 @@ export function DocumentsBrowser({
     try {
       await mover(pendingMove.document.id, pendingMove.to, {
         sellerId: pendingMove.sellerId,
+        assigneeId: pendingMove.sellerId,
       })
       notifyInfo(`Moved to ${DOCUMENT_STAGE_LABELS[pendingMove.to]}`)
       setPendingMove(null)
       void queryClient.invalidateQueries({
-        queryKey: ['documents', pendingMove.document.land_id],
+        queryKey: ['documents', mode, scopeKey],
       })
       void queryClient.invalidateQueries({ queryKey: ['document-counts'] })
     } catch (error) {
@@ -159,7 +174,11 @@ export function DocumentsBrowser({
   }
 
   if (isLoadingLands) {
-    return <p className="text-sm text-muted">Loading land deals…</p>
+    return (
+      <p className="text-sm text-muted">
+        {mode === 'investor' ? 'Loading investors…' : 'Loading land deals…'}
+      </p>
+    )
   }
 
   if (landsError) {
@@ -212,6 +231,8 @@ export function DocumentsBrowser({
           <LandDocumentGroup
             key={land.id}
             land={land}
+            mode={mode}
+            allGroupsLabel={allGroupsLabel}
             counts={countsQuery.data?.[land.id]}
             countsLoading={countsQuery.isLoading}
             expanded={workspace.expandedLandIds.has(land.id)}
@@ -256,7 +277,7 @@ export function DocumentsBrowser({
             onPreviewError={(message) => setPreviewError(message)}
             onUploadComplete={() => {
               setShowUploadFor(null)
-              void queryClient.invalidateQueries({ queryKey: ['documents', land.id] })
+              void queryClient.invalidateQueries({ queryKey: ['documents', mode, land.id] })
               void queryClient.invalidateQueries({ queryKey: ['document-counts'] })
               notifyInfo('Document uploaded')
             }}
@@ -310,6 +331,8 @@ export function DocumentsBrowser({
 
 interface LandDocumentGroupProps {
   land: LandSummary
+  mode: DocumentScope
+  allGroupsLabel: string
   counts?: Record<DocumentStatus, number>
   countsLoading: boolean
   expanded: boolean
@@ -338,7 +361,7 @@ interface LandDocumentGroupProps {
     mover: (
       documentId: string,
       nextStatus: DocumentStatus,
-      options?: { sellerId?: string | null },
+      options?: { sellerId?: string | null; assigneeId?: string | null },
     ) => Promise<Document>,
   ) => void
   onPreview: (document: Document, url: string) => void
@@ -350,6 +373,8 @@ interface LandDocumentGroupProps {
 
 function LandDocumentGroup({
   land,
+  mode,
+  allGroupsLabel,
   counts,
   countsLoading,
   expanded,
@@ -389,7 +414,7 @@ function LandDocumentGroup({
     downloadDocument,
     getPreviewUrl,
     signDocument,
-  } = useDocuments(expanded ? land.id : null)
+  } = useDocuments(expanded ? land.id : null, { scope: mode })
 
   const [pendingSign, setPendingSign] = useState<Document | null>(null)
   const [signError, setSignError] = useState<string | null>(null)
@@ -442,7 +467,7 @@ function LandDocumentGroup({
         <div className="flex flex-wrap items-center gap-2">
           {onClearFocus ? (
             <Button type="button" size="sm" variant="ghost" onClick={onClearFocus}>
-              All deals
+              {allGroupsLabel}
             </Button>
           ) : (
             <Button type="button" size="sm" variant="ghost" onClick={onFocus}>
@@ -477,7 +502,7 @@ function LandDocumentGroup({
 
           {showUpload ? (
             <Card>
-              <DocumentUpload landId={land.id} onUpload={onUploadComplete} />
+              <DocumentUpload landId={land.id} scope={mode} onUpload={onUploadComplete} />
             </Card>
           ) : null}
 
@@ -491,7 +516,7 @@ function LandDocumentGroup({
 
           {!isLoading && !error && filtered.length === 0 ? (
             <EmptyState
-              title="No documents in this deal"
+              title={mode === 'investor' ? 'No agreements for this investor' : 'No documents in this deal'}
               description="Upload a file or clear your search to see documents here."
             />
           ) : null}
@@ -538,6 +563,7 @@ function LandDocumentGroup({
           <DocumentDetailDrawer
             document={drawerDocument}
             landTitle={land.title}
+            contextLabel={mode === 'investor' ? 'Investor' : 'Deal'}
             canEditStages={canEditStages}
             busy={isSigning}
             isSigning={isSigning}
@@ -582,22 +608,16 @@ function LandDocumentGroup({
             }
           />
 
-          <ConfirmModal
+          <SignatureCaptureModal
             open={Boolean(pendingSign)}
-            title="Sign this document?"
-            description={
-              pendingSign
-                ? `${pendingSign.title ?? 'This document'} will be locked after signing.`
-                : null
-            }
-            confirmLabel="Sign"
+            documentTitle={pendingSign?.title}
             busy={isSigning}
             error={signError}
             onCancel={() => {
               setPendingSign(null)
               setSignError(null)
             }}
-            onConfirm={() => {
+            onConfirm={(pngBytes) => {
               if (!pendingSign) {
                 return
               }
@@ -605,11 +625,14 @@ function LandDocumentGroup({
                 setIsSigning(true)
                 setSignError(null)
                 try {
-                  await signDocument(pendingSign.id)
+                  await signDocument(pendingSign.id, { pngBytes })
                   setPendingSign(null)
                   setDrawerDocumentId(null)
-                  onSigned?.()
-                  notifyInfo('Document signed')
+                  if (onSigned) {
+                    onSigned()
+                  } else {
+                    notifyInfo('Document signed with your handwritten signature')
+                  }
                 } catch (err) {
                   setSignError(
                     err instanceof Error ? err.message : 'Could not sign document.',

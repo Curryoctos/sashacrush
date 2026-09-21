@@ -12,6 +12,7 @@ import { AdminDealPage } from '@/pages/admin/AdminDeal'
 import { AdminDashboard } from '@/pages/admin/Dashboard'
 import { AdminDocumentsPage } from '@/pages/admin/AdminDocuments'
 import { AdminLandRecordsPage } from '@/pages/admin/LandRecords'
+import { AdminInvestorDocumentsPage } from '@/pages/admin/AdminInvestorDocuments'
 import { AdminPaymentsPage } from '@/pages/admin/AdminPayments'
 import { AdminPhotosPage } from '@/pages/admin/AdminPhotos'
 import { AdminUsersPage } from '@/pages/admin/AdminUsers'
@@ -25,7 +26,9 @@ import { ExecutiveDashboard } from '@/pages/executive/Dashboard'
 import { ExecutiveChatPage } from '@/pages/executive/ExecutiveChat'
 import { ExecutiveDealPage } from '@/pages/executive/ExecutiveDeal'
 import { ExecutiveDealsPage } from '@/pages/executive/ExecutiveDeals'
+import { ExecutiveDocumentsPage } from '@/pages/executive/ExecutiveDocuments'
 import { ExecutiveInvestmentsPage } from '@/pages/executive/ExecutiveInvestments'
+import { ExecutivePhotosPage } from '@/pages/executive/ExecutivePhotos'
 import { LoginPage } from '@/pages/Login'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { SellerDashboard } from '@/pages/seller/Dashboard'
@@ -53,6 +56,7 @@ export const router = createBrowserRouter([
           { path: 'land-records', element: <AdminLandRecordsPage /> },
           { path: 'deals/:landId', element: <AdminDealPage /> },
           { path: 'documents', element: <AdminDocumentsPage /> },
+          { path: 'investor-documents', element: <AdminInvestorDocumentsPage /> },
           { path: 'photos', element: <AdminPhotosPage /> },
           { path: 'payments', element: <AdminPaymentsPage /> },
           { path: 'capital', element: <AdminCapitalPage /> },
@@ -75,7 +79,9 @@ export const router = createBrowserRouter([
           { path: 'dashboard', element: <ExecutiveDashboard /> },
           { path: 'deals', element: <ExecutiveDealsPage /> },
           { path: 'deals/:landId', element: <ExecutiveDealPage /> },
+          { path: 'photos', element: <ExecutivePhotosPage /> },
           { path: 'investments', element: <ExecutiveInvestmentsPage /> },
+          { path: 'documents', element: <ExecutiveDocumentsPage /> },
           { path: 'chat', element: <ExecutiveChatPage /> },
           // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/executive/dashboard" /> },
           // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/executive/dashboard" /> },
