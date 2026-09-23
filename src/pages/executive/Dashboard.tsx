@@ -1,44 +1,18 @@
 import { useMemo } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, FolderKanban, MessageSquare } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { BarChart3, FolderKanban, MessageSquare, Video } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Stat, StatGrid } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
-import {
-  DealCards,
-  FolderCards,
-  HierarchyNav,
-} from '@/components/hierarchy/Hierarchy'
+import { DealCards, FolderCards } from '@/components/hierarchy/Hierarchy'
 import { useExecutiveDeals } from '@/features/deals/useDealSummary'
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-type ExecDashFolder = 'deals' | 'messages'
-
-function isExecDashFolder(value: string | null): value is ExecDashFolder {
-  return value === 'deals' || value === 'messages'
-}
-
 export function ExecutiveDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
   const { data: deals, isLoading, error } = useExecutiveDeals()
-
-  const selectedFolder = isExecDashFolder(searchParams.get('folder'))
-    ? (searchParams.get('folder') as ExecDashFolder)
-    : null
-
-  const setFolder = (folder: ExecDashFolder | null) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (folder) {
-        next.set('folder', folder)
-      } else {
-        next.delete('folder')
-      }
-      return next
-    })
-  }
 
   const totals = useMemo(() => {
     return (deals ?? []).reduce(
@@ -80,48 +54,58 @@ export function ExecutiveDashboard() {
         </p>
       )}
 
-      {deals && !selectedFolder && (
-        <FolderCards
-          folders={[
-            {
-              id: 'deals',
-              title: 'Deal portfolio',
-              description: 'High-level land deal status',
-              icon: <FolderKanban className="h-5 w-5" />,
-              count: deals.length,
-              onSelect: () => setFolder('deals'),
-            },
-            {
-              id: 'messages',
-              title: 'Communications',
-              description: 'Executive staff channel',
-              icon: <MessageSquare className="h-5 w-5" />,
-              onSelect: () => setFolder('messages'),
-            },
-          ]}
-        />
-      )}
+      {deals && (
+        <>
+          <StatGrid className="lg:grid-cols-3">
+            <Stat label="Active deals" value={deals.length} />
+            <Stat label="Docs pending" value={totals.pendingDocs} />
+            <Stat label="Payments pending" value={totals.pendingPayments} />
+          </StatGrid>
 
-      {deals && selectedFolder === 'deals' && (
-        <div className="space-y-5">
-          <HierarchyNav
-            crumbs={[
-              { label: 'Workspace', onClick: () => setFolder(null) },
-              { label: 'Deal portfolio' },
-            ]}
-          />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="ui-section-title">Deal portfolio</h2>
-              <p className="ui-section-desc">
-                {totals.pendingDocs} docs pending · {totals.pendingPayments} payments pending
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setFolder(null)}>
-                <ArrowLeft className="h-4 w-4" />
-                Workspace
-              </Button>
+          <div>
+            <h2 className="ui-section-title">Areas</h2>
+            <p className="ui-section-desc mb-4">Portfolio oversight tools.</p>
+            <FolderCards
+              folders={[
+                {
+                  id: 'deals',
+                  title: 'Deal portfolio',
+                  description: 'High-level land deal status',
+                  icon: <FolderKanban className="h-5 w-5" />,
+                  count: deals.length,
+                  onSelect: () => navigate('/executive/deals'),
+                },
+                {
+                  id: 'analytics',
+                  title: 'Analytics',
+                  description: 'Portfolio charts and progress',
+                  icon: <BarChart3 className="h-5 w-5" />,
+                  onSelect: () => navigate('/executive/analytics'),
+                },
+                {
+                  id: 'messages',
+                  title: 'Communications',
+                  description: 'Executive staff channel',
+                  icon: <MessageSquare className="h-5 w-5" />,
+                  onSelect: () => navigate('/executive/communications'),
+                },
+                {
+                  id: 'media',
+                  title: 'Media vault',
+                  description: 'Watch private project videos',
+                  icon: <Video className="h-5 w-5" />,
+                  onSelect: () => navigate('/executive/media'),
+                },
+              ]}
+            />
+          </div>
+
+          <div>
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="ui-section-title">Recent deals</h2>
+                <p className="ui-section-desc">Select a deal for a high-level overview.</p>
+              </div>
               <Button
                 variant="secondary"
                 size="sm"
@@ -130,43 +114,14 @@ export function ExecutiveDashboard() {
                 View all
               </Button>
             </div>
+            <DealCards
+              deals={dealCards}
+              onSelect={(id) => navigate(`/executive/deals?land=${id}`)}
+              emptyTitle="No active deals to display."
+              prompt="Select a deal to continue."
+            />
           </div>
-          <DealCards
-            deals={dealCards}
-            onSelect={(id) => navigate(`/executive/deals?land=${id}`)}
-            emptyTitle="No active deals to display."
-            prompt="Select a deal for a high-level overview."
-          />
-        </div>
-      )}
-
-      {deals && selectedFolder === 'messages' && (
-        <div className="space-y-5">
-          <HierarchyNav
-            crumbs={[
-              { label: 'Workspace', onClick: () => setFolder(null) },
-              { label: 'Communications' },
-            ]}
-          />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="ui-section-title">Communications</h2>
-              <p className="ui-section-desc">Executive staff channel</p>
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => setFolder(null)}>
-              <ArrowLeft className="h-4 w-4" />
-              Workspace
-            </Button>
-          </div>
-          <div className="ui-panel p-5">
-            <p className="text-sm text-muted">
-              Open the executive chat channel to continue the conversation.
-            </p>
-            <div className="mt-4">
-              <Button onClick={() => navigate('/executive/communications')}>Open communications</Button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
     </div>
   )

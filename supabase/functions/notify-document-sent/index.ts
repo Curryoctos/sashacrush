@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    let contextTitle = 'Savings agreement'
+    let contextTitle = 'Investment agreement'
     let signingPath = `/agent/agreements?sign=${body.documentId}`
 
     if (document.land_id) {
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
       signingPath = `/seller/documents?sign=${body.documentId}`
     } else {
       if (document.investor_id !== assigneeId || assignee.role !== 'agent') {
-        return errorResponse('Agent is not assigned to this savings agreement', 403)
+        return errorResponse('Agent is not assigned to this investment agreement', 403)
       }
     }
 

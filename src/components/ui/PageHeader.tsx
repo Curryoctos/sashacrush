@@ -18,26 +18,28 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5',
+        'flex flex-wrap items-end justify-between gap-4 border-b border-border/80 pb-6',
         className,
       )}
     >
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-brand-700">
             {eyebrow}
           </p>
         ) : null}
         <h1
           className={cn(
-            'font-display text-2xl font-semibold tracking-tight text-ink sm:text-[1.75rem]',
-            eyebrow && 'mt-1',
+            'font-display text-[1.75rem] font-bold tracking-tight text-ink sm:text-[2rem]',
+            eyebrow && 'mt-1.5',
           )}
         >
           {title}
         </h1>
         {description ? (
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-muted">
+            {description}
+          </p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
@@ -47,7 +49,10 @@ export function PageHeader({
 
 export function PageBackLink({ to, label }: { to: string; label: string }) {
   return (
-    <Link to={to} className="text-sm font-medium text-brand-700 transition hover:text-brand-800">
+    <Link
+      to={to}
+      className="inline-flex items-center gap-1 text-sm font-bold text-brand-700 transition hover:text-brand-900"
+    >
       ← {label}
     </Link>
   )
@@ -63,12 +68,14 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-14 text-center">
-      <p className="text-sm font-semibold text-ink">{title}</p>
+    <div className="rounded-xl border border-dashed border-border bg-white/60 px-6 py-16 text-center">
+      <p className="text-base font-extrabold tracking-tight text-ink">{title}</p>
       {description ? (
-        <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-muted">{description}</p>
+        <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-relaxed text-muted">
+          {description}
+        </p>
       ) : null}
-      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+      {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
     </div>
   )
 }

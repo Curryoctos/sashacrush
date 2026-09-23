@@ -158,4 +158,14 @@ describe('validateCreatePayment', () => {
       }),
     ).toMatch(/available-to-pay-out/)
   })
+
+  it('rejects amount above company capital available', () => {
+    expect(
+      validateCreatePayment({
+        landId: 'land-id',
+        amountUsd: 12_000,
+        companyCapitalAvailableUsd: 5_000,
+      }),
+    ).toMatch(/company capital available/)
+  })
 })

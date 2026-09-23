@@ -40,20 +40,25 @@ export async function confirmInvestmentFromGateway(
     return { alreadyConfirmed: true }
   }
 
-  if (investment.status === 'rejected') {
+  // Client cancel can race a successful Stripe charge. Paid webhook wins for stripe rows.
+  const recoverableReject =
+    investment.status === 'rejected' && investment.method === 'stripe'
+
+  if (investment.status === 'rejected' && !recoverableReject) {
     throw new ConfirmInvestmentError(
       'This investment was rejected and cannot be confirmed.',
       400,
     )
   }
 
-  if (investment.status !== 'pending') {
+  if (investment.status !== 'pending' && !recoverableReject) {
     throw new ConfirmInvestmentError(`Investment is ${investment.status}`, 400)
   }
 
   const patch: Record<string, unknown> = {
     status: 'confirmed',
     confirmed_at: new Date().toISOString(),
+    rejection_reason: null,
   }
 
   if (params?.stripePaymentIntentId) {
@@ -63,11 +68,16 @@ export async function confirmInvestmentFromGateway(
     patch.stripe_checkout_session_id = params.stripeCheckoutSessionId
   }
 
-  const { data: updated, error: updateError } = await supabase
+  let updatedQuery = supabase
     .from('investments')
     .update(patch)
     .eq('id', investmentId)
-    .eq('status', 'pending')
+
+  updatedQuery = recoverableReject
+    ? updatedQuery.eq('status', 'rejected').eq('method', 'stripe')
+    : updatedQuery.eq('status', 'pending')
+
+  const { data: updated, error: updateError } = await updatedQuery
     .select('id')
     .maybeSingle()
 

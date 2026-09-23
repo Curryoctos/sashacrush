@@ -274,9 +274,11 @@ async function handleLegacyPaymentCheckout(params: {
     return errorResponse('Could not resolve payment_id or investment_id from Stripe event', 400)
   }
 
+  const eventKey = `stripe:${eventId}`
+
   const claimed = await claimGatewayWebhookEvent(supabase, {
     provider: 'stripe',
-    eventKey: `stripe:${eventId}`,
+    eventKey,
     functionName: 'stripe-webhook',
     paymentId: resolvedPaymentId,
     metadata: { type: eventType, kind: 'payment' },
@@ -291,55 +293,62 @@ async function handleLegacyPaymentCheckout(params: {
     })
   }
 
-  const { data: payment, error: paymentError } = await supabase
-    .from('payments')
-    .select('id, amount_usd, status')
-    .eq('id', resolvedPaymentId)
-    .single()
-
-  if (paymentError || !payment) {
-    return errorResponse('Payment not found for Stripe event', 404)
-  }
-
-  const paidCents =
-    eventType === 'checkout.session.completed' ? object?.amount_total : object?.amount
-
-  if (!stripeAmountMatches(paidCents, Number(payment.amount_usd), object?.currency ?? 'usd')) {
-    console.error('Stripe amount mismatch', {
-      paymentId: resolvedPaymentId,
-      expectedUsd: payment.amount_usd,
-      paidCents,
-      currency: object?.currency,
-      eventId,
-    })
-    return errorResponse('Paid amount does not match recorded payment', 409)
-  }
-
-  const paymentIntentId =
-    typeof object?.payment_intent === 'string'
-      ? object.payment_intent
-      : object?.payment_intent?.id ??
-        (eventType === 'payment_intent.succeeded' ? object?.id : null)
-
-  if (paymentIntentId) {
-    await supabase
+  try {
+    const { data: payment, error: paymentError } = await supabase
       .from('payments')
-      .update({ stripe_payment_intent_id: paymentIntentId })
+      .select('id, amount_usd, status')
       .eq('id', resolvedPaymentId)
+      .single()
+
+    if (paymentError || !payment) {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Payment not found for Stripe event', 404)
+    }
+
+    const paidCents =
+      eventType === 'checkout.session.completed' ? object?.amount_total : object?.amount
+
+    if (!stripeAmountMatches(paidCents, Number(payment.amount_usd), object?.currency ?? 'usd')) {
+      console.error('Stripe amount mismatch', {
+        paymentId: resolvedPaymentId,
+        expectedUsd: payment.amount_usd,
+        paidCents,
+        currency: object?.currency,
+        eventId,
+      })
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Paid amount does not match recorded payment', 409)
+    }
+
+    const paymentIntentId =
+      typeof object?.payment_intent === 'string'
+        ? object.payment_intent
+        : object?.payment_intent?.id ??
+          (eventType === 'payment_intent.succeeded' ? object?.id : null)
+
+    if (paymentIntentId) {
+      await supabase
+        .from('payments')
+        .update({ stripe_payment_intent_id: paymentIntentId })
+        .eq('id', resolvedPaymentId)
+    }
+
+    const result = await confirmPaymentAndIssueReceipt(supabase, resolvedPaymentId, {
+      source: 'stripe_webhook',
+      actorId: null,
+      providerEventKey: eventKey,
+      paidAmount: paidCents != null ? paidCents / 100 : null,
+      paidCurrency: (object?.currency ?? 'usd').toUpperCase(),
+    })
+
+    return jsonResponse({
+      success: true,
+      kind: 'payment',
+      receiptNumber: result.receiptNumber,
+      alreadyConfirmed: result.alreadyConfirmed,
+    })
+  } catch (error) {
+    await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+    throw error
   }
-
-  const result = await confirmPaymentAndIssueReceipt(supabase, resolvedPaymentId, {
-    source: 'stripe_webhook',
-    actorId: null,
-    providerEventKey: `stripe:${eventId}`,
-    paidAmount: paidCents != null ? paidCents / 100 : null,
-    paidCurrency: (object?.currency ?? 'usd').toUpperCase(),
-  })
-
-  return jsonResponse({
-    success: true,
-    kind: 'payment',
-    receiptNumber: result.receiptNumber,
-    alreadyConfirmed: result.alreadyConfirmed,
-  })
 }

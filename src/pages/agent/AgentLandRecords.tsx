@@ -8,7 +8,14 @@ import type { LandRecord } from '@/types'
 const LAND_COLUMNS =
   'id, title, description, location, total_value_usd, seller_id, latitude, longitude, boundary_geojson, status, created_at'
 
-const AGENT_FOLDERS = ['overview', 'documents', 'messages', 'photos'] as const
+const AGENT_FOLDERS = [
+  'overview',
+  'documents',
+  'messages',
+  'photos',
+  'investments',
+  'suggestions',
+] as const
 
 export function AgentLandRecordsPage() {
   const { user } = useAuth()

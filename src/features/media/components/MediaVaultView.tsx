@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Film } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, Stat } from '@/components/ui/Card'
-import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { formatBytes, MAX_MEDIA_BYTES } from '@/features/media/constants'
 import { useMediaVault } from '@/features/media/useMediaVault'
 import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
@@ -12,9 +12,11 @@ import { formatSupabaseError } from '@/lib/supabase-errors'
 
 interface MediaVaultViewProps {
   canUpload: boolean
+  backTo?: string
+  backLabel?: string
 }
 
-export function MediaVaultView({ canUpload }: MediaVaultViewProps) {
+export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewProps) {
   const { user } = useAuth()
   const [landFilter, setLandFilter] = useState<string | 'all'>('all')
   const {
@@ -34,6 +36,7 @@ export function MediaVaultView({ canUpload }: MediaVaultViewProps) {
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [playingId, setPlayingId] = useState<string | null>(null)
+  const [showUpload, setShowUpload] = useState(false)
 
   const grouped = useMemo(() => {
     const map = new Map<string, typeof videos>()
@@ -59,6 +62,7 @@ export function MediaVaultView({ canUpload }: MediaVaultViewProps) {
       notifySuccess('Video uploaded.')
       setTitle('')
       setFile(null)
+      setShowUpload(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Upload failed.'
       setFormError(message)
@@ -70,15 +74,26 @@ export function MediaVaultView({ canUpload }: MediaVaultViewProps) {
 
   return (
     <div className="ui-page max-w-5xl space-y-6">
-      <PageHeader
-        eyebrow="Media vault"
-        title="Video & media"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Private storage with signed-URL playback.`
-            : 'Private storage with signed-URL playback.'
-        }
-      />
+      <div>
+        {backTo && backLabel ? <PageBackLink to={backTo} label={backLabel} /> : null}
+        <PageHeader
+          className={backTo ? 'mt-3' : undefined}
+          eyebrow="Media vault"
+          title="Video & media"
+          description={
+            user?.email
+              ? `Signed in as ${user.email}. Private storage with signed-URL playback.`
+              : 'Private storage with signed-URL playback.'
+          }
+          actions={
+            canUpload ? (
+              <Button type="button" onClick={() => setShowUpload((open) => !open)}>
+                {showUpload ? 'Close' : 'Upload video'}
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
 
       {canUpload && usage ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -90,43 +105,55 @@ export function MediaVaultView({ canUpload }: MediaVaultViewProps) {
         </div>
       ) : null}
 
-      {canUpload ? (
+      {canUpload && showUpload ? (
         <Card>
           <CardHeader
             title="Upload video"
             description="MP4 or MOV, max 500MB. Organised by land deal and date."
           />
-          <form className="space-y-4" onSubmit={(event) => void onUpload(event)}>
-            <label className="block space-y-1.5">
-              <span className="ui-label">Land deal</span>
-              <select
-                className="ui-input"
-                value={landId}
-                disabled={busy || landsLoading}
-                onChange={(event) => setLandId(event.target.value)}
-                required
-              >
-                <option value="">{landsLoading ? 'Loading…' : 'Select a deal…'}</option>
-                {lands.map((land) => (
-                  <option key={land.id} value={land.id}>
-                    {land.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block space-y-1.5">
-              <span className="ui-label">Title</span>
+          <form className="space-y-5" onSubmit={(event) => void onUpload(event)}>
+            <div className="ui-field-row">
+              <div className="ui-field">
+                <label htmlFor="media-land" className="ui-label">
+                  Land deal
+                </label>
+                <select
+                  id="media-land"
+                  className="ui-input"
+                  value={landId}
+                  disabled={busy || landsLoading}
+                  onChange={(event) => setLandId(event.target.value)}
+                  required
+                >
+                  <option value="">{landsLoading ? 'Loading…' : 'Select a deal…'}</option>
+                  {lands.map((land) => (
+                    <option key={land.id} value={land.id}>
+                      {land.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="ui-field">
+                <label htmlFor="media-title" className="ui-label">
+                  Title
+                </label>
+                <input
+                  id="media-title"
+                  className="ui-input"
+                  value={title}
+                  disabled={busy}
+                  onChange={(event) => setTitle(event.target.value)}
+                  required
+                  placeholder="Site walkthrough — east boundary"
+                />
+              </div>
+            </div>
+            <div className="ui-field">
+              <label htmlFor="media-file" className="ui-label">
+                File
+              </label>
               <input
-                className="ui-input"
-                value={title}
-                disabled={busy}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="ui-label">File</span>
-              <input
+                id="media-file"
                 className="ui-input"
                 type="file"
                 accept="video/mp4,video/quicktime,.mp4,.mov"
@@ -134,15 +161,18 @@ export function MediaVaultView({ canUpload }: MediaVaultViewProps) {
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 required
               />
-            </label>
+              <p className="ui-hint">MP4 or MOV · max 500MB.</p>
+            </div>
             {formError ? (
               <p className="ui-alert-danger" role="alert">
                 {formError}
               </p>
             ) : null}
-            <Button type="submit" disabled={busy}>
-              {busy ? 'Uploading…' : 'Upload video'}
-            </Button>
+            <div className="flex justify-end border-t border-border/80 pt-4">
+              <Button type="submit" disabled={busy} size="lg">
+                {busy ? 'Uploading…' : 'Upload video'}
+              </Button>
+            </div>
           </form>
         </Card>
       ) : null}

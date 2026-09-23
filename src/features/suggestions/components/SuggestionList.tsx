@@ -163,10 +163,13 @@ function SuggestionDetail({
             title="Update status"
             description="Comment is required on each admin transition."
           />
-          <div className="space-y-3">
-            <label className="block space-y-1.5">
-              <span className="ui-label">Next status</span>
+          <div className="space-y-5">
+            <div className="ui-field">
+              <label htmlFor="suggestion-next-status" className="ui-label">
+                Next status
+              </label>
               <select
+                id="suggestion-next-status"
                 className="ui-input"
                 value={nextStatus}
                 disabled={busy}
@@ -178,20 +181,31 @@ function SuggestionDetail({
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="block space-y-1.5">
-              <span className="ui-label">Comment</span>
+            </div>
+            <div className="ui-field">
+              <label htmlFor="suggestion-comment" className="ui-label">
+                Comment
+              </label>
               <textarea
-                className="ui-input min-h-20"
+                id="suggestion-comment"
+                className="ui-input"
                 value={comment}
                 disabled={busy}
                 onChange={(event) => setComment(event.target.value)}
                 required
+                placeholder="Required note for the submitter…"
               />
-            </label>
-            <Button type="button" disabled={busy || !nextStatus} onClick={() => void handleTransition()}>
-              {busy ? 'Saving…' : 'Apply status change'}
-            </Button>
+            </div>
+            <div className="flex justify-end border-t border-border/80 pt-4">
+              <Button
+                type="button"
+                disabled={busy || !nextStatus}
+                onClick={() => void handleTransition()}
+                size="lg"
+              >
+                {busy ? 'Saving…' : 'Apply status change'}
+              </Button>
+            </div>
           </div>
         </Card>
       ) : null}

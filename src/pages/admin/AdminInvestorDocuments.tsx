@@ -34,7 +34,7 @@ export function AdminInvestorDocumentsPage() {
   return (
     <div className="ui-page max-w-6xl">
       <div>
-        <PageBackLink to="/admin/capital" label="Company Capital" />
+        <PageBackLink to="/admin/documents-hub" label="Documents" />
         <PageHeader
           className="mt-3"
           title="Agent agreements"

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { PageHeader } from '@/components/ui/PageHeader'
+import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { SuggestionList } from '@/features/suggestions/components/SuggestionList'
 import { SuggestionSubmitForm } from '@/features/suggestions/components/SuggestionSubmitForm'
 import {
@@ -26,6 +26,7 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
 export function AdminSuggestionsPage() {
   const { user } = useAuth()
   const [filter, setFilter] = useState<Filter>('submitted')
+  const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const landsQuery = useSuggestionLands()
   const {
@@ -38,25 +39,38 @@ export function AdminSuggestionsPage() {
   } = useSuggestions(filter)
 
   const reviewQueueCount = useMemo(
-    () => suggestions.filter((row) => row.status === 'submitted' || row.status === 'under_review').length,
+    () =>
+      suggestions.filter(
+        (row) => row.status === 'submitted' || row.status === 'under_review',
+      ).length,
     [suggestions],
   )
 
   return (
     <div className="ui-page max-w-4xl space-y-6">
-      <PageHeader
-        eyebrow="Field input"
-        title="Suggestions"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Review agent proposals and update status with a comment.`
-            : 'Review agent proposals and update status with a comment.'
-        }
-      />
+      <div>
+        <PageBackLink to="/admin/pipeline" label="Pipeline" />
+        <PageHeader
+          className="mt-3"
+          eyebrow="Field input"
+          title="Suggestions"
+          description={
+            user?.email
+              ? `Signed in as ${user.email}. Review agent proposals and update status with a comment.`
+              : 'Review agent proposals and update status with a comment.'
+          }
+          actions={
+            <Button type="button" onClick={() => setShowCreate((open) => !open)}>
+              {showCreate ? 'Close' : 'New suggestion'}
+            </Button>
+          }
+        />
+      </div>
 
       {filter === 'submitted' || filter === 'under_review' || filter === 'all' ? (
-        <p className="text-sm text-muted">
-          Review queue in this view: {reviewQueueCount} open item{reviewQueueCount === 1 ? '' : 's'}.
+        <p className="text-sm font-medium text-muted">
+          Review queue in this view: {reviewQueueCount} open item
+          {reviewQueueCount === 1 ? '' : 's'}.
         </p>
       ) : null}
 
@@ -74,23 +88,26 @@ export function AdminSuggestionsPage() {
         ))}
       </div>
 
-      <SuggestionSubmitForm
-        lands={landsQuery.data ?? []}
-        landsLoading={landsQuery.isLoading}
-        isSubmitting={creating}
-        onSubmit={async (input) => {
-          setCreating(true)
-          try {
-            await createSuggestion(input)
-            notifySuccess(input.submitNow ? 'Suggestion submitted.' : 'Draft saved.')
-          } catch (err) {
-            notifyInfo(err instanceof Error ? err.message : 'Could not save suggestion.')
-            throw err
-          } finally {
-            setCreating(false)
-          }
-        }}
-      />
+      {showCreate ? (
+        <SuggestionSubmitForm
+          lands={landsQuery.data ?? []}
+          landsLoading={landsQuery.isLoading}
+          isSubmitting={creating}
+          onSubmit={async (input) => {
+            setCreating(true)
+            try {
+              await createSuggestion(input)
+              notifySuccess(input.submitNow ? 'Suggestion submitted.' : 'Draft saved.')
+              setShowCreate(false)
+            } catch (err) {
+              notifyInfo(err instanceof Error ? err.message : 'Could not save suggestion.')
+              throw err
+            } finally {
+              setCreating(false)
+            }
+          }}
+        />
+      ) : null}
 
       {isLoading ? <p className="text-sm text-muted">Loading suggestions…</p> : null}
       {error ? (

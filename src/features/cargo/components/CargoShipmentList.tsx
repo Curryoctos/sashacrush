@@ -131,6 +131,7 @@ function ShipmentDetail({
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showAttach, setShowAttach] = useState(false)
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true)
@@ -233,9 +234,19 @@ function ShipmentDetail({
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-          Documents
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted">
+            Documents
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => setShowAttach((open) => !open)}
+          >
+            {showAttach ? 'Close' : 'Attach document'}
+          </Button>
+        </div>
         {(docs.documents ?? []).length === 0 ? (
           <p className="mt-2 text-sm text-muted">No documents attached.</p>
         ) : (
@@ -253,46 +264,58 @@ function ShipmentDetail({
           </ul>
         )}
 
-        <form
-          className="mt-3 space-y-2"
-          onSubmit={(event: FormEvent) => {
-            event.preventDefault()
-            if (!file) {
-              setError('Choose a file.')
-              return
-            }
-            void run(async () => {
-              await docs.uploadDocument({
-                shipmentId: shipment.id,
-                title: docTitle || file.name,
-                file,
+        {showAttach ? (
+          <form
+            className="mt-3 space-y-3 rounded-xl border border-border/80 bg-surface/50 p-4"
+            onSubmit={(event: FormEvent) => {
+              event.preventDefault()
+              if (!file) {
+                setError('Choose a file.')
+                return
+              }
+              void run(async () => {
+                await docs.uploadDocument({
+                  shipmentId: shipment.id,
+                  title: docTitle || file.name,
+                  file,
+                })
+                setDocTitle('')
+                setFile(null)
+                setShowAttach(false)
               })
-              setDocTitle('')
-              setFile(null)
-            })
-          }}
-        >
-          <label className="block space-y-1.5">
-            <span className="ui-label">Attach document</span>
-            <input
-              className="ui-input"
-              value={docTitle}
-              disabled={busy}
-              onChange={(event) => setDocTitle(event.target.value)}
-              placeholder="Title"
-            />
-          </label>
-          <input
-            className="ui-input"
-            type="file"
-            accept=".pdf,.doc,.docx,image/*"
-            disabled={busy}
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-          <Button type="submit" size="sm" disabled={busy || !file}>
-            Upload
-          </Button>
-        </form>
+            }}
+          >
+            <div className="ui-field">
+              <label htmlFor={`cargo-doc-title-${shipment.id}`} className="ui-label">
+                Title
+              </label>
+              <input
+                id={`cargo-doc-title-${shipment.id}`}
+                className="ui-input"
+                value={docTitle}
+                disabled={busy}
+                onChange={(event) => setDocTitle(event.target.value)}
+                placeholder="Bill of lading, packing list…"
+              />
+            </div>
+            <div className="ui-field">
+              <label htmlFor={`cargo-doc-file-${shipment.id}`} className="ui-label">
+                File
+              </label>
+              <input
+                id={`cargo-doc-file-${shipment.id}`}
+                className="ui-input"
+                type="file"
+                accept=".pdf,.doc,.docx,image/*"
+                disabled={busy}
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+            </div>
+            <Button type="submit" size="sm" disabled={busy || !file}>
+              Upload
+            </Button>
+          </form>
+        ) : null}
       </div>
 
       {error ? (

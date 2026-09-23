@@ -52,6 +52,29 @@ export async function confirmPaymentAndIssueReceipt(
     )
   }
 
+  // Crypto staff confirms must be backed by an on-chain ledger row for this payment.
+  if (audit?.source === 'staff' && payment.method === 'crypto') {
+    const { data: cryptoRow, error: cryptoError } = await supabase
+      .from('transactions_crypto')
+      .select('id, tx_hash, status')
+      .eq('payment_id', paymentId)
+      .maybeSingle()
+
+    if (cryptoError) {
+      throw new ConfirmPaymentError(
+        `Could not verify crypto ledger: ${cryptoError.message}`,
+        500,
+      )
+    }
+
+    if (!cryptoRow?.tx_hash) {
+      throw new ConfirmPaymentError(
+        'Crypto payouts require a matching transactions_crypto row before confirm.',
+        400,
+      )
+    }
+  }
+
   const { data: existingReceipt } = await supabase
     .from('receipts')
     .select('receipt_number')

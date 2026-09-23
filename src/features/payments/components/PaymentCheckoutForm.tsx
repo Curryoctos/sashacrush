@@ -27,7 +27,7 @@ interface PaymentCheckoutFormProps {
   /** Soft cap for new payouts (outstanding − pending). */
   availableToPayOutUsd: number | null
   totalValueUsd: number | null
-  /** Company capital available (raised − disbursed). Soft warning only. */
+  /** Company capital available (raised − disbursed). Hard-blocks when exceeded. */
   companyCapitalAvailableUsd?: number | null
   isSubmitting: boolean
   onSubmit: (input: CreatePaymentInput) => Promise<void>
@@ -62,6 +62,7 @@ export function PaymentCheckoutForm({
     hasValidUsd && companyCapitalAvailableUsd != null
       ? capitalShortfallWarning(companyCapitalAvailableUsd, parsedUsd)
       : null
+  const capitalBlocksSubmit = Boolean(capitalWarning)
 
   useEffect(() => {
     let cancelled = false
@@ -102,6 +103,15 @@ export function PaymentCheckoutForm({
       return
     }
 
+    const capitalBlock =
+      companyCapitalAvailableUsd != null
+        ? capitalShortfallWarning(companyCapitalAvailableUsd, Number(amountUsd))
+        : null
+    if (capitalBlock) {
+      setFormError(capitalBlock)
+      return
+    }
+
     const { method, network } = paymentDetails(paymentChoice)
     // Pass raw phone when present so validation can distinguish empty vs invalid format.
     const phoneInput = isMobileMoney ? recipientPhone.trim() || null : null
@@ -119,6 +129,7 @@ export function PaymentCheckoutForm({
         rateUsed: isMobileMoney && ugxRate != null ? ugxRate : null,
         totalValueUsd,
         availableToPayOutUsd,
+        companyCapitalAvailableUsd,
       })
       setAmountUsd('')
       setAmountUgx('')
@@ -148,50 +159,56 @@ export function PaymentCheckoutForm({
           />
         </ol>
 
-        <section className="space-y-3">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <label htmlFor="checkout-amount-usd" className="ui-label">
-              Amount (USD)
-            </label>
-            {fillAmount != null && fillAmount > 0 && (
-              <button
-                type="button"
-                onClick={fillAvailable}
-                className="text-xs font-medium text-brand-700 hover:text-brand-800"
-              >
-                Use available {formatUsd(fillAmount)}
-              </button>
-            )}
-          </div>
-          <input
-            id="checkout-amount-usd"
-            type="number"
-            min="0.01"
-            step="0.01"
-            required
-            value={amountUsd}
-            onChange={(event) => setAmountUsd(event.target.value)}
-            placeholder="0.00"
-            className="ui-input max-w-xs text-lg font-semibold"
-          />
-          <div className="space-y-1 text-xs text-muted">
-            {outstandingUsd != null && (
-              <p>Outstanding (after confirmed): {formatUsd(Math.max(0, outstandingUsd))}</p>
-            )}
-            {availableToPayOutUsd != null && (
-              <p>
-                Available to pay out (minus pending):{' '}
-                {formatUsd(Math.max(0, availableToPayOutUsd))}
-              </p>
-            )}
-            {companyCapitalAvailableUsd != null && (
-              <p>Company capital available: {formatUsd(Math.max(0, companyCapitalAvailableUsd))}</p>
-            )}
-            {capitalWarning && (
-              <p className="text-warning" role="status">
-                {capitalWarning}
-              </p>
-            )}
+        <section className="space-y-4">
+          <div className="ui-field max-w-xs">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <label htmlFor="checkout-amount-usd" className="ui-label">
+                Amount (USD)
+              </label>
+              {fillAmount != null && fillAmount > 0 && (
+                <button
+                  type="button"
+                  onClick={fillAvailable}
+                  className="text-xs font-bold text-brand-700 hover:text-brand-900"
+                >
+                  Use available {formatUsd(fillAmount)}
+                </button>
+              )}
+            </div>
+            <input
+              id="checkout-amount-usd"
+              type="number"
+              min="0.01"
+              step="0.01"
+              required
+              value={amountUsd}
+              onChange={(event) => setAmountUsd(event.target.value)}
+              placeholder="0.00"
+              className="ui-input text-lg font-extrabold"
+            />
+            <div className="space-y-1">
+              {outstandingUsd != null && (
+                <p className="ui-hint">
+                  Outstanding (after confirmed): {formatUsd(Math.max(0, outstandingUsd))}
+                </p>
+              )}
+              {availableToPayOutUsd != null && (
+                <p className="ui-hint">
+                  Available to pay out (minus pending):{' '}
+                  {formatUsd(Math.max(0, availableToPayOutUsd))}
+                </p>
+              )}
+              {companyCapitalAvailableUsd != null && (
+                <p className="ui-hint">
+                  Company capital available: {formatUsd(Math.max(0, companyCapitalAvailableUsd))}
+                </p>
+              )}
+              {capitalWarning && (
+                <p className="text-xs font-semibold text-danger" role="alert">
+                  {capitalWarning}
+                </p>
+              )}
+            </div>
           </div>
         </section>
 
@@ -251,26 +268,26 @@ export function PaymentCheckoutForm({
         </section>
 
         {isMobileMoney && (
-          <section className="space-y-4 rounded-lg border border-border bg-surface px-4 py-4">
+          <section className="space-y-5 rounded-xl border border-border/90 bg-surface/70 px-5 py-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted">
                 Seller mobile money
               </p>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1.5 text-sm font-medium text-muted">
                 Review the converted amount, then enter the seller’s receive number.
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
+            <div className="ui-field-row">
+              <div className="ui-field">
                 <span className="ui-label">USD</span>
-                <p className="mt-1 font-display text-xl font-semibold text-ink">
+                <p className="font-display text-2xl font-bold text-ink">
                   {hasValidUsd ? formatUsd(parsedUsd) : '—'}
                 </p>
               </div>
-              <div>
+              <div className="ui-field">
                 <span className="ui-label">Seller receives (UGX)</span>
-                <p className="mt-1 font-display text-xl font-semibold text-ink">
+                <p className="font-display text-2xl font-bold text-ink">
                   {amountUgx.trim() && Number(amountUgx) > 0
                     ? formatUgx(Number(amountUgx))
                     : '—'}
@@ -283,10 +300,13 @@ export function PaymentCheckoutForm({
               </div>
             </div>
 
-            <label className="block">
-              <span className="ui-label">Seller receive phone</span>
+            <div className="ui-field max-w-sm">
+              <label htmlFor="seller-momo-phone" className="ui-label">
+                Seller receive phone
+              </label>
               <input
-                className="ui-input mt-1 max-w-sm"
+                id="seller-momo-phone"
+                className="ui-input"
                 type="tel"
                 inputMode="tel"
                 required
@@ -296,7 +316,7 @@ export function PaymentCheckoutForm({
                 aria-label="Seller mobile money phone number"
               />
               <p className="ui-hint">UGX is sent to this MTN or Airtel wallet.</p>
-            </label>
+            </div>
           </section>
         )}
 
@@ -351,7 +371,7 @@ export function PaymentCheckoutForm({
             ) : (
               <Button
                 type="submit"
-                disabled={isSubmitting || !landId || isStripe}
+                disabled={isSubmitting || !landId || isStripe || capitalBlocksSubmit}
                 size="lg"
               >
                 {isSubmitting

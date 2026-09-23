@@ -1,3 +1,4 @@
+import { capitalShortfallWarning } from '@/features/investments/companyCapital'
 import type { PaymentMethod } from '@/types/database'
 
 export type MobileMoneyNetwork = 'mtn' | 'airtel'
@@ -24,6 +25,8 @@ export interface CreatePaymentInput {
   availableToCollectUsd?: number | null
   /** @deprecated Prefer availableToPayOutUsd */
   remainingOutstandingUsd?: number | null
+  /** Company capital available (raised − disbursed). Hard-blocks when exceeded. */
+  companyCapitalAvailableUsd?: number | null
 }
 
 const UGANDA_PHONE = /^(?:\+?256|0)(7\d{8})$/
@@ -112,6 +115,19 @@ export function validateCreatePayment(input: CreatePaymentInput): string | null 
     input.amountUsd > Number(available)
   ) {
     return `Amount exceeds available-to-pay-out balance of $${Number(available).toLocaleString('en-US', { minimumFractionDigits: 2 })} (outstanding minus pending).`
+  }
+
+  if (
+    input.companyCapitalAvailableUsd != null &&
+    Number.isFinite(input.companyCapitalAvailableUsd)
+  ) {
+    const capitalMessage = capitalShortfallWarning(
+      Number(input.companyCapitalAvailableUsd),
+      input.amountUsd,
+    )
+    if (capitalMessage) {
+      return capitalMessage
+    }
   }
 
   return null

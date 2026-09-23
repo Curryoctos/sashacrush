@@ -10,13 +10,25 @@ import { useAuth } from '@/hooks/useAuth'
 import { formatDateTime } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-export function CommunityBoardPage() {
+export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
   const { user } = useAuth()
   const { posts, isLoading, error, canPost, isAdmin, createPost, setPinned, deletePost } =
     useCommunityBoard()
+  const [showComposer, setShowComposer] = useState(false)
   const [body, setBody] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const openComposer = (replyId: string | null = null) => {
+    setReplyTo(replyId)
+    setShowComposer(true)
+  }
+
+  const closeComposer = () => {
+    setShowComposer(false)
+    setReplyTo(null)
+    setBody('')
+  }
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -24,8 +36,7 @@ export function CommunityBoardPage() {
     try {
       await createPost(body, replyTo)
       notifySuccess(replyTo ? 'Reply posted.' : 'Post published.')
-      setBody('')
-      setReplyTo(null)
+      closeComposer()
     } catch (err) {
       notifyInfo(err instanceof Error ? err.message : 'Could not post.')
     } finally {
@@ -35,15 +46,29 @@ export function CommunityBoardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">Community board</h1>
-        <p className="mt-2 text-sm text-muted">
-          Updates from incubation visitors and collaborators. Public to read — members can post and
-          reply.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          {compact ? (
+            <h2 className="ui-section-title">Community board</h2>
+          ) : (
+            <h1 className="font-display text-3xl font-semibold text-ink">Community board</h1>
+          )}
+          <p className={compact ? 'ui-section-desc' : 'mt-2 text-sm text-muted'}>
+            Updates from incubation visitors and collaborators. Public to read — members can post and
+            reply.
+          </p>
+        </div>
+        {canPost ? (
+          <Button
+            type="button"
+            onClick={() => (showComposer && !replyTo ? closeComposer() : openComposer(null))}
+          >
+            {showComposer && !replyTo ? 'Close' : 'New post'}
+          </Button>
+        ) : null}
       </div>
 
-      {canPost ? (
+      {canPost && showComposer ? (
         <Card>
           <CardHeader
             title={replyTo ? 'Write a reply' : 'Share an update'}
@@ -53,41 +78,51 @@ export function CommunityBoardPage() {
                 : 'Visible to everyone on the community board.'
             }
           />
-          <form className="space-y-3" onSubmit={(event) => void onSubmit(event)}>
+          <form className="space-y-5" onSubmit={(event) => void onSubmit(event)}>
             {replyTo ? (
               <button
                 type="button"
-                className="text-sm text-brand-800 underline"
+                className="text-sm font-bold text-brand-700 underline hover:text-brand-900"
                 onClick={() => setReplyTo(null)}
               >
-                Cancel reply
+                Cancel reply — start a new post
               </button>
             ) : null}
-            <textarea
-              className="ui-input min-h-28"
-              value={body}
-              disabled={busy}
-              onChange={(event) => setBody(event.target.value)}
-              placeholder="What’s happening in the pipeline?"
-              required
-            />
-            <Button type="submit" disabled={busy}>
-              {busy ? 'Posting…' : replyTo ? 'Post reply' : 'Post update'}
-            </Button>
+            <div className="ui-field">
+              <label htmlFor="community-post-body" className="ui-label">
+                {replyTo ? 'Reply' : 'Update'}
+              </label>
+              <textarea
+                id="community-post-body"
+                className="ui-input min-h-28"
+                value={body}
+                disabled={busy}
+                onChange={(event) => setBody(event.target.value)}
+                placeholder="What’s happening in the pipeline?"
+                required
+              />
+            </div>
+            <div className="flex justify-end border-t border-border/80 pt-4">
+              <Button type="submit" disabled={busy} size="lg">
+                {busy ? 'Posting…' : replyTo ? 'Post reply' : 'Post update'}
+              </Button>
+            </div>
           </form>
         </Card>
-      ) : (
+      ) : null}
+
+      {!canPost ? (
         <Card>
-          <p className="text-sm text-muted">
+          <p className="text-sm font-medium text-muted">
             {user ? (
               'Your account cannot post here. Join as a community member to contribute.'
             ) : (
               <>
-                <Link className="font-medium text-brand-800 underline" to="/community/register">
+                <Link className="font-bold text-brand-700 underline" to="/community/register">
                   Register
                 </Link>{' '}
                 or{' '}
-                <Link className="font-medium text-brand-800 underline" to="/community/login">
+                <Link className="font-bold text-brand-700 underline" to="/community/login">
                   sign in
                 </Link>{' '}
                 to post updates.
@@ -95,7 +130,7 @@ export function CommunityBoardPage() {
             )}
           </p>
         </Card>
-      )}
+      ) : null}
 
       {isLoading ? <p className="text-sm text-muted">Loading posts…</p> : null}
       {error ? (
@@ -121,7 +156,7 @@ export function CommunityBoardPage() {
             <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{post.body}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {canPost ? (
-                <Button type="button" size="sm" variant="secondary" onClick={() => setReplyTo(post.id)}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => openComposer(post.id)}>
                   Reply
                 </Button>
               ) : null}

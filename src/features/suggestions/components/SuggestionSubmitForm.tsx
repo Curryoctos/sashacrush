@@ -46,10 +46,13 @@ export function SuggestionSubmitForm({
         title="New suggestion"
         description="Propose on-site work or an improvement for a land deal."
       />
-      <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
-        <label className="block space-y-1.5">
-          <span className="ui-label">Land deal</span>
+      <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)}>
+        <div className="ui-field">
+          <label htmlFor="suggestion-land" className="ui-label">
+            Land deal
+          </label>
           <select
+            id="suggestion-land"
             className="ui-input"
             value={landId}
             disabled={landsLoading || isSubmitting}
@@ -63,40 +66,54 @@ export function SuggestionSubmitForm({
               </option>
             ))}
           </select>
-        </label>
+        </div>
 
-        <label className="block space-y-1.5">
-          <span className="ui-label">Title</span>
+        <div className="ui-field">
+          <label htmlFor="suggestion-title" className="ui-label">
+            Title
+          </label>
           <input
+            id="suggestion-title"
             className="ui-input"
             value={title}
             disabled={isSubmitting}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={120}
             required
+            placeholder="Short summary"
           />
-        </label>
+        </div>
 
-        <label className="block space-y-1.5">
-          <span className="ui-label">Description</span>
+        <div className="ui-field">
+          <label htmlFor="suggestion-body" className="ui-label">
+            Description
+          </label>
           <textarea
+            id="suggestion-body"
             className="ui-input min-h-28"
             value={body}
             disabled={isSubmitting}
             onChange={(event) => setBody(event.target.value)}
             maxLength={4000}
             required
+            placeholder="What should happen on site, and why?"
           />
-        </label>
+        </div>
 
-        <label className="flex items-center gap-2 text-sm text-ink">
+        <label className="flex items-start gap-3 rounded-xl border border-border/80 bg-surface/60 px-4 py-3 text-sm font-semibold text-ink">
           <input
             type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-border text-brand-700"
             checked={submitNow}
             disabled={isSubmitting}
             onChange={(event) => setSubmitNow(event.target.checked)}
           />
-          Submit for review now (uncheck to save as draft)
+          <span>
+            Submit for review now
+            <span className="mt-0.5 block text-xs font-medium text-muted">
+              Uncheck to save as a draft you can finish later.
+            </span>
+          </span>
         </label>
 
         {error ? (
@@ -105,9 +122,11 @@ export function SuggestionSubmitForm({
           </p>
         ) : null}
 
-        <Button type="submit" disabled={isSubmitting || landsLoading}>
-          {isSubmitting ? 'Saving…' : submitNow ? 'Submit suggestion' : 'Save draft'}
-        </Button>
+        <div className="flex justify-end border-t border-border/80 pt-4">
+          <Button type="submit" disabled={isSubmitting || landsLoading} size="lg">
+            {isSubmitting ? 'Saving…' : submitNow ? 'Submit suggestion' : 'Save draft'}
+          </Button>
+        </div>
       </form>
     </Card>
   )

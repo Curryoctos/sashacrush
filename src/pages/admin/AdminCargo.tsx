@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { PageHeader } from '@/components/ui/PageHeader'
+import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { CargoShipmentList } from '@/features/cargo/components/CargoShipmentList'
 import { useCargoAgents, useCargoShipments } from '@/features/cargo/useCargo'
 import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
@@ -14,6 +14,7 @@ export function AdminCargoPage() {
   const { shipments, isLoading, error, createShipment, advanceStatus, assignAgent } =
     useCargoShipments()
 
+  const [showCreate, setShowCreate] = useState(false)
   const [origin, setOrigin] = useState('Shenzhen, China')
   const [destination, setDestination] = useState('Nebraska, USA')
   const [description, setDescription] = useState('')
@@ -36,6 +37,7 @@ export function AdminCargoPage() {
       })
       notifySuccess('Shipment created.')
       setDescription('')
+      setShowCreate(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not create shipment.'
       setFormError(message)
@@ -47,91 +49,123 @@ export function AdminCargoPage() {
 
   return (
     <div className="ui-page max-w-4xl space-y-6">
-      <PageHeader
-        eyebrow="CurryOctos"
-        title="Cargo & imports"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Track China→USA machine shipments and collaborator approvals.`
-            : 'Track China→USA machine shipments and collaborator approvals.'
-        }
-      />
-
-      <Card>
-        <CardHeader
-          title="New shipment"
-          description="Origin, destination, cargo description, and expected arrival."
-        />
-        <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => void onCreate(event)}>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Origin</span>
-            <input
-              className="ui-input"
-              value={origin}
-              disabled={busy}
-              onChange={(event) => setOrigin(event.target.value)}
-              required
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Destination</span>
-            <input
-              className="ui-input"
-              value={destination}
-              disabled={busy}
-              onChange={(event) => setDestination(event.target.value)}
-              required
-            />
-          </label>
-          <label className="block space-y-1.5 sm:col-span-2">
-            <span className="ui-label">Cargo description</span>
-            <textarea
-              className="ui-input min-h-20"
-              value={description}
-              disabled={busy}
-              onChange={(event) => setDescription(event.target.value)}
-              required
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Expected date</span>
-            <input
-              className="ui-input"
-              type="date"
-              value={expectedAt}
-              disabled={busy}
-              onChange={(event) => setExpectedAt(event.target.value)}
-              required
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Assign agent (optional)</span>
-            <select
-              className="ui-input"
-              value={assigneeId}
-              disabled={busy || agentsQuery.isLoading}
-              onChange={(event) => setAssigneeId(event.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {(agentsQuery.data ?? []).map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.full_name ?? agent.email}
-                </option>
-              ))}
-            </select>
-          </label>
-          {formError ? (
-            <p className="ui-alert-danger sm:col-span-2" role="alert">
-              {formError}
-            </p>
-          ) : null}
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={busy}>
-              {busy ? 'Creating…' : 'Create shipment'}
+      <div>
+        <PageBackLink to="/admin/pipeline" label="Pipeline" />
+        <PageHeader
+          className="mt-3"
+          eyebrow="CurryOctos"
+          title="Cargo & imports"
+          description={
+            user?.email
+              ? `Signed in as ${user.email}. Track China→USA machine shipments and collaborator approvals.`
+              : 'Track China→USA machine shipments and collaborator approvals.'
+          }
+          actions={
+            <Button type="button" onClick={() => setShowCreate((open) => !open)}>
+              {showCreate ? 'Close' : 'New shipment'}
             </Button>
-          </div>
-        </form>
-      </Card>
+          }
+        />
+      </div>
+
+      {showCreate ? (
+        <Card>
+          <CardHeader
+            title="New shipment"
+            description="Origin, destination, cargo description, and expected arrival."
+          />
+          <form className="space-y-5" onSubmit={(event) => void onCreate(event)}>
+            <div className="ui-field-row">
+              <div className="ui-field">
+                <label htmlFor="cargo-origin" className="ui-label">
+                  Origin
+                </label>
+                <input
+                  id="cargo-origin"
+                  className="ui-input"
+                  value={origin}
+                  disabled={busy}
+                  onChange={(event) => setOrigin(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="ui-field">
+                <label htmlFor="cargo-destination" className="ui-label">
+                  Destination
+                </label>
+                <input
+                  id="cargo-destination"
+                  className="ui-input"
+                  value={destination}
+                  disabled={busy}
+                  onChange={(event) => setDestination(event.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="ui-field">
+              <label htmlFor="cargo-description" className="ui-label">
+                Cargo description
+              </label>
+              <textarea
+                id="cargo-description"
+                className="ui-input"
+                value={description}
+                disabled={busy}
+                onChange={(event) => setDescription(event.target.value)}
+                required
+                placeholder="Machine type, quantity, packing notes…"
+              />
+            </div>
+            <div className="ui-field-row">
+              <div className="ui-field">
+                <label htmlFor="cargo-expected" className="ui-label">
+                  Expected date
+                </label>
+                <input
+                  id="cargo-expected"
+                  className="ui-input"
+                  type="date"
+                  value={expectedAt}
+                  disabled={busy}
+                  onChange={(event) => setExpectedAt(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="ui-field">
+                <label htmlFor="cargo-assignee" className="ui-label">
+                  Assign agent
+                </label>
+                <select
+                  id="cargo-assignee"
+                  className="ui-input"
+                  value={assigneeId}
+                  disabled={busy || agentsQuery.isLoading}
+                  onChange={(event) => setAssigneeId(event.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {(agentsQuery.data ?? []).map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.full_name ?? agent.email}
+                    </option>
+                  ))}
+                </select>
+                <p className="ui-hint">Optional — agent can approve stages and upload docs.</p>
+              </div>
+            </div>
+            {formError ? (
+              <p className="ui-alert-danger" role="alert">
+                {formError}
+              </p>
+            ) : null}
+            <div className="flex justify-end border-t border-border/80 pt-4">
+              <Button type="submit" disabled={busy} size="lg">
+                {busy ? 'Creating…' : 'Create shipment'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      ) : null}
 
       {isLoading ? <p className="text-sm text-muted">Loading shipments…</p> : null}
       {error ? (
@@ -145,7 +179,11 @@ export function AdminCargoPage() {
           shipments={shipments}
           isAdmin
           agents={agentsQuery.data ?? []}
-          emptyTitle="No cargo shipments yet."
+          emptyTitle={
+            showCreate
+              ? 'No cargo shipments yet.'
+              : 'No cargo shipments yet — click New shipment to create one.'
+          }
           onAdvance={async (shipment) => {
             await advanceStatus(shipment)
             notifySuccess('Status advanced.')

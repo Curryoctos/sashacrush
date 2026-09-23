@@ -4,15 +4,15 @@ import { NotificationCenter } from '@/components/notifications/NotificationCente
 import { PortalShell } from '@/components/layout/PortalShell'
 import { useSellerUnreadCount } from '@/features/chat/useSellerUnreadCount'
 import { useAuth } from '@/hooks/useAuth'
-import { SELLER_NAV, type PortalNavItem } from '@/lib/portal-nav'
+import { mapNavSections, SELLER_NAV, type PortalNavSection } from '@/lib/portal-nav'
 
 export function SellerPortalLayout() {
   const navigate = useNavigate()
   const { signOut } = useAuth()
   const { data: unreadCount = 0 } = useSellerUnreadCount()
 
-  const navItems = useMemo((): PortalNavItem[] => {
-    return SELLER_NAV.map((item) =>
+  const navItems = useMemo((): PortalNavSection[] => {
+    return mapNavSections(SELLER_NAV, (item) =>
       item.to === '/seller/chat' ? { ...item, badge: unreadCount } : item,
     )
   }, [unreadCount])

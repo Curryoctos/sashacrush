@@ -175,6 +175,7 @@ export function useMyInvestments() {
         .eq('agent_id', agentId)
         .eq('status', 'pending')
         .eq('method', 'stripe')
+        .is('stripe_payment_intent_id', null)
         .select(INVESTMENT_COLUMNS)
         .maybeSingle()
 
@@ -182,7 +183,13 @@ export function useMyInvestments() {
         throw new Error(error.message || 'Could not cancel checkout.')
       }
 
-      return data as Investment | null
+      if (!data) {
+        throw new Error(
+          'Checkout can no longer be cancelled — payment may already be processing.',
+        )
+      }
+
+      return data as Investment
     },
     onSuccess: () => {
       invalidateInvestmentQueries(queryClient)

@@ -289,53 +289,73 @@ export function UsersBrowser() {
 
       {showCreate ? (
         <Card>
-          <h2 className="mb-3 text-base font-semibold text-ink">Create user</h2>
-          <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => void handleCreate(e)}>
-            <label className="block sm:col-span-2">
-              <span className="ui-label">Email</span>
+          <h2 className="ui-section-title mb-1">Create user</h2>
+          <p className="ui-section-desc mb-5">Provision a portal account and optionally send access.</p>
+          <form className="space-y-5" onSubmit={(e) => void handleCreate(e)}>
+            <div className="ui-field">
+              <label htmlFor="create-user-email" className="ui-label">
+                Email
+              </label>
               <input
-                className="ui-input mt-1"
+                id="create-user-email"
+                className="ui-input"
                 type="email"
                 required
                 value={createEmail}
                 onChange={(e) => setCreateEmail(e.target.value)}
                 autoComplete="off"
+                placeholder="name@company.com"
               />
-            </label>
-            <label className="block">
-              <span className="ui-label">Full name</span>
-              <input
-                className="ui-input mt-1"
-                type="text"
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <label className="block">
-              <span className="ui-label">Role</span>
-              <select
-                className="ui-input mt-1"
-                value={createRole}
-                onChange={(e) => setCreateRole(e.target.value as UserRole)}
-              >
-                {USER_ROLE_ORDER.map((role) => (
-                  <option key={role} value={role}>
-                    {USER_ROLE_LABELS[role]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-ink sm:col-span-2">
+            </div>
+            <div className="ui-field-row">
+              <div className="ui-field">
+                <label htmlFor="create-user-name" className="ui-label">
+                  Full name
+                </label>
+                <input
+                  id="create-user-name"
+                  className="ui-input"
+                  type="text"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  autoComplete="off"
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="ui-field">
+                <label htmlFor="create-user-role" className="ui-label">
+                  Role
+                </label>
+                <select
+                  id="create-user-role"
+                  className="ui-input"
+                  value={createRole}
+                  onChange={(e) => setCreateRole(e.target.value as UserRole)}
+                >
+                  {USER_ROLE_ORDER.map((role) => (
+                    <option key={role} value={role}>
+                      {USER_ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <label className="flex items-start gap-3 rounded-xl border border-border/80 bg-surface/60 px-4 py-3 text-sm font-semibold text-ink">
               <input
                 type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-border text-brand-700"
                 checked={sendInvite}
                 onChange={(e) => setSendInvite(e.target.checked)}
               />
-              Send access email now
+              <span>
+                Send access email now
+                <span className="mt-0.5 block text-xs font-medium text-muted">
+                  Magic link or password reset, depending on role.
+                </span>
+              </span>
             </label>
-            <div className="sm:col-span-2">
-              <Button type="submit" disabled={busy}>
+            <div className="flex justify-end border-t border-border/80 pt-4">
+              <Button type="submit" disabled={busy} size="lg">
                 {createUser.isPending ? 'Creating…' : 'Create user'}
               </Button>
             </div>

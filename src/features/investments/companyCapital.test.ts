@@ -53,6 +53,7 @@ describe('capitalShortfallWarning', () => {
 
   it('warns when payout exceeds available', () => {
     expect(capitalShortfallWarning(5_000, 12_000)).toContain('$7000.00')
+    expect(capitalShortfallWarning(5_000, 12_000)).toMatch(/Raise capital/)
   })
 
   it('ignores non-positive payout amounts', () => {

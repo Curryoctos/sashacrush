@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { InvestmentAccessGate } from '@/features/investments/components/InvestmentAccessGate'
 import { InvestmentList } from '@/features/investments/components/InvestmentList'
@@ -21,6 +21,7 @@ import type { CreateInvestmentInput } from '@/features/investments/validation'
 export function AgentInvestmentsPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showCreate, setShowCreate] = useState(false)
   const gate = useInvestmentAccessGate()
   const stripeHandled = useRef<string | null>(null)
   const dealsQuery = useInvestableDeals()
@@ -84,6 +85,7 @@ export function AgentInvestmentsPage() {
       await createInvestment(input)
       if (input.method !== 'stripe') {
         notifySuccess('Investment submitted. Admin will confirm once funds arrive.')
+        setShowCreate(false)
       }
     } catch (submitError) {
       const message =
@@ -121,7 +123,7 @@ export function AgentInvestmentsPage() {
   return (
     <div className="ui-page max-w-4xl space-y-6">
       <div>
-        <PageBackLink to="/agent/dashboard" label="Agent Dashboard" />
+        <PageBackLink to="/agent/capital" label="Capital" />
         <PageHeader
           className="mt-3"
           eyebrow="Capital"
@@ -132,9 +134,16 @@ export function AgentInvestmentsPage() {
               : 'Invest toward a deal — confirmed amounts fund the company capital pool.'
           }
           actions={
-            <Link to="/agent/agreements">
-              <Button variant="secondary">Agreements</Button>
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/agent/agreements">
+                <Button variant="secondary">Agreements</Button>
+              </Link>
+              {gate.canContribute ? (
+                <Button type="button" onClick={() => setShowCreate((open) => !open)}>
+                  {showCreate ? 'Close' : 'New investment'}
+                </Button>
+              ) : null}
+            </div>
           }
         />
       </div>
@@ -181,12 +190,14 @@ export function AgentInvestmentsPage() {
       ) : null}
 
       <InvestmentAccessGate>
-        <InvestmentSubmitForm
-          deals={dealsQuery.data ?? []}
-          dealsLoading={dealsQuery.isLoading}
-          isSubmitting={isCreating}
-          onSubmit={handleSubmit}
-        />
+        {showCreate ? (
+          <InvestmentSubmitForm
+            deals={dealsQuery.data ?? []}
+            dealsLoading={dealsQuery.isLoading}
+            isSubmitting={isCreating}
+            onSubmit={handleSubmit}
+          />
+        ) : null}
       </InvestmentAccessGate>
 
       {showSummary ? (
@@ -197,7 +208,11 @@ export function AgentInvestmentsPage() {
             investments={investments}
             title="Your investments"
             description="Each row is toward a deal and feeds the company capital pool when confirmed."
-            emptyTitle="No investments submitted yet."
+            emptyTitle={
+              showCreate
+                ? 'No investments submitted yet.'
+                : 'No investments yet — click New investment to contribute.'
+            }
             showDeal
             dealLabel={(row) => {
               const withMeta = investments.find((item) => item.id === row.id) as

@@ -85,10 +85,11 @@ supabase/
 
 | Role | Namespace | Access |
 |------|-----------|--------|
-| Admin | `/admin/*` | Full platform — users, land records, documents, payments, chat, audit log, deal cockpit |
-| Agent | `/agent/*` | Read-only land/deal view, field photo upload |
-| Executive | `/executive/*` | Deal portfolio (aggregated, no payment amounts), executive chat |
+| Admin | `/admin/*` | Full platform — users, deals, payments, capital, wallet, analytics, suggestions, community, cargo, media, chat, audit |
+| Agent | `/agent/*` | Field ops — land maps/photos, documents, receipts, deal investments + agreements, suggestions, cargo, analytics, seller chat |
+| Executive | `/executive/*` | Oversight — deal portfolio, analytics, staff communications, media vault (no payments/wallet) |
 | Seller | `/seller/*` | Isolated portal — land, chat, documents, receipts, photos |
+| Community | `/community/*` | Public board + incubation schedule (self-register) |
 
 Protected routes require Supabase Auth with role-based RLS.
 
@@ -96,9 +97,15 @@ Protected routes require Supabase Auth with role-based RLS.
 
 - **Users** — Admin provisions staff and sellers (`/admin/users`); deactivate, role changes, password reset / magic-link resend
 - **Land records** — Admin CRUD with seller assignment and deal cockpit (`/admin/deals/:landId`)
-- **Documents** — Upload, send for signing, seller e-sign with PDF append, in-browser preview
+- **Documents** — Upload, send for signing, seller e-sign with PDF append, in-browser preview; agent investment agreements
 - **Payments** — Manual confirm or Stripe/Flutterwave checkout; webhooks issue server-side PDF receipts + email notifications
-- **Chat** — Realtime seller/admin messaging with auto-replies and email alerts
+- **Capital & wallet** — Agent deal-scoped investments (Stripe/offline) into company pool; Admin MetaMask/WalletConnect convert-and-pay
+- **Analytics** — Recharts dashboards for admin / executive / agent with CSV export
+- **Suggestions** — Project proposal lifecycle (agent/admin submit; admin review)
+- **Community** — Public board + incubation schedule with admin moderation
+- **Cargo** — Import tracker with agent stage approvals
+- **Media vault** — Private video upload (admin) and playback (executive)
+- **Chat** — Realtime seller/admin messaging and executive staff channel
 - **Notifications** — Resend emails via Edge Functions; see `supabase/functions/WEBHOOKS.md`
 - **MFA** — Temporarily disabled (TOTP pages/helpers kept; gate + routes commented for later restore)
 - **Audit log** — Automatic trail for land, payment, document, and user lifecycle changes

@@ -51,7 +51,7 @@ export function AgentAgreementsPage() {
   return (
     <div className="ui-page max-w-6xl">
       <div>
-        <PageBackLink to="/agent/investments" label="Investments" />
+        <PageBackLink to="/agent/capital" label="Capital" />
         <PageHeader
           className="mt-3"
           title="Agreements"

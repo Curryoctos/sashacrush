@@ -75,16 +75,19 @@ export function InvestmentSubmitForm({
             : 'Choose a project, transfer offline, then record amount and reference for admin confirmation into the capital pool.'
         }
       />
-      <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+      <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)}>
         {formError && (
           <p className="ui-alert-danger" role="alert">
             {formError}
           </p>
         )}
 
-        <label className="block space-y-1.5">
-          <span className="ui-label">Deal / project</span>
+        <div className="ui-field">
+          <label htmlFor="invest-deal" className="ui-label">
+            Deal / project
+          </label>
           <select
+            id="invest-deal"
             className="ui-input"
             value={landId}
             onChange={(event) => setLandId(event.target.value)}
@@ -102,48 +105,59 @@ export function InvestmentSubmitForm({
             ))}
           </select>
           {selectedDeal ? (
-            <span className="text-xs text-muted">
-              Investment is earmarked for {selectedDeal.title} and credited to company capital.
-            </span>
+            <p className="ui-hint">
+              Earmarked for {selectedDeal.title} and credited to company capital.
+            </p>
           ) : null}
-        </label>
+        </div>
 
-        <label className="block space-y-1.5">
-          <span className="ui-label">Amount (USD)</span>
-          <input
-            className="ui-input max-w-xs text-lg font-semibold"
-            type="number"
-            min={isStripe ? '0.50' : '0.01'}
-            step="0.01"
-            value={amountUsd}
-            onChange={(event) => setAmountUsd(event.target.value)}
-            placeholder="0.00"
-            required
-          />
-          {Number(amountUsd) > 0 && (
-            <span className="text-xs text-muted">{formatUsd(Number(amountUsd))}</span>
-          )}
-        </label>
+        <div className="ui-field-row">
+          <div className="ui-field">
+            <label htmlFor="invest-amount" className="ui-label">
+              Amount (USD)
+            </label>
+            <input
+              id="invest-amount"
+              className="ui-input text-lg font-extrabold"
+              type="number"
+              min={isStripe ? '0.50' : '0.01'}
+              step="0.01"
+              value={amountUsd}
+              onChange={(event) => setAmountUsd(event.target.value)}
+              placeholder="0.00"
+              required
+            />
+            {Number(amountUsd) > 0 ? (
+              <p className="ui-hint">{formatUsd(Number(amountUsd))}</p>
+            ) : null}
+          </div>
 
-        <label className="block space-y-1.5">
-          <span className="ui-label">Method</span>
-          <select
-            className="ui-input"
-            value={method}
-            onChange={(event) => setMethod(event.target.value as InvestmentMethod)}
-          >
-            {METHODS.map((value) => (
-              <option key={value} value={value}>
-                {investmentMethodLabel(value)}
-              </option>
-            ))}
-          </select>
-        </label>
+          <div className="ui-field">
+            <label htmlFor="invest-method" className="ui-label">
+              Method
+            </label>
+            <select
+              id="invest-method"
+              className="ui-input"
+              value={method}
+              onChange={(event) => setMethod(event.target.value as InvestmentMethod)}
+            >
+              {METHODS.map((value) => (
+                <option key={value} value={value}>
+                  {investmentMethodLabel(value)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         {!isStripe && (
-          <label className="block space-y-1.5">
-            <span className="ui-label">Payment reference</span>
+          <div className="ui-field">
+            <label htmlFor="invest-ref" className="ui-label">
+              Payment reference
+            </label>
             <input
+              id="invest-ref"
               className="ui-input"
               type="text"
               value={reference}
@@ -151,28 +165,37 @@ export function InvestmentSubmitForm({
               placeholder="Bank or MoMo transaction reference"
               required
             />
-          </label>
+          </div>
         )}
 
-        <label className="block space-y-1.5">
-          <span className="ui-label">Notes (optional)</span>
+        <div className="ui-field">
+          <label htmlFor="invest-notes" className="ui-label">
+            Notes
+          </label>
           <textarea
-            className="ui-input min-h-20"
+            id="invest-notes"
+            className="ui-input"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Optional note for this investment"
           />
-        </label>
+        </div>
 
-        <Button type="submit" disabled={isSubmitting || dealsLoading || deals.length === 0}>
-          {isSubmitting
-            ? isStripe
-              ? 'Redirecting to Stripe…'
-              : 'Submitting…'
-            : isStripe
-              ? 'Pay with card'
-              : 'Submit for confirmation'}
-        </Button>
+        <div className="flex justify-end border-t border-border/80 pt-4">
+          <Button
+            type="submit"
+            disabled={isSubmitting || dealsLoading || deals.length === 0}
+            size="lg"
+          >
+            {isSubmitting
+              ? isStripe
+                ? 'Redirecting to Stripe…'
+                : 'Submitting…'
+              : isStripe
+                ? 'Pay with card'
+                : 'Submit for confirmation'}
+          </Button>
+        </div>
       </form>
     </Card>
   )

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ClipboardList, History, Scale, Wallet } from 'lucide-react'
 import { BalanceTracker } from '@/features/payments/components/BalanceTracker'
 import { PaymentCheckoutForm } from '@/features/payments/components/PaymentCheckoutForm'
@@ -32,7 +32,7 @@ import {
 import { Badge, statusTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDate, formatUgx, formatUsd } from '@/lib/formatters'
@@ -253,20 +253,19 @@ export function AdminPaymentsPage() {
 
   return (
     <div className="ui-page max-w-4xl">
-      <PageHeader
-        eyebrow="Treasury"
-        title="Payments"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Open a deal, then a folder.`
-            : 'Open a deal, then a folder.'
-        }
-        actions={
-          <Link to="/admin/dashboard">
-            <Button variant="secondary">Dashboard</Button>
-          </Link>
-        }
-      />
+      <div>
+        <PageBackLink to="/admin/finance" label="Finance" />
+        <PageHeader
+          className="mt-3"
+          eyebrow="Treasury"
+          title="Payments"
+          description={
+            user?.email
+              ? `Signed in as ${user.email}. Open a deal, then a folder.`
+              : 'Open a deal, then a folder.'
+          }
+        />
+      </div>
 
       {awaitingPaymentId && (
         <p className="rounded-md bg-success-soft px-4 py-3 text-sm text-success">

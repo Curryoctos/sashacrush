@@ -30,7 +30,7 @@ export function AdminDocumentsPage() {
   return (
     <div className="ui-page max-w-6xl">
       <div>
-        <PageBackLink to="/admin/dashboard" label="Admin Dashboard" />
+        <PageBackLink to="/admin/documents-hub" label="Documents" />
         <PageHeader
           className="mt-3"
           title="Documents"

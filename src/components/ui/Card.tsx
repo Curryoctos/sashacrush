@@ -43,7 +43,7 @@ export function CardHeader({
   actions?: ReactNode
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-border/80 pb-4">
       <div className="min-w-0">
         <h2 className="ui-section-title">{title}</h2>
         {description ? <p className="ui-section-desc">{description}</p> : null}
@@ -68,7 +68,7 @@ export function Stat({
     <div className={cn('ui-stat', emphasize && 'border-brand-200 bg-brand-50')}>
       <p className="ui-stat-label">{label}</p>
       <p className="ui-stat-value">{value}</p>
-      {hint ? <div className="mt-1 text-xs text-muted">{hint}</div> : null}
+      {hint ? <div className="mt-1 text-xs font-semibold text-muted">{hint}</div> : null}
     </div>
   )
 }

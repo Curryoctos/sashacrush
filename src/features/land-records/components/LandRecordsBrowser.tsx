@@ -6,9 +6,11 @@ import {
   FileText,
   FolderOpen,
   LayoutDashboard,
+  Lightbulb,
   MapPin,
   MessageSquare,
   Pencil,
+  PiggyBank,
   Plus,
   Wallet,
 } from 'lucide-react'
@@ -40,6 +42,8 @@ const FOLDER_ICONS: Record<LandFolderId, typeof FileText> = {
   messages: MessageSquare,
   payments: Wallet,
   photos: Camera,
+  investments: PiggyBank,
+  suggestions: Lightbulb,
   edit: Pencil,
 }
 
@@ -541,6 +545,10 @@ function folderDestination(
       return roleBasePath === '/admin' ? `/admin/payments?land=${landId}` : null
     case 'photos':
       return `${roleBasePath}/photos?land=${landId}`
+    case 'investments':
+      return roleBasePath === '/agent' ? `/agent/investments?land=${landId}` : null
+    case 'suggestions':
+      return roleBasePath === '/agent' ? `/agent/suggestions?land=${landId}` : null
     default:
       return null
   }

@@ -63,46 +63,46 @@ export function LoginPage() {
     <AppShell centered>
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-brand-700">
             Transaction workspace
           </p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink">
+          <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-ink">
             Sign in to SashaCrush
           </h1>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-3 text-sm font-medium leading-relaxed text-muted">
             Cross-border land deals, payments, documents, and deal-room collaboration.
           </p>
         </div>
 
         <Card padding="lg">
-          <div className="flex rounded-lg border border-border bg-surface p-1">
+          <div className="ui-segment" role="tablist" aria-label="Sign-in mode">
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === 'staff'}
               onClick={() => {
                 setMode('staff')
                 setError(null)
                 setMagicLinkSent(false)
               }}
-              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
-                mode === 'staff'
-                  ? 'border border-border bg-white text-ink'
-                  : 'text-muted hover:text-ink'
+              className={`ui-segment-item ${
+                mode === 'staff' ? 'ui-segment-item-active' : 'ui-segment-item-idle'
               }`}
             >
               Staff
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === 'seller'}
               onClick={() => {
                 setMode('seller')
                 setError(null)
                 setMagicLinkSent(false)
                 setPassword('')
               }}
-              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
-                mode === 'seller'
-                  ? 'border border-border bg-white text-ink'
-                  : 'text-muted hover:text-ink'
+              className={`ui-segment-item ${
+                mode === 'seller' ? 'ui-segment-item-active' : 'ui-segment-item-idle'
               }`}
             >
               Seller
@@ -110,11 +110,11 @@ export function LoginPage() {
           </div>
 
           {mode === 'staff' ? (
-            <form onSubmit={handleStaffSubmit} className="mt-6 space-y-4">
-              <p className="text-sm text-muted">
+            <form onSubmit={handleStaffSubmit} className="mt-7 space-y-5">
+              <p className="ui-hint">
                 Admin, executive, and agent accounts use email and password.
               </p>
-              <div>
+              <div className="ui-field">
                 <label htmlFor="email" className="ui-label">
                   Email
                 </label>
@@ -125,10 +125,11 @@ export function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="ui-input mt-1.5"
+                  className="ui-input"
+                  placeholder="you@company.com"
                 />
               </div>
-              <div>
+              <div className="ui-field">
                 <label htmlFor="password" className="ui-label">
                   Password
                 </label>
@@ -139,7 +140,8 @@ export function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="ui-input mt-1.5"
+                  className="ui-input"
+                  placeholder="••••••••"
                 />
               </div>
               <Button type="submit" disabled={submitting} className="w-full" size="lg">
@@ -147,11 +149,11 @@ export function LoginPage() {
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleSellerSubmit} className="mt-6 space-y-4">
-              <p className="text-sm text-muted">
+            <form onSubmit={handleSellerSubmit} className="mt-7 space-y-5">
+              <p className="ui-hint">
                 Sellers receive a one-time secure link. No password required.
               </p>
-              <div>
+              <div className="ui-field">
                 <label htmlFor="seller-email" className="ui-label">
                   Email
                 </label>
@@ -162,7 +164,8 @@ export function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="ui-input mt-1.5"
+                  className="ui-input"
+                  placeholder="seller@example.com"
                 />
               </div>
               <Button
@@ -186,18 +189,18 @@ export function LoginPage() {
           )}
 
           {error && (
-            <p className="ui-alert-danger mt-4" role="alert">
+            <p className="ui-alert-danger mt-5" role="alert">
               {error}
             </p>
           )}
         </Card>
 
-        <p className="mt-6 text-center text-xs text-muted">
-          <a className="underline hover:text-ink" href="/community">
+        <p className="mt-7 text-center text-xs font-semibold text-muted">
+          <a className="font-bold text-brand-700 underline hover:text-brand-900" href="/community">
             Pipeline community
           </a>
           {' · '}
-          Protected workspace · CurryOctos · sashacrush.com
+          Protected workspace · CurryOctos
         </p>
       </div>
     </AppShell>

@@ -36,29 +36,43 @@ export function CommunityRegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-6">
+    <div className="mx-auto max-w-md space-y-7">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">Join the community</h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-brand-700">
+          Pipeline
+        </p>
+        <h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
+          Join the community
+        </h1>
+        <p className="mt-2 text-sm font-medium leading-relaxed text-muted">
           Register to post updates and connect with incubation collaborators.
         </p>
       </div>
-      <Card>
-        <CardHeader title="Create account" description="Separate from the land-deal staff portals." />
-        <form className="space-y-3" onSubmit={(event) => void onSubmit(event)}>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Display name</span>
+      <Card padding="lg">
+        <CardHeader
+          title="Create account"
+          description="Separate from the land-deal staff portals."
+        />
+        <form className="space-y-5" onSubmit={(event) => void onSubmit(event)}>
+          <div className="ui-field">
+            <label htmlFor="community-name" className="ui-label">
+              Display name
+            </label>
             <input
+              id="community-name"
               className="ui-input"
               value={displayName}
               disabled={busy}
               onChange={(event) => setDisplayName(event.target.value)}
               required
             />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Email</span>
+          </div>
+          <div className="ui-field">
+            <label htmlFor="community-email" className="ui-label">
+              Email
+            </label>
             <input
+              id="community-email"
               className="ui-input"
               type="email"
               value={email}
@@ -66,10 +80,13 @@ export function CommunityRegisterPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
             />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Password</span>
+          </div>
+          <div className="ui-field">
+            <label htmlFor="community-password" className="ui-label">
+              Password
+            </label>
             <input
+              id="community-password"
               className="ui-input"
               type="password"
               value={password}
@@ -78,30 +95,34 @@ export function CommunityRegisterPage() {
               minLength={8}
               required
             />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="ui-label">Location (optional)</span>
+            <p className="ui-hint">At least 8 characters.</p>
+          </div>
+          <div className="ui-field">
+            <label htmlFor="community-location" className="ui-label">
+              Location
+            </label>
             <input
+              id="community-location"
               className="ui-input"
               value={location}
               disabled={busy}
               onChange={(event) => setLocation(event.target.value)}
-              placeholder="City, country"
+              placeholder="City, country (optional)"
             />
-          </label>
+          </div>
           {error ? (
             <p className="ui-alert-danger" role="alert">
               {error}
             </p>
           ) : null}
-          <Button type="submit" disabled={busy} className="w-full">
+          <Button type="submit" disabled={busy} className="w-full" size="lg">
             {busy ? 'Creating…' : 'Register'}
           </Button>
         </form>
       </Card>
-      <p className="text-sm text-muted">
+      <p className="text-sm font-semibold text-muted">
         Already a member?{' '}
-        <Link className="text-brand-800 underline" to="/community/login">
+        <Link className="font-bold text-brand-700 underline hover:text-brand-900" to="/community/login">
           Sign in
         </Link>
       </p>

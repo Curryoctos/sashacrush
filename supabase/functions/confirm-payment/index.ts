@@ -1,5 +1,5 @@
 /// <reference path="../_shared/deno.d.ts" />
-import { requireAuthenticatedStaff } from '../_shared/auth.ts'
+import { requireAuthenticatedAdmin } from '../_shared/auth.ts'
 import {
   ConfirmPaymentError,
   confirmPaymentAndIssueReceipt,
@@ -18,11 +18,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const staff = await requireAuthenticatedStaff(req)
+    const admin = await requireAuthenticatedAdmin(req)
     const supabase = createServiceClient()
 
     try {
-      await assertRateLimit(supabase, `confirm-payment:${staff.userId}`, 30, 3_600)
+      await assertRateLimit(supabase, `confirm-payment:${admin.userId}`, 30, 3_600)
     } catch (error) {
       if (error instanceof RateLimitError) {
         return errorResponse(error.message, 429)
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     const result = await confirmPaymentAndIssueReceipt(supabase, paymentId, {
       source: 'staff',
-      actorId: staff.userId,
+      actorId: admin.userId,
     })
 
     return jsonResponse({

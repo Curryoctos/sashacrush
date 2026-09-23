@@ -38,7 +38,10 @@ export function computeCompanyCapital(
   }
 }
 
-/** Soft warning when a new payout would exceed company capital available. */
+/**
+ * Hard block when a new payout would exceed company capital available
+ * (confirmed raised − confirmed disbursed).
+ */
 export function capitalShortfallWarning(
   availableUsd: number,
   payoutAmountUsd: number,
@@ -50,5 +53,5 @@ export function capitalShortfallWarning(
     return null
   }
   const shortfall = payoutAmountUsd - availableUsd
-  return `This payout exceeds company capital available by $${shortfall.toFixed(2)}. You can still proceed.`
+  return `This payout exceeds company capital available by $${shortfall.toFixed(2)}. Raise capital or reduce the amount before creating this payout.`
 }

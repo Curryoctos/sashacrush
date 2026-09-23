@@ -54,7 +54,7 @@ export function AdminWalletPage() {
   return (
     <div className="ui-page max-w-4xl space-y-6">
       <div>
-        <PageBackLink to="/admin/dashboard" label="Admin Dashboard" />
+        <PageBackLink to="/admin/finance" label="Finance" />
         <PageHeader
           className="mt-3"
           eyebrow="Web3"

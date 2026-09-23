@@ -30,7 +30,7 @@ export function AgentDocumentsPage() {
   return (
     <div className="ui-page max-w-6xl">
       <div>
-        <PageBackLink to="/agent/dashboard" label="Agent Dashboard" />
+        <PageBackLink to="/agent/paperwork" label="Paperwork" />
         <PageHeader
           className="mt-3"
           title="Documents"

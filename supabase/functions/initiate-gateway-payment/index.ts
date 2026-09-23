@@ -1,5 +1,5 @@
 /// <reference path="../_shared/deno.d.ts" />
-import { requireAuthenticatedStaff } from '../_shared/auth.ts'
+import { requireAuthenticatedAdmin } from '../_shared/auth.ts'
 import {
   buildFlutterwavePayoutReference,
   createFlutterwaveMobileMoneyTransfer,
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const staff = await requireAuthenticatedStaff(req)
+    const admin = await requireAuthenticatedAdmin(req)
     const payload = (await req.json()) as InitiatePayload
     const paymentId = payload.paymentId?.trim()
 
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     try {
       await assertRateLimit(
         supabase,
-        `initiate-gateway-payment:${staff.userId}`,
+        `initiate-gateway-payment:${admin.userId}`,
         40,
         3_600,
       )

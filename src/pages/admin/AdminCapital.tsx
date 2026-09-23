@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge, statusTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, Stat } from '@/components/ui/Card'
-import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { InvestmentList } from '@/features/investments/components/InvestmentList'
 import {
   useAdminInvestments,
@@ -98,25 +98,29 @@ export function AdminCapitalPage() {
 
   return (
     <div className="ui-page max-w-4xl space-y-6">
-      <PageHeader
-        eyebrow="Treasury"
-        title="Company capital"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Confirm agent investments toward deals into the company pool.`
-            : 'Confirm agent investments toward deals into the company pool.'
-        }
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link to="/admin/investor-documents">
-              <Button variant="secondary">Agent agreements</Button>
-            </Link>
-            <Link to="/admin/payments">
-              <Button variant="secondary">Seller payouts</Button>
-            </Link>
-          </div>
-        }
-      />
+      <div>
+        <PageBackLink to="/admin/finance" label="Finance" />
+        <PageHeader
+          className="mt-3"
+          eyebrow="Treasury"
+          title="Company capital"
+          description={
+            user?.email
+              ? `Signed in as ${user.email}. Confirm agent investments toward deals into the company pool.`
+              : 'Confirm agent investments toward deals into the company pool.'
+          }
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Link to="/admin/investor-documents">
+                <Button variant="secondary">Agent agreements</Button>
+              </Link>
+              <Link to="/admin/payments">
+                <Button variant="secondary">Seller payouts</Button>
+              </Link>
+            </div>
+          }
+        />
+      </div>
 
       {(capitalLoading || capital) && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

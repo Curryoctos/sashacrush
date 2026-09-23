@@ -28,7 +28,7 @@ export function AdminPhotosPage() {
   return (
     <div className="ui-page max-w-4xl">
       <div>
-        <PageBackLink to="/admin/dashboard" label="Admin Dashboard" />
+        <PageBackLink to="/admin/media-hub" label="Media" />
         <PageHeader
           className="mt-3"
           title="Field Photos"

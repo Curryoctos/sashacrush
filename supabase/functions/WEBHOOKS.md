@@ -238,18 +238,20 @@ https://<project-ref>.supabase.co/functions/v1/notify-admin-message
 
 ## Payment gateways — Stripe & Flutterwave
 
-### Confirm payment (staff)
+### Confirm payment (admin)
 
-**Not a DB webhook.** Admin/agent confirms an **offline** payout (manual / crypto) and issues the receipt PDF server-side.
+**Not a DB webhook.** Admin confirms an **offline** payout (manual / crypto) and issues the receipt PDF server-side.
 
-Flutterwave and Stripe payments **cannot** be staff-confirmed — they confirm only via provider webhook after verified success.
+- Requires **admin** JWT (agents cannot invoke this function).
+- Flutterwave and Stripe payments **cannot** be staff-confirmed — they confirm only via provider webhook after verified success.
+- Crypto confirms require a matching `transactions_crypto` row (tx hash) for the payment.
 
 ```
 POST /functions/v1/confirm-payment
 { "paymentId": "uuid" }
 ```
 
-### Initiate gateway payout (staff)
+### Initiate gateway payout (admin)
 
 ```
 POST /functions/v1/initiate-gateway-payment
@@ -260,13 +262,15 @@ Creates a **Flutterwave Transfer** (company → seller MoMo) for a pending `flut
 payment and returns `{ reference, transferId, status, mode: "payout" }`.
 No hosted checkout URL — funds leave the Flutterwave balance.
 
+Requires **admin** JWT.
+
 Idempotency:
 - Reserves a deterministic `flutterwave_tx_ref` (`sc-payout-{paymentId}`) **before** calling Flutterwave
 - Retries reuse the same reference (looks up existing transfer; never creates a second payout)
 
 Seller Stripe Checkout collect-in is retired (seller payouts use Flutterwave).
 
-### Initiate investment Checkout (executive)
+### Initiate investment Checkout (agent)
 
 ```
 POST /functions/v1/initiate-investment-checkout
@@ -276,7 +280,7 @@ POST /functions/v1/initiate-investment-checkout
 Creates a pending `investments` row (`method=stripe`) and a Stripe Checkout Session to **fund company capital**.
 Returns `{ checkoutUrl, investmentId, reference, sessionId }`.
 
-Requires: executive JWT, `STRIPE_SECRET_KEY`, `APP_URL`.
+Requires: agent JWT, `STRIPE_SECRET_KEY`, `APP_URL`.
 
 ### Stripe webhook
 
@@ -284,8 +288,9 @@ Requires: executive JWT, `STRIPE_SECRET_KEY`, `APP_URL`.
 POST /functions/v1/stripe-webhook
 ```
 
-- **Investments:** `metadata.investment_id` → confirm capital contribution (no seller receipt)
+- **Investments:** `metadata.investment_id` → confirm capital contribution (no seller receipt). Paid events win over a premature agent cancel.
 - **Legacy payments:** `metadata.payment_id` → confirm payment + receipt
+- Releases the webhook claim on processing errors so Stripe can safely retry
 - `verify_jwt = false` (authenticated via `Stripe-Signature` + `STRIPE_WEBHOOK_SECRET`)
 
 Local forward:

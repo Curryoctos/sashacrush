@@ -12,19 +12,24 @@ import { AdminChatPage } from '@/pages/admin/AdminChat'
 import { AdminDealPage } from '@/pages/admin/AdminDeal'
 import { AdminDashboard } from '@/pages/admin/Dashboard'
 import { AdminDocumentsPage } from '@/pages/admin/AdminDocuments'
+import { AdminDocumentsHubPage } from '@/pages/admin/AdminDocumentsHub'
+import { AdminFinanceHubPage } from '@/pages/admin/AdminFinanceHub'
 import { AdminLandRecordsPage } from '@/pages/admin/LandRecords'
 import { AdminInvestorDocumentsPage } from '@/pages/admin/AdminInvestorDocuments'
 import { AdminPaymentsPage } from '@/pages/admin/AdminPayments'
 import { AdminPhotosPage } from '@/pages/admin/AdminPhotos'
+import { AdminPipelineHubPage } from '@/pages/admin/AdminPipelineHub'
 import { AdminSuggestionsPage } from '@/pages/admin/AdminSuggestions'
 import { AdminCommunityPage } from '@/pages/admin/AdminCommunity'
 import { AdminCargoPage } from '@/pages/admin/AdminCargo'
 import { AdminMediaPage } from '@/pages/admin/AdminMedia'
+import { AdminMediaHubPage } from '@/pages/admin/AdminMediaHub'
 import { AdminUsersPage } from '@/pages/admin/AdminUsers'
 import { AdminWalletPage } from '@/pages/admin/AdminWallet'
 import { AdminWalletConvertPage } from '@/pages/admin/AdminWalletConvert'
 import { AgentAgreementsPage } from '@/pages/agent/AgentAgreements'
 import { AgentAnalyticsPage } from '@/pages/agent/AgentAnalytics'
+import { AgentCapitalHubPage } from '@/pages/agent/AgentCapitalHub'
 import { AgentCargoPage } from '@/pages/agent/AgentCargo'
 import { AgentChatPage } from '@/pages/agent/AgentChat'
 import { AgentDashboard } from '@/pages/agent/Dashboard'
@@ -32,6 +37,7 @@ import { AgentDealPage } from '@/pages/agent/AgentDeal'
 import { AgentLandRecordsPage } from '@/pages/agent/AgentLandRecords'
 import { AgentDocumentsPage } from '@/pages/agent/AgentDocuments'
 import { AgentInvestmentsPage } from '@/pages/agent/AgentInvestments'
+import { AgentPaperworkHubPage } from '@/pages/agent/AgentPaperworkHub'
 import { AgentPhotosPage } from '@/pages/agent/AgentPhotos'
 import { AgentReceiptsPage } from '@/pages/agent/AgentReceipts'
 import { AgentSuggestionsPage } from '@/pages/agent/AgentSuggestions'
@@ -80,6 +86,10 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="dashboard" replace /> },
           { path: 'dashboard', element: <AdminDashboard /> },
           { path: 'analytics', element: <AdminAnalyticsPage /> },
+          { path: 'media-hub', element: <AdminMediaHubPage /> },
+          { path: 'documents-hub', element: <AdminDocumentsHubPage /> },
+          { path: 'finance', element: <AdminFinanceHubPage /> },
+          { path: 'pipeline', element: <AdminPipelineHubPage /> },
           { path: 'suggestions', element: <AdminSuggestionsPage /> },
           { path: 'community', element: <AdminCommunityPage /> },
           { path: 'cargo', element: <AdminCargoPage /> },
@@ -117,6 +127,10 @@ export const router = createBrowserRouter([
           { path: 'communications', element: <ExecutiveChatPage /> },
           { path: 'chat', element: <Navigate to="/executive/communications" replace /> },
           { path: 'media', element: <ExecutiveMediaPage /> },
+          {
+            path: 'documents',
+            element: <Navigate to="/executive/dashboard" replace />,
+          },
           // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/executive/dashboard" /> },
           // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/executive/dashboard" /> },
         ],
@@ -133,6 +147,8 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="dashboard" replace /> },
           { path: 'dashboard', element: <AgentDashboard /> },
           { path: 'analytics', element: <AgentAnalyticsPage /> },
+          { path: 'paperwork', element: <AgentPaperworkHubPage /> },
+          { path: 'capital', element: <AgentCapitalHubPage /> },
           { path: 'suggestions', element: <AgentSuggestionsPage /> },
           { path: 'cargo', element: <AgentCargoPage /> },
           { path: 'land-records', element: <AgentLandRecordsPage /> },

@@ -7,8 +7,9 @@ import { notifyInfo, notifySuccess } from '@/features/notifications/useNotificat
 import { formatDateTime } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-export function CommunitySchedulePage() {
+export function CommunitySchedulePage({ compact = false }: { compact?: boolean }) {
   const { events, isLoading, error, isAdmin, createEvent, deleteEvent } = useIncubationSchedule()
+  const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [location, setLocation] = useState('')
@@ -30,6 +31,7 @@ export function CommunitySchedulePage() {
       setStartsAt('')
       setLocation('')
       setDescription('')
+      setShowCreate(false)
     } catch (err) {
       notifyInfo(err instanceof Error ? err.message : 'Could not add event.')
     } finally {
@@ -39,57 +41,89 @@ export function CommunitySchedulePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">Incubation schedule</h1>
-        <p className="mt-2 text-sm text-muted">Upcoming dates for visitors and collaborators.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          {compact ? (
+            <h2 className="ui-section-title">Incubation schedule</h2>
+          ) : (
+            <h1 className="font-display text-3xl font-semibold text-ink">Incubation schedule</h1>
+          )}
+          <p className={compact ? 'ui-section-desc' : 'mt-2 text-sm text-muted'}>
+            Upcoming dates for visitors and collaborators.
+          </p>
+        </div>
+        {isAdmin ? (
+          <Button type="button" onClick={() => setShowCreate((open) => !open)}>
+            {showCreate ? 'Close' : 'Add date'}
+          </Button>
+        ) : null}
       </div>
 
-      {isAdmin ? (
+      {isAdmin && showCreate ? (
         <Card>
           <CardHeader title="Add date" description="Visible on the public community schedule." />
-          <form className="space-y-3" onSubmit={(event) => void onCreate(event)}>
-            <label className="block space-y-1.5">
-              <span className="ui-label">Title</span>
+          <form className="space-y-5" onSubmit={(event) => void onCreate(event)}>
+            <div className="ui-field-row">
+              <div className="ui-field">
+                <label htmlFor="schedule-title" className="ui-label">
+                  Title
+                </label>
+                <input
+                  id="schedule-title"
+                  className="ui-input"
+                  value={title}
+                  disabled={busy}
+                  onChange={(event) => setTitle(event.target.value)}
+                  required
+                  placeholder="Open house · Mubende"
+                />
+              </div>
+              <div className="ui-field">
+                <label htmlFor="schedule-starts" className="ui-label">
+                  Starts
+                </label>
+                <input
+                  id="schedule-starts"
+                  className="ui-input"
+                  type="datetime-local"
+                  value={startsAt}
+                  disabled={busy}
+                  onChange={(event) => setStartsAt(event.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="ui-field">
+              <label htmlFor="schedule-location" className="ui-label">
+                Location
+              </label>
               <input
-                className="ui-input"
-                value={title}
-                disabled={busy}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="ui-label">Starts</span>
-              <input
-                className="ui-input"
-                type="datetime-local"
-                value={startsAt}
-                disabled={busy}
-                onChange={(event) => setStartsAt(event.target.value)}
-                required
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="ui-label">Location</span>
-              <input
+                id="schedule-location"
                 className="ui-input"
                 value={location}
                 disabled={busy}
                 onChange={(event) => setLocation(event.target.value)}
+                placeholder="Site address or meeting point"
               />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="ui-label">Notes</span>
+            </div>
+            <div className="ui-field">
+              <label htmlFor="schedule-notes" className="ui-label">
+                Notes
+              </label>
               <textarea
-                className="ui-input min-h-20"
+                id="schedule-notes"
+                className="ui-input"
                 value={description}
                 disabled={busy}
                 onChange={(event) => setDescription(event.target.value)}
+                placeholder="What visitors should know…"
               />
-            </label>
-            <Button type="submit" disabled={busy}>
-              {busy ? 'Saving…' : 'Add to schedule'}
-            </Button>
+            </div>
+            <div className="flex justify-end border-t border-border/80 pt-4">
+              <Button type="submit" disabled={busy} size="lg">
+                {busy ? 'Saving…' : 'Add to schedule'}
+              </Button>
+            </div>
           </form>
         </Card>
       ) : null}
