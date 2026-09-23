@@ -27,14 +27,25 @@ describe('validateCreatePayment', () => {
     ).toMatch(/reconciliation reference/)
   })
 
-  it('rejects crypto until conversion kit ships', () => {
+  it('accepts crypto when an on-chain reference is present', () => {
+    expect(
+      validateCreatePayment({
+        landId: 'land-id',
+        amountUsd: 100,
+        method: 'crypto',
+        manualReference: '0xabc123',
+      }),
+    ).toBeNull()
+  })
+
+  it('requires a tx reference for crypto', () => {
     expect(
       validateCreatePayment({
         landId: 'land-id',
         amountUsd: 100,
         method: 'crypto',
       }),
-    ).toMatch(/not available yet/)
+    ).toMatch(/transaction reference/)
   })
 
   it('rejects stripe card payouts', () => {

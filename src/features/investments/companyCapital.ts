@@ -4,9 +4,9 @@ export interface CapitalAmountRow {
 }
 
 export interface CompanyCapital {
-  /** Sum of confirmed executive investments. */
+  /** Sum of confirmed agent capital contributions. */
   raisedUsd: number
-  /** Sum of pending executive investments awaiting admin confirmation. */
+  /** Sum of pending agent contributions awaiting admin confirmation. */
   pendingCapitalUsd: number
   /** Sum of confirmed seller disbursements (payments). */
   disbursedUsd: number

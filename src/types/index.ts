@@ -15,6 +15,16 @@ export type {
 export type { ChatChannel } from './database'
 export type { ChatMessage, ChatMessageInsert } from './chat'
 export type { Document, DocumentScope, DocumentStatus, AllowedMimeType } from './documents'
+export type {
+  Suggestion,
+  SuggestionComment,
+  SuggestionStatus,
+  SuggestionWithMeta,
+} from './suggestions'
+export {
+  SUGGESTION_STATUS_LABEL,
+  SUGGESTION_COLUMNS,
+} from './suggestions'
 export {
   ALLOWED_MIME_TYPES,
   DOCUMENT_BUCKET,

@@ -1,6 +1,7 @@
 import type { InvestmentMethod } from '@/types/database'
 
 export interface CreateInvestmentInput {
+  landId: string
   amountUsd: number
   amountUgx?: number | null
   rateUsed?: number | null
@@ -27,6 +28,10 @@ export function normalizeInvestmentReference(raw: string): string {
 }
 
 export function validateCreateInvestment(input: CreateInvestmentInput): string | null {
+  if (!input.landId?.trim()) {
+    return 'Choose the deal this investment is for.'
+  }
+
   if (!Number.isFinite(input.amountUsd) || input.amountUsd <= 0) {
     return 'Enter a positive USD amount.'
   }

@@ -6,7 +6,11 @@ export function ExecutiveChatPage() {
     <div className="ui-page max-w-4xl">
       <div>
         <PageBackLink to="/executive/dashboard" label="Executive Dashboard" />
-        <PageHeader className="mt-3" title="Executive Communications" />
+        <PageHeader
+          className="mt-3"
+          title="Executive Communications"
+          description="Isolated channel for admin and executive discussion. Sellers cannot see this channel."
+        />
       </div>
 
       <ChatWindow landId={null} channel="executive_channel" />

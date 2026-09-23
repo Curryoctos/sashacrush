@@ -9,7 +9,15 @@ import {
 import { formatUsd } from '@/lib/formatters'
 import type { InvestmentMethod } from '@/types/database'
 
+export interface InvestableDealOption {
+  id: string
+  title: string
+  total_value_usd?: number
+}
+
 interface InvestmentSubmitFormProps {
+  deals: InvestableDealOption[]
+  dealsLoading?: boolean
   isSubmitting: boolean
   onSubmit: (input: CreateInvestmentInput) => Promise<void>
 }
@@ -17,9 +25,12 @@ interface InvestmentSubmitFormProps {
 const METHODS: InvestmentMethod[] = ['stripe', 'bank_transfer', 'mobile_money', 'other']
 
 export function InvestmentSubmitForm({
+  deals,
+  dealsLoading = false,
   isSubmitting,
   onSubmit,
 }: InvestmentSubmitFormProps) {
+  const [landId, setLandId] = useState('')
   const [amountUsd, setAmountUsd] = useState('')
   const [method, setMethod] = useState<InvestmentMethod>('stripe')
   const [reference, setReference] = useState('')
@@ -27,6 +38,7 @@ export function InvestmentSubmitForm({
   const [formError, setFormError] = useState<string | null>(null)
 
   const isStripe = isStripeInvestmentMethod(method)
+  const selectedDeal = deals.find((deal) => deal.id === landId)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -34,6 +46,7 @@ export function InvestmentSubmitForm({
 
     try {
       await onSubmit({
+        landId,
         amountUsd: Number(amountUsd),
         method,
         reference: isStripe ? null : reference,
@@ -55,11 +68,11 @@ export function InvestmentSubmitForm({
   return (
     <Card>
       <CardHeader
-        title="Fund company capital"
+        title="Invest toward a deal"
         description={
           isStripe
-            ? 'Pay by card via Stripe. Funds confirm automatically into the company pool when payment succeeds.'
-            : 'Transfer funds offline, then record the amount and reference here for admin confirmation.'
+            ? 'Choose a project, pay by card. Confirmed funds go into the company capital pool earmarked for that deal.'
+            : 'Choose a project, transfer offline, then record amount and reference for admin confirmation into the capital pool.'
         }
       />
       <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
@@ -68,6 +81,32 @@ export function InvestmentSubmitForm({
             {formError}
           </p>
         )}
+
+        <label className="block space-y-1.5">
+          <span className="ui-label">Deal / project</span>
+          <select
+            className="ui-input"
+            value={landId}
+            onChange={(event) => setLandId(event.target.value)}
+            required
+            disabled={dealsLoading || isSubmitting}
+          >
+            <option value="">{dealsLoading ? 'Loading deals…' : 'Select a deal…'}</option>
+            {deals.map((deal) => (
+              <option key={deal.id} value={deal.id}>
+                {deal.title}
+                {deal.total_value_usd != null
+                  ? ` · ${formatUsd(deal.total_value_usd)} target`
+                  : ''}
+              </option>
+            ))}
+          </select>
+          {selectedDeal ? (
+            <span className="text-xs text-muted">
+              Investment is earmarked for {selectedDeal.title} and credited to company capital.
+            </span>
+          ) : null}
+        </label>
 
         <label className="block space-y-1.5">
           <span className="ui-label">Amount (USD)</span>
@@ -121,15 +160,11 @@ export function InvestmentSubmitForm({
             className="ui-input min-h-20"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder={
-              isStripe
-                ? 'Optional note for this contribution'
-                : 'Any detail that helps reconcile this transfer'
-            }
+            placeholder="Optional note for this investment"
           />
         </label>
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || dealsLoading || deals.length === 0}>
           {isSubmitting
             ? isStripe
               ? 'Redirecting to Stripe…'

@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/Button'
 import { Card, Stat, StatGrid } from '@/components/ui/Card'
 import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { useExecutiveDeal } from '@/features/deals/useDealSummary'
-import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
 import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
@@ -15,7 +14,11 @@ export function ExecutiveDealPage() {
     <div className="ui-page max-w-4xl">
       <div>
         <PageBackLink to="/executive/deals" label="Deal Portfolio" />
-        <PageHeader className="mt-3" title="Deal Summary" />
+        <PageHeader
+          className="mt-3"
+          title="Deal Summary"
+          description="Portfolio status for senior staff. Site maps, photos, and Uber live in the Agent portal."
+        />
       </div>
 
       {dealQuery.isLoading && <p className="text-sm text-muted">Loading deal…</p>}
@@ -71,18 +74,8 @@ export function ExecutiveDealPage() {
             <Stat label="Payments pending" value={String(dealQuery.data.pending_payments)} />
           </StatGrid>
 
-          <LandMapPanel
-            landId={dealQuery.data.land_id}
-            canEditBoundary={false}
-            title="Site map"
-            description="Parcel boundary, field photo pins, Uber, and directions."
-          />
-
           <div className="flex flex-wrap gap-2">
-            <Link to={`/executive/photos?land=${dealQuery.data.land_id}`}>
-              <Button variant="secondary">Project photos</Button>
-            </Link>
-            <Link to="/executive/chat">
+            <Link to="/executive/communications">
               <Button>Executive communications</Button>
             </Link>
           </div>

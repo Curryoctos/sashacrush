@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { Banknote, Bitcoin, Check, CreditCard, ShieldCheck } from 'lucide-react'
 import {
   checkoutCtaLabel,
@@ -96,7 +97,7 @@ export function PaymentCheckoutForm({
       setFormError(
         isStripe
           ? 'Card payouts are not available. Use MoMo or manual transfer.'
-          : 'Crypto payouts are not available yet.',
+          : 'Use Owner Wallet → Convert and Pay to fund a deal from crypto.',
       )
       return
     }
@@ -241,10 +242,9 @@ export function PaymentCheckoutForm({
                 selected={paymentChoice === 'crypto'}
                 onClick={() => setPaymentChoice('crypto')}
                 title="Crypto"
-                description="Wallet payout — later phase"
-                logo={<Bitcoin className="h-6 w-6 text-muted" />}
-                badge="Coming soon"
-                disabled
+                description="Owner wallet · Convert and Pay"
+                logo={<Bitcoin className="h-6 w-6 text-brand-700" />}
+                badge="Wallet"
               />
             </div>
           </fieldset>
@@ -342,17 +342,25 @@ export function PaymentCheckoutForm({
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button
-              type="submit"
-              disabled={isSubmitting || !landId || isCrypto || isStripe}
-              size="lg"
-            >
-              {isSubmitting
-                ? isGateway
-                  ? 'Sending payout…'
-                  : 'Recording…'
-                : checkoutCtaLabel(paymentChoice, hasValidUsd ? parsedUsd : null)}
-            </Button>
+            {isCrypto ? (
+              <Link to="/admin/wallet/convert">
+                <Button type="button" size="lg">
+                  Open Convert and Pay
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                type="submit"
+                disabled={isSubmitting || !landId || isStripe}
+                size="lg"
+              >
+                {isSubmitting
+                  ? isGateway
+                    ? 'Sending payout…'
+                    : 'Recording…'
+                  : checkoutCtaLabel(paymentChoice, hasValidUsd ? parsedUsd : null)}
+              </Button>
+            )}
             {isGateway && (
               <p className="text-xs text-muted">
                 Stays on this portal — Flutterwave moves funds from the company balance.

@@ -138,7 +138,16 @@ export function useDocuments(
 
       const { data, error: insertError } = await supabase
         .from('documents')
-        .insert(insertRow)
+        .insert(
+          insertRow as {
+            land_id: string | null
+            investor_id: string | null
+            uploader_id: string
+            file_path: string
+            title: string
+            status: 'draft'
+          },
+        )
         .select(DOCUMENT_COLUMNS)
         .single()
 

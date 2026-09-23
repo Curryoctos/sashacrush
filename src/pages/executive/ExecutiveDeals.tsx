@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, Stat, StatGrid } from '@/components/ui/Card'
 import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { DealCards, HierarchyNav } from '@/components/hierarchy/Hierarchy'
-import { useExecutiveDeals, useExecutiveLandMap } from '@/features/deals/useDealSummary'
-import { DealsMap } from '@/features/maps/components/DealsMap'
-import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
+import { useExecutiveDeals } from '@/features/deals/useDealSummary'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
@@ -17,7 +15,6 @@ import { formatSupabaseError } from '@/lib/supabase-errors'
 export function ExecutiveDealsPage() {
   const { user } = useAuth()
   const dealsQuery = useExecutiveDeals()
-  const mapQuery = useExecutiveLandMap()
 
   const deals = useMemo(
     () =>
@@ -47,8 +44,8 @@ export function ExecutiveDealsPage() {
           title="Deal Portfolio"
           description={
             user?.email
-              ? `Signed in as ${user.email}. Open a deal for details.`
-              : 'Open a deal for details.'
+              ? `Signed in as ${user.email}. High-level deal status — no field tools or payment sources.`
+              : 'High-level deal status — no field tools or payment sources.'
           }
         />
       </div>
@@ -62,21 +59,7 @@ export function ExecutiveDealsPage() {
       )}
 
       {!dealsQuery.isLoading && !selectedLand && (
-        <div className="space-y-4">
-          <DealsMap
-            parcels={(mapQuery.data ?? []).map((parcel) => ({
-              id: parcel.land_id,
-              title: parcel.title,
-              status: parcel.status,
-              latitude: parcel.latitude,
-              longitude: parcel.longitude,
-              boundary_geojson: parcel.boundary_geojson,
-            }))}
-            onSelect={(id) => setNavigation(id, null)}
-            title="Portfolio map"
-            description="Read-only view of every parcel. Open a deal for the rest of the summary."
-          />
-          <DealCards
+        <DealCards
           deals={deals.map((deal) => ({
             id: deal.id,
             title: deal.title,
@@ -84,9 +67,8 @@ export function ExecutiveDealsPage() {
           }))}
           onSelect={(id) => setNavigation(id, null)}
           emptyTitle="No active deals to display."
-          prompt="Select a deal to review status."
-          />
-        </div>
+          prompt="Select a deal to review portfolio status."
+        />
       )}
 
       {selectedLand && (
@@ -111,23 +93,11 @@ export function ExecutiveDealsPage() {
                 <ArrowLeft className="h-4 w-4" />
                 All deals
               </Button>
-              <Link to={`/executive/photos?land=${selectedLand.id}`}>
-                <Button variant="secondary" size="sm">
-                  Photos
-                </Button>
-              </Link>
               <Link to={`/executive/deals/${selectedLand.id}`}>
                 <Button size="sm">Full detail</Button>
               </Link>
             </div>
           </div>
-
-          <LandMapPanel
-            landId={selectedLand.id}
-            canEditBoundary={false}
-            title="Site map"
-            description="Parcel boundary, field photo pins, Uber, and directions."
-          />
 
           <Card>
             <dl className="grid gap-4 sm:grid-cols-2">

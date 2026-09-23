@@ -6,7 +6,6 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage, Document, LandRecord } from '@/types'
-import type { Json } from '@/types/database'
 
 export interface DealSummary {
   land: LandRecord & { seller_name: string | null }
@@ -126,29 +125,6 @@ export function useExecutiveDeal(landId: string) {
 
       const rows = (data ?? []) as ExecutiveDealSummary[]
       return rows[0] ?? null
-    },
-  })
-}
-
-export interface ExecutiveLandMapParcel {
-  land_id: string
-  title: string
-  location: string | null
-  status: string
-  latitude: number | null
-  longitude: number | null
-  boundary_geojson: Json | null
-}
-
-export function useExecutiveLandMap() {
-  return useQuery({
-    queryKey: ['executive-land-map'],
-    queryFn: async (): Promise<ExecutiveLandMapParcel[]> => {
-      const { data, error } = await supabase.rpc('executive_land_map')
-      if (error) {
-        throw error
-      }
-      return (data ?? []) as ExecutiveLandMapParcel[]
     },
   })
 }

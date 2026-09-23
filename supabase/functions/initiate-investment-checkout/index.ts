@@ -10,6 +10,7 @@ import {
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
 interface InitiateInvestmentCheckoutPayload {
+  landId?: string
   amountUsd?: number
   notes?: string | null
 }
@@ -22,8 +23,8 @@ Deno.serve(async (req) => {
   try {
     const user = await requireAuthenticatedUser(req)
 
-    if (user.role !== 'executive') {
-      return errorResponse('Only executives can fund the capital pool via Stripe', 403)
+    if (user.role !== 'agent') {
+      return errorResponse('Only agents can invest toward a deal via Stripe', 403)
     }
 
     if (!getStripeSecretKey()) {
@@ -36,8 +37,13 @@ Deno.serve(async (req) => {
     }
 
     const payload = (await req.json()) as InitiateInvestmentCheckoutPayload
+    const landId = typeof payload.landId === 'string' ? payload.landId.trim() : ''
     const amountUsd = Number(payload.amountUsd)
     const notes = payload.notes?.trim() || null
+
+    if (!landId) {
+      return errorResponse('Choose the deal this investment is for', 400)
+    }
 
     if (!Number.isFinite(amountUsd) || amountUsd < 0.5) {
       return errorResponse('Amount must be at least $0.50', 400)
@@ -49,13 +55,23 @@ Deno.serve(async (req) => {
 
     const supabase = createServiceClient()
 
+    const { data: land, error: landError } = await supabase
+      .from('land_records')
+      .select('id, title, status')
+      .eq('id', landId)
+      .maybeSingle()
+
+    if (landError || !land || land.status === 'archived') {
+      return errorResponse('Deal not found or archived', 400)
+    }
+
     const { data: blockReason, error: gateError } = await supabase.rpc(
-      'executive_contribution_block_reason',
-      { p_executive_id: user.userId },
+      'agent_contribution_block_reason',
+      { p_agent_id: user.userId },
     )
 
     if (gateError) {
-      return errorResponse(gateError.message || 'Could not verify contribution access', 500)
+      return errorResponse(gateError.message || 'Could not verify investment access', 500)
     }
 
     if (typeof blockReason === 'string' && blockReason.length > 0) {
@@ -87,7 +103,8 @@ Deno.serve(async (req) => {
 
     const { error: insertError } = await supabase.from('investments').insert({
       id: investmentId,
-      executive_id: user.userId,
+      agent_id: user.userId,
+      land_id: landId,
       amount_usd: amountUsd,
       method: 'stripe',
       reference,
@@ -99,18 +116,18 @@ Deno.serve(async (req) => {
       return errorResponse(insertError.message || 'Could not create investment', 400)
     }
 
-    const successUrl = `${appUrl}/executive/investments?stripe=success&investment=${investmentId}`
-    const cancelUrl = `${appUrl}/executive/investments?stripe=cancel&investment=${investmentId}`
+    const successUrl = `${appUrl}/agent/investments?stripe=success&investment=${investmentId}`
+    const cancelUrl = `${appUrl}/agent/investments?stripe=cancel&investment=${investmentId}`
 
     let session
     try {
       session = await createStripeCheckoutSession({
         amountUsd,
-        productName: 'SashaCrush — Company capital contribution',
+        productName: `SashaCrush — Investment toward ${land.title}`,
         successUrl,
         cancelUrl,
         customerEmail: profile?.email ?? null,
-        metadata: { investment_id: investmentId },
+        metadata: { investment_id: investmentId, land_id: landId },
       })
     } catch (sessionError) {
       await supabase

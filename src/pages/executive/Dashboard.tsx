@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, FolderKanban, MessageSquare, PiggyBank } from 'lucide-react'
+import { ArrowLeft, FolderKanban, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import {
@@ -9,14 +9,13 @@ import {
   HierarchyNav,
 } from '@/components/hierarchy/Hierarchy'
 import { useExecutiveDeals } from '@/features/deals/useDealSummary'
-import { useMyInvestments } from '@/features/investments/useInvestments'
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-type ExecDashFolder = 'deals' | 'messages' | 'investments'
+type ExecDashFolder = 'deals' | 'messages'
 
 function isExecDashFolder(value: string | null): value is ExecDashFolder {
-  return value === 'deals' || value === 'messages' || value === 'investments'
+  return value === 'deals' || value === 'messages'
 }
 
 export function ExecutiveDashboard() {
@@ -24,7 +23,6 @@ export function ExecutiveDashboard() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: deals, isLoading, error } = useExecutiveDeals()
-  const { investments } = useMyInvestments()
 
   const selectedFolder = isExecDashFolder(searchParams.get('folder'))
     ? (searchParams.get('folder') as ExecDashFolder)
@@ -65,12 +63,12 @@ export function ExecutiveDashboard() {
   return (
     <div className="ui-page max-w-4xl">
       <PageHeader
-        eyebrow="Portfolio"
+        eyebrow="Oversight"
         title="Executive workspace"
         description={
           user?.email
-            ? `Signed in as ${user.email}. Open a folder to continue.`
-            : 'Open a folder to continue.'
+            ? `Signed in as ${user.email}. Portfolio status and staff communications.`
+            : 'Portfolio status and staff communications.'
         }
       />
 
@@ -88,18 +86,10 @@ export function ExecutiveDashboard() {
             {
               id: 'deals',
               title: 'Deal portfolio',
-              description: 'Review active land transactions',
+              description: 'High-level land deal status',
               icon: <FolderKanban className="h-5 w-5" />,
               count: deals.length,
               onSelect: () => setFolder('deals'),
-            },
-            {
-              id: 'investments',
-              title: 'Investments',
-              description: 'Contribute to the company capital pool',
-              icon: <PiggyBank className="h-5 w-5" />,
-              count: investments.filter((row) => row.status === 'pending').length || undefined,
-              onSelect: () => navigate('/executive/investments'),
             },
             {
               id: 'messages',
@@ -173,7 +163,7 @@ export function ExecutiveDashboard() {
               Open the executive chat channel to continue the conversation.
             </p>
             <div className="mt-4">
-              <Button onClick={() => navigate('/executive/chat')}>Open communications</Button>
+              <Button onClick={() => navigate('/executive/communications')}>Open communications</Button>
             </div>
           </div>
         </div>

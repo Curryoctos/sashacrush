@@ -193,6 +193,10 @@ export function LoginPage() {
         </Card>
 
         <p className="mt-6 text-center text-xs text-muted">
+          <a className="underline hover:text-ink" href="/community">
+            Pipeline community
+          </a>
+          {' · '}
           Protected workspace · CurryOctos · sashacrush.com
         </p>
       </div>

@@ -32,7 +32,7 @@ describe('paymentMethods', () => {
     expect(checkoutCtaLabel('mtn', null)).toBe('Send MTN MoMo payout')
     expect(checkoutCtaLabel('mtn', 1500)).toBe('Pay out $1,500.00 via MTN MoMo')
     expect(checkoutCtaLabel('manual', 100)).toBe('Create manual payout + reference')
-    expect(checkoutCtaLabel('crypto', 100)).toBe('Crypto coming soon')
+    expect(checkoutCtaLabel('crypto', 100)).toBe('Open Owner wallet → Convert and Pay')
   })
 
   it('blocks staff confirm for Flutterwave/Stripe; allows manual/crypto', () => {

@@ -69,7 +69,7 @@ export function checkoutCtaLabel(choice: PaymentChoice, amountUsd: number | null
     case 'manual':
       return 'Create manual payout + reference'
     case 'crypto':
-      return 'Crypto coming soon'
+      return 'Open Owner wallet → Convert and Pay'
   }
 }
 
@@ -84,7 +84,7 @@ export function checkoutProviderHint(choice: PaymentChoice): string {
     case 'manual':
       return 'Creates a pending_manual record with a unique WU reference for the cash/wire payout. Confirm after the seller is paid.'
     case 'crypto':
-      return 'Wallet payouts are planned for a later phase. Use MoMo or manual for now.'
+      return 'Convert crypto on Owner Wallet (Convert and Pay). On-chain transfer funds the deal payment and receipt.'
   }
 }
 

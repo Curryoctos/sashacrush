@@ -35,10 +35,28 @@ export function Badge({
 
 export function statusTone(status: string): BadgeTone {
   const value = status.toLowerCase()
-  if (value === 'confirmed' || value === 'signed' || value === 'active' || value === 'paid') {
+  if (
+    value === 'confirmed' ||
+    value === 'signed' ||
+    value === 'active' ||
+    value === 'paid' ||
+    value === 'approved' ||
+    value === 'delivered' ||
+    value === 'cleared'
+  ) {
     return 'success'
   }
-  if (value === 'pending' || value === 'sent' || value === 'draft') {
+  if (
+    value === 'pending' ||
+    value === 'sent' ||
+    value === 'draft' ||
+    value === 'submitted' ||
+    value === 'under_review' ||
+    value === 'under review' ||
+    value === 'ordered' ||
+    value === 'in_transit' ||
+    value === 'at_port'
+  ) {
     return 'warning'
   }
   if (value === 'failed' || value === 'archived' || value === 'cancelled' || value === 'rejected') {

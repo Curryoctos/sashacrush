@@ -1,24 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { InvestmentAccessGate } from '@/features/investments/components/InvestmentAccessGate'
 import { InvestmentList } from '@/features/investments/components/InvestmentList'
 import { InvestmentSubmitForm } from '@/features/investments/components/InvestmentSubmitForm'
 import { useInvestmentAccessGate } from '@/features/investments/useInvestmentAccessGate'
-import { useMyInvestments } from '@/features/investments/useInvestments'
+import {
+  useInvestableDeals,
+  useMyInvestments,
+  type InvestmentWithMeta,
+} from '@/features/investments/useInvestments'
 import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
 import { Button } from '@/components/ui/Button'
-import { Stat } from '@/components/ui/Card'
-import { PageHeader } from '@/components/ui/PageHeader'
+import { Card, Stat } from '@/components/ui/Card'
+import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
 import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import type { CreateInvestmentInput } from '@/features/investments/validation'
 
-export function ExecutiveInvestmentsPage() {
+export function AgentInvestmentsPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const gate = useInvestmentAccessGate()
   const stripeHandled = useRef<string | null>(null)
+  const dealsQuery = useInvestableDeals()
   const {
     investments,
     confirmedTotalUsd,
@@ -60,7 +65,7 @@ export function ExecutiveInvestmentsPage() {
           try {
             await cancelStripeCheckout(investmentId)
           } catch {
-            // Best-effort cleanup; still clear the URL banner.
+            // Best-effort cleanup
           }
         }
         notifyInfo('Stripe Checkout was cancelled. No funds were charged.')
@@ -82,73 +87,124 @@ export function ExecutiveInvestmentsPage() {
       }
     } catch (submitError) {
       const message =
-        submitError instanceof Error
-          ? submitError.message
-          : 'Could not submit investment.'
+        submitError instanceof Error ? submitError.message : 'Could not submit investment.'
       notifyInfo(message)
       throw submitError instanceof Error ? submitError : new Error(message)
     }
   }
 
-  // After terms are accepted, show capital history even if agreements are still pending.
-  const showCapitalSummary = gate.termsAccepted
+  const showSummary = gate.termsAccepted
+
+  const byDeal = useMemo(() => {
+    const map = new Map<
+      string,
+      { landId: string; title: string; confirmed: number; pending: number }
+    >()
+    for (const row of investments as InvestmentWithMeta[]) {
+      const key = row.land_id
+      const current = map.get(key) ?? {
+        landId: key,
+        title: row.land_title || 'Untitled deal',
+        confirmed: 0,
+        pending: 0,
+      }
+      if (row.status === 'confirmed') {
+        current.confirmed += Number(row.amount_usd)
+      } else if (row.status === 'pending') {
+        current.pending += Number(row.amount_usd)
+      }
+      map.set(key, current)
+    }
+    return [...map.values()].sort((a, b) => a.title.localeCompare(b.title))
+  }, [investments])
 
   return (
     <div className="ui-page max-w-4xl space-y-6">
-      <PageHeader
-        eyebrow="Capital"
-        title="Investments"
-        description={
-          user?.email
-            ? showCapitalSummary
-              ? `Signed in as ${user.email}. Contribute to the company capital pool.`
-              : `Signed in as ${user.email}. Complete the steps below to open the contribution portal.`
-            : showCapitalSummary
-              ? 'Contribute to the company capital pool.'
-              : 'Complete the steps below to open the contribution portal.'
-        }
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link to="/executive/documents">
+      <div>
+        <PageBackLink to="/agent/dashboard" label="Agent Dashboard" />
+        <PageHeader
+          className="mt-3"
+          eyebrow="Capital"
+          title="Investments"
+          description={
+            user?.email
+              ? `Signed in as ${user.email}. Invest toward a deal — confirmed amounts fund the company capital pool.`
+              : 'Invest toward a deal — confirmed amounts fund the company capital pool.'
+          }
+          actions={
+            <Link to="/agent/agreements">
               <Button variant="secondary">Agreements</Button>
             </Link>
-            <Link to="/executive/dashboard">
-              <Button variant="secondary">Dashboard</Button>
-            </Link>
-          </div>
-        }
-      />
+          }
+        />
+      </div>
 
-      {showCapitalSummary ? (
+      {showSummary ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Stat label="Your confirmed capital" value={formatUsd(confirmedTotalUsd)} />
+          <Stat label="Your confirmed investments" value={formatUsd(confirmedTotalUsd)} />
           <Stat
             label="Awaiting confirmation"
             value={String(investments.filter((row) => row.status === 'pending').length)}
-            hint="Card or offline contributions still pending"
+            hint="In the capital pool once confirmed"
           />
         </div>
       ) : null}
 
-      {error && showCapitalSummary ? (
+      {showSummary && byDeal.length > 0 ? (
+        <section className="space-y-3">
+          <div>
+            <h2 className="ui-section-title">By deal</h2>
+            <p className="ui-section-desc">
+              Earmarked toward each project; all confirmed totals still sit in one capital pool.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {byDeal.map((deal) => (
+              <Card key={deal.landId} padding="sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-ink">{deal.title}</p>
+                  <p className="text-sm text-muted">
+                    {formatUsd(deal.confirmed)} confirmed
+                    {deal.pending > 0 ? ` · ${formatUsd(deal.pending)} pending` : ''}
+                  </p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {error && showSummary ? (
         <p className="ui-alert-danger" role="alert">
           {formatSupabaseError(error as Error)}
         </p>
       ) : null}
 
       <InvestmentAccessGate>
-        <InvestmentSubmitForm isSubmitting={isCreating} onSubmit={handleSubmit} />
+        <InvestmentSubmitForm
+          deals={dealsQuery.data ?? []}
+          dealsLoading={dealsQuery.isLoading}
+          isSubmitting={isCreating}
+          onSubmit={handleSubmit}
+        />
       </InvestmentAccessGate>
 
-      {showCapitalSummary ? (
+      {showSummary ? (
         isLoading ? (
           <p className="text-sm text-muted">Loading investments…</p>
         ) : (
           <InvestmentList
             investments={investments}
             title="Your investments"
-            description="Company-wide capital contributions. Deals are funded when the company disburses."
+            description="Each row is toward a deal and feeds the company capital pool when confirmed."
             emptyTitle="No investments submitted yet."
+            showDeal
+            dealLabel={(row) => {
+              const withMeta = investments.find((item) => item.id === row.id) as
+                | InvestmentWithMeta
+                | undefined
+              return withMeta?.land_title ?? null
+            }}
           />
         )
       ) : null}

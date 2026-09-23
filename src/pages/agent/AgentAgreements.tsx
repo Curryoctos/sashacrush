@@ -7,7 +7,7 @@ import { DocumentsBrowser } from '@/features/documents/components/DocumentsBrows
 import { notifySuccess } from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
 
-export function ExecutiveDocumentsPage() {
+export function AgentAgreementsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -51,17 +51,17 @@ export function ExecutiveDocumentsPage() {
   return (
     <div className="ui-page max-w-6xl">
       <div>
-        <PageBackLink to="/executive/investments" label="Investments" />
+        <PageBackLink to="/agent/investments" label="Investments" />
         <PageHeader
           className="mt-3"
           title="Agreements"
           description={
             user?.email
-              ? `Signed in as ${user.email}. Open an agreement awaiting signature, then sign with your hand.`
-              : 'Open an agreement awaiting signature, then sign with your hand.'
+              ? `Signed in as ${user.email}. Sign investment agreements before contributing toward a deal.`
+              : 'Sign investment agreements before contributing toward a deal.'
           }
           actions={
-            <Link to="/executive/investments">
+            <Link to="/agent/investments">
               <Button variant="secondary" size="sm">
                 Back to investments
               </Button>
@@ -89,9 +89,9 @@ export function ExecutiveDocumentsPage() {
             },
             { replace: true },
           )
-          notifySuccess('Agreement signed. Continue to Investments when you are ready to contribute.')
+          notifySuccess('Agreement signed. Continue to Investments when you are ready.')
           window.setTimeout(() => {
-            navigate('/executive/investments')
+            navigate('/agent/investments')
           }, 900)
         }}
       />

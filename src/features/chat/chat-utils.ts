@@ -55,6 +55,22 @@ export function messageMatchesContext(
   return message.land_id === landId
 }
 
+/** Case-insensitive body search for retained chat history (C-21). */
+export function filterMessagesByQuery(
+  messages: ChatMessage[],
+  query: string,
+): ChatMessage[] {
+  const needle = query.trim().toLowerCase()
+  if (!needle) {
+    return messages
+  }
+  return messages.filter((message) => {
+    const body = message.body.toLowerCase()
+    const sender = (message.sender_name ?? '').toLowerCase()
+    return body.includes(needle) || sender.includes(needle)
+  })
+}
+
 export function countUnreadMessages(
   messages: ChatMessage[],
   currentUserId: string | undefined,

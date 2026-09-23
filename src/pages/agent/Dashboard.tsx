@@ -1,6 +1,14 @@
 import { useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Camera, FileText, FolderKanban, MessageSquare } from 'lucide-react'
+import {
+  ArrowLeft,
+  Camera,
+  FileText,
+  FolderKanban,
+  MessageSquare,
+  PiggyBank,
+  Receipt,
+} from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import {
@@ -12,12 +20,20 @@ import { useAgentDashboardStats } from '@/features/dashboard/useAgentDashboardSt
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-type AgentDashFolder = 'deals' | 'documents' | 'messages' | 'photos'
+type AgentDashFolder =
+  | 'deals'
+  | 'documents'
+  | 'receipts'
+  | 'investments'
+  | 'messages'
+  | 'photos'
 
 function isAgentDashFolder(value: string | null): value is AgentDashFolder {
   return (
     value === 'deals' ||
     value === 'documents' ||
+    value === 'receipts' ||
+    value === 'investments' ||
     value === 'messages' ||
     value === 'photos'
   )
@@ -29,13 +45,23 @@ const FOLDER_META: Record<
 > = {
   deals: {
     title: 'Active deals',
-    description: 'Open a deal workspace',
+    description: 'Maps, site visits, and deal workspaces',
     to: '/agent/land-records',
   },
   documents: {
     title: 'Documents',
-    description: 'Signing and deal files',
+    description: 'Upload and send for signing',
     to: '/agent/documents',
+  },
+  receipts: {
+    title: 'Receipts',
+    description: 'Confirmed payment receipts',
+    to: '/agent/receipts',
+  },
+  investments: {
+    title: 'Investments',
+    description: 'Invest toward deals — funds capital pool',
+    to: '/agent/investments',
   },
   messages: {
     title: 'Messages',
@@ -44,7 +70,7 @@ const FOLDER_META: Record<
   },
   photos: {
     title: 'Field photos',
-    description: 'On-site camera captures',
+    description: 'GPS camera captures on site',
     to: '/agent/photos',
   },
 }
@@ -88,8 +114,8 @@ export function AgentDashboard() {
         title="Agent workspace"
         description={
           user?.email
-            ? `Signed in as ${user.email}. Open a folder to continue.`
-            : 'Open a folder to continue.'
+            ? `Signed in as ${user.email}. Land maps, camera, receipts, investments, documents, and seller chat.`
+            : 'Land maps, camera, receipts, investments, documents, and seller chat.'
         }
       />
 
@@ -119,6 +145,20 @@ export function AgentDashboard() {
               icon: <FileText className="h-5 w-5" />,
               count: stats.docsAwaitingSign,
               onSelect: () => setFolder('documents'),
+            },
+            {
+              id: 'receipts',
+              title: FOLDER_META.receipts.title,
+              description: FOLDER_META.receipts.description,
+              icon: <Receipt className="h-5 w-5" />,
+              onSelect: () => setFolder('receipts'),
+            },
+            {
+              id: 'investments',
+              title: FOLDER_META.investments.title,
+              description: FOLDER_META.investments.description,
+              icon: <PiggyBank className="h-5 w-5" />,
+              onSelect: () => setFolder('investments'),
             },
             {
               id: 'messages',

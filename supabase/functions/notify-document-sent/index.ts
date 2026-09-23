@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     if (
       assigneeError ||
       !assignee?.email ||
-      (assignee.role !== 'seller' && assignee.role !== 'executive')
+      (assignee.role !== 'seller' && assignee.role !== 'agent')
     ) {
       return errorResponse(
         `Signer profile not found: ${assigneeError?.message ?? 'invalid assignee'}`,
@@ -92,8 +92,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    let contextTitle = 'Investment agreement'
-    let signingPath = `/executive/documents?sign=${body.documentId}`
+    let contextTitle = 'Savings agreement'
+    let signingPath = `/agent/agreements?sign=${body.documentId}`
 
     if (document.land_id) {
       const { data: land, error: landError } = await supabase
@@ -117,8 +117,8 @@ Deno.serve(async (req) => {
       contextTitle = land.title
       signingPath = `/seller/documents?sign=${body.documentId}`
     } else {
-      if (document.investor_id !== assigneeId || assignee.role !== 'executive') {
-        return errorResponse('Investor is not assigned to this agreement', 403)
+      if (document.investor_id !== assigneeId || assignee.role !== 'agent') {
+        return errorResponse('Agent is not assigned to this savings agreement', 403)
       }
     }
 

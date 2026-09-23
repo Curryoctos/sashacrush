@@ -32,7 +32,7 @@ import type { Document, DocumentScope, DocumentStatus } from '@/types'
 
 interface DocumentsBrowserProps {
   lands: LandSummary[]
-  /** Deal docs are land-scoped; investor agreements are grouped by executive. */
+  /** Deal docs are land-scoped; investment agreements are grouped by agent. */
   mode?: DocumentScope
   isLoadingLands?: boolean
   landsError?: Error | null

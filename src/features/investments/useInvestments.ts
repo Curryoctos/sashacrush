@@ -13,11 +13,12 @@ import { supabase } from '@/lib/supabase'
 import type { Investment, InvestmentStatus } from '@/types/database'
 
 const INVESTMENT_COLUMNS =
-  'id, executive_id, amount_usd, amount_ugx, rate_used, method, reference, notes, status, confirmed_by, confirmed_at, rejection_reason, stripe_checkout_session_id, stripe_payment_intent_id, created_at, updated_at'
+  'id, agent_id, land_id, amount_usd, amount_ugx, rate_used, method, reference, notes, status, confirmed_by, confirmed_at, rejection_reason, stripe_checkout_session_id, stripe_payment_intent_id, created_at, updated_at'
 
-export interface InvestmentWithExecutive extends Investment {
-  executive_email: string | null
-  executive_name: string | null
+export interface InvestmentWithMeta extends Investment {
+  agent_email: string | null
+  agent_name: string | null
+  land_title: string | null
 }
 
 function invalidateInvestmentQueries(queryClient: ReturnType<typeof useQueryClient>) {
@@ -26,69 +27,81 @@ function invalidateInvestmentQueries(queryClient: ReturnType<typeof useQueryClie
   void queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] })
 }
 
-async function fetchInvestmentsForExecutive(executiveId: string): Promise<Investment[]> {
-  const { data, error } = await supabase
-    .from('investments')
-    .select(INVESTMENT_COLUMNS)
-    .eq('executive_id', executiveId)
-    .order('created_at', { ascending: false })
+async function attachMeta(rows: Investment[]): Promise<InvestmentWithMeta[]> {
+  const agentIds = [...new Set(rows.map((row) => row.agent_id))]
+  const landIds = [...new Set(rows.map((row) => row.land_id))]
+  const agents = new Map<string, { email: string | null; full_name: string | null }>()
+  const lands = new Map<string, string>()
 
-  if (error) {
-    throw error
-  }
-
-  return (data ?? []) as Investment[]
-}
-
-async function fetchAllInvestments(): Promise<InvestmentWithExecutive[]> {
-  const { data: investments, error } = await supabase
-    .from('investments')
-    .select(INVESTMENT_COLUMNS)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    throw error
-  }
-
-  const rows = (investments ?? []) as Investment[]
-  const executiveIds = [...new Set(rows.map((row) => row.executive_id))]
-  const names = new Map<string, { email: string | null; full_name: string | null }>()
-
-  if (executiveIds.length > 0) {
-    const { data: users } = await supabase
+  if (agentIds.length > 0) {
+    const { data } = await supabase
       .from('users')
       .select('id, email, full_name')
-      .in('id', executiveIds)
+      .in('id', agentIds)
+    for (const user of data ?? []) {
+      agents.set(user.id, { email: user.email, full_name: user.full_name })
+    }
+  }
 
-    for (const user of users ?? []) {
-      names.set(user.id, { email: user.email, full_name: user.full_name })
+  if (landIds.length > 0) {
+    const { data } = await supabase.from('land_records').select('id, title').in('id', landIds)
+    for (const land of data ?? []) {
+      lands.set(land.id, land.title)
     }
   }
 
   return rows.map((row) => {
-    const executive = names.get(row.executive_id)
+    const agent = agents.get(row.agent_id)
     return {
       ...row,
-      executive_email: executive?.email ?? null,
-      executive_name: executive?.full_name ?? null,
+      agent_email: agent?.email ?? null,
+      agent_name: agent?.full_name ?? null,
+      land_title: lands.get(row.land_id) ?? null,
     }
   })
+}
+
+async function fetchInvestmentsForAgent(agentId: string): Promise<InvestmentWithMeta[]> {
+  const { data, error } = await supabase
+    .from('investments')
+    .select(INVESTMENT_COLUMNS)
+    .eq('agent_id', agentId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  return attachMeta((data ?? []) as Investment[])
+}
+
+async function fetchAllInvestments(): Promise<InvestmentWithMeta[]> {
+  const { data, error } = await supabase
+    .from('investments')
+    .select(INVESTMENT_COLUMNS)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  return attachMeta((data ?? []) as Investment[])
 }
 
 export function useMyInvestments() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const executiveId = user?.id ?? null
+  const agentId = user?.id ?? null
 
   const investmentsQuery = useQuery({
-    queryKey: ['investments', 'mine', executiveId],
-    enabled: Boolean(executiveId),
-    queryFn: () => fetchInvestmentsForExecutive(executiveId!),
+    queryKey: ['investments', 'mine', agentId],
+    enabled: Boolean(agentId),
+    queryFn: () => fetchInvestmentsForAgent(agentId!),
   })
 
   const createInvestment = useMutation({
     mutationFn: async (input: CreateInvestmentInput) => {
-      if (!executiveId) {
+      if (!agentId) {
         throw new Error('You must be signed in to submit an investment.')
       }
 
@@ -99,6 +112,7 @@ export function useMyInvestments() {
 
       if (input.method === 'stripe') {
         const checkout = await initiateInvestmentCheckout({
+          landId: input.landId,
           amountUsd: input.amountUsd,
           notes: input.notes?.trim() || null,
         })
@@ -109,7 +123,8 @@ export function useMyInvestments() {
       const { data, error } = await supabase
         .from('investments')
         .insert({
-          executive_id: executiveId,
+          agent_id: agentId,
+          land_id: input.landId,
           amount_usd: input.amountUsd,
           amount_ugx: input.amountUgx ?? null,
           rate_used: input.rateUsed ?? null,
@@ -146,7 +161,7 @@ export function useMyInvestments() {
 
   const cancelStripeCheckout = useMutation({
     mutationFn: async (investmentId: string) => {
-      if (!executiveId) {
+      if (!agentId) {
         throw new Error('You must be signed in to cancel checkout.')
       }
 
@@ -154,10 +169,10 @@ export function useMyInvestments() {
         .from('investments')
         .update({
           status: 'rejected',
-          rejection_reason: 'Stripe Checkout cancelled by investor',
+          rejection_reason: 'Stripe Checkout cancelled by agent',
         })
         .eq('id', investmentId)
-        .eq('executive_id', executiveId)
+        .eq('agent_id', agentId)
         .eq('status', 'pending')
         .eq('method', 'stripe')
         .select(INVESTMENT_COLUMNS)
@@ -201,7 +216,7 @@ export function useAdminInvestments(statusFilter?: InvestmentStatus | 'all') {
       const row = investmentsQuery.data?.find((item) => item.id === investmentId)
       if (row && isStripeInvestmentMethod(row.method)) {
         throw new Error(
-          'Card contributions confirm automatically when Stripe reports payment success.',
+          'Card investments confirm automatically when Stripe reports payment success.',
         )
       }
 
@@ -309,4 +324,28 @@ export function useCompanyCapital() {
     isLoading: capitalQuery.isLoading,
     error: capitalQuery.error,
   }
+}
+
+/** Active deals agents can invest toward. */
+export function useInvestableDeals() {
+  return useQuery({
+    queryKey: ['land-records', 'investable'],
+    queryFn: async (): Promise<Array<{ id: string; title: string; total_value_usd: number }>> => {
+      const { data, error } = await supabase
+        .from('land_records')
+        .select('id, title, total_value_usd')
+        .neq('status', 'archived')
+        .order('title', { ascending: true })
+
+      if (error) {
+        throw error
+      }
+
+      return (data ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        total_value_usd: Number(row.total_value_usd),
+      }))
+    },
+  })
 }

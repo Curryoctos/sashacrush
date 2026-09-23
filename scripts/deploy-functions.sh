@@ -6,6 +6,8 @@ FUNCTIONS=(
   notify-payment-confirmed
   notify-document-sent
   notify-document-signed
+  notify-suggestion-status
+  register-community-member
   notify-seller-assigned
   notify-seller-message
   notify-admin-message

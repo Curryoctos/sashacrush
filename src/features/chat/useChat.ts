@@ -18,7 +18,7 @@ type UserProfile = Pick<
   'id' | 'full_name' | 'email'
 >
 
-const HISTORY_LIMIT = 100
+const HISTORY_LIMIT = 500
 
 function sortMessages(messages: ChatMessage[]): ChatMessage[] {
   return [...messages].sort(

@@ -59,7 +59,7 @@ export function InvestmentAccessGate({ children }: InvestmentAccessGateProps) {
   const [previewError, setPreviewError] = useState<string | null>(null)
 
   if (gate.isLoading) {
-    return <p className="text-sm text-muted">Checking contribution access…</p>
+    return <p className="text-sm text-muted">Checking investment access…</p>
   }
 
   if (gate.error) {
@@ -243,7 +243,7 @@ export function InvestmentAccessGate({ children }: InvestmentAccessGateProps) {
                 ))}
                 <li>
                   <Link
-                    to="/executive/documents"
+                    to="/agent/agreements"
                     className="text-xs font-medium text-ink underline"
                   >
                     Open all agreements
@@ -263,9 +263,10 @@ export function InvestmentAccessGate({ children }: InvestmentAccessGateProps) {
         <li className="flex gap-3">
           <StepIcon done={false} active={false} />
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-ink">3. Contribution portal</h3>
+            <h3 className="text-sm font-semibold text-ink">3. Investment portal</h3>
             <p className="mt-1 text-sm text-muted">
-              Unlocks automatically when the steps above are complete.
+              Unlocks automatically when the steps above are complete. Choose a deal and invest —
+              confirmed funds enter the capital pool.
             </p>
           </div>
         </li>

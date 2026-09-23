@@ -50,6 +50,7 @@ export function UserBoard({
       executive: [],
       agent: [],
       seller: [],
+      community: [],
     }
     for (const user of users) {
       map[user.role].push(user)

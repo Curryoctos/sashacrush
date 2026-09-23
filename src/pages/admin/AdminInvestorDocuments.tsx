@@ -8,13 +8,13 @@ import type { LandSummary } from '@/features/documents/useDocumentWorkspace'
 export function AdminInvestorDocumentsPage() {
   const { user } = useAuth()
 
-  const investorsQuery = useQuery({
-    queryKey: ['users', 'executives', 'investor-documents'],
+  const agentsQuery = useQuery({
+    queryKey: ['users', 'agents', 'investor-documents'],
     queryFn: async (): Promise<LandSummary[]> => {
       const { data, error } = await supabase
         .from('users')
         .select('id, email, full_name')
-        .eq('role', 'executive')
+        .eq('role', 'agent')
         .eq('is_active', true)
         .order('full_name', { ascending: true })
 
@@ -37,24 +37,24 @@ export function AdminInvestorDocumentsPage() {
         <PageBackLink to="/admin/capital" label="Company Capital" />
         <PageHeader
           className="mt-3"
-          title="Investor agreements"
+          title="Agent agreements"
           description={
             user?.email
-              ? `Signed in as ${user.email}. Upload investment agreements, then send them to a specific investor to sign.`
-              : 'Upload investment agreements, then send them to a specific investor to sign.'
+              ? `Signed in as ${user.email}. Upload investment agreements, then send them to an agent to sign.`
+              : 'Upload investment agreements, then send them to an agent to sign.'
           }
         />
       </div>
 
       <DocumentsBrowser
         mode="investor"
-        lands={investorsQuery.data ?? []}
-        isLoadingLands={investorsQuery.isLoading}
-        landsError={(investorsQuery.error as Error | null) ?? null}
+        lands={agentsQuery.data ?? []}
+        isLoadingLands={agentsQuery.isLoading}
+        landsError={(agentsQuery.error as Error | null) ?? null}
         canUpload
         enableSendForSigning
-        emptyTitle="No investors yet"
-        emptyDescription="Create an executive (investor) user first, then upload and send agreements for signing."
+        emptyTitle="No agents yet"
+        emptyDescription="Create an agent user first, then upload and send agreements for signing."
       />
     </div>
   )

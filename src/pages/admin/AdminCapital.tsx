@@ -103,13 +103,13 @@ export function AdminCapitalPage() {
         title="Company capital"
         description={
           user?.email
-            ? `Signed in as ${user.email}. Confirm executive contributions into the company pool.`
-            : 'Confirm executive contributions into the company pool.'
+            ? `Signed in as ${user.email}. Confirm agent investments toward deals into the company pool.`
+            : 'Confirm agent investments toward deals into the company pool.'
         }
         actions={
           <div className="flex flex-wrap gap-2">
             <Link to="/admin/investor-documents">
-              <Button variant="secondary">Investor agreements</Button>
+              <Button variant="secondary">Agent agreements</Button>
             </Link>
             <Link to="/admin/payments">
               <Button variant="secondary">Seller payouts</Button>
@@ -176,7 +176,8 @@ export function AdminCapitalPage() {
                         {investmentMethodLabel(investment.method)}
                       </p>
                       <p className="text-sm text-muted">
-                        {investment.executive_name || investment.executive_email || 'Executive'} ·{' '}
+                        {investment.land_title || 'Deal'} ·{' '}
+                        {investment.agent_name || investment.agent_email || 'Agent'} ·{' '}
                         {formatDate(investment.created_at)}
                       </p>
                       <p className="font-mono text-xs text-ink">{investment.reference}</p>
@@ -251,12 +252,17 @@ export function AdminCapitalPage() {
         <InvestmentList
           investments={investments}
           title="Investment history"
-          description="All executive contributions into the company capital pool."
+          description="Deal-earmarked investments. Confirmed amounts fund the company capital pool for disbursements."
           emptyTitle="No investments match this filter."
-          showExecutive
-          executiveLabel={(row) => {
-            const withExec = allInvestments.find((item) => item.id === row.id)
-            return withExec?.executive_name || withExec?.executive_email || null
+          showDeal
+          dealLabel={(row) => {
+            const withMeta = allInvestments.find((item) => item.id === row.id)
+            return withMeta?.land_title || null
+          }}
+          showAgent
+          agentLabel={(row) => {
+            const withAgent = allInvestments.find((item) => item.id === row.id)
+            return withAgent?.agent_name || withAgent?.agent_email || null
           }}
         />
       )}

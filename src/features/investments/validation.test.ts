@@ -5,10 +5,13 @@ import {
   validateCreateInvestment,
 } from '@/features/investments/validation'
 
+const landId = '11111111-1111-1111-1111-111111111111'
+
 describe('validateCreateInvestment', () => {
-  it('accepts a valid offline contribution', () => {
+  it('accepts a valid offline contribution toward a deal', () => {
     expect(
       validateCreateInvestment({
+        landId,
         amountUsd: 25_000,
         method: 'bank_transfer',
         reference: 'TXN-998877',
@@ -16,9 +19,20 @@ describe('validateCreateInvestment', () => {
     ).toBeNull()
   })
 
+  it('requires a deal', () => {
+    expect(
+      validateCreateInvestment({
+        landId: '',
+        amountUsd: 100,
+        method: 'stripe',
+      }),
+    ).toMatch(/deal/i)
+  })
+
   it('accepts Stripe without a reference (min $0.50)', () => {
     expect(
       validateCreateInvestment({
+        landId,
         amountUsd: 100,
         method: 'stripe',
       }),
@@ -26,6 +40,7 @@ describe('validateCreateInvestment', () => {
 
     expect(
       validateCreateInvestment({
+        landId,
         amountUsd: 0.4,
         method: 'stripe',
       }),
@@ -35,6 +50,7 @@ describe('validateCreateInvestment', () => {
   it('requires positive amount and reference for offline methods', () => {
     expect(
       validateCreateInvestment({
+        landId,
         amountUsd: 0,
         method: 'mobile_money',
         reference: 'ABCD',
@@ -43,6 +59,7 @@ describe('validateCreateInvestment', () => {
 
     expect(
       validateCreateInvestment({
+        landId,
         amountUsd: 100,
         method: 'other',
         reference: '  ',
@@ -51,6 +68,7 @@ describe('validateCreateInvestment', () => {
 
     expect(
       validateCreateInvestment({
+        landId,
         amountUsd: 100,
         method: 'other',
         reference: 'ab',

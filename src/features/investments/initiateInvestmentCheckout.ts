@@ -8,13 +8,15 @@ export interface InitiateInvestmentCheckoutResult {
   sessionId: string
 }
 
-/** Start Stripe Checkout to fund company capital (executive → company). */
+/** Start Stripe Checkout to invest toward a deal (funds company capital pool). */
 export async function initiateInvestmentCheckout(input: {
+  landId: string
   amountUsd: number
   notes?: string | null
 }): Promise<InitiateInvestmentCheckoutResult> {
   const { data, error } = await supabase.functions.invoke('initiate-investment-checkout', {
     body: {
+      landId: input.landId,
       amountUsd: input.amountUsd,
       notes: input.notes ?? null,
     },

@@ -10,8 +10,10 @@ interface InvestmentListProps {
   title?: string
   description?: string
   emptyTitle?: string
-  showExecutive?: boolean
-  executiveLabel?: (investment: Investment) => string | null
+  showAgent?: boolean
+  agentLabel?: (investment: Investment) => string | null
+  showDeal?: boolean
+  dealLabel?: (investment: Investment) => string | null
 }
 
 export function InvestmentList({
@@ -19,8 +21,10 @@ export function InvestmentList({
   title = 'Investment history',
   description,
   emptyTitle = 'No investments yet.',
-  showExecutive = false,
-  executiveLabel,
+  showAgent = false,
+  agentLabel,
+  showDeal = false,
+  dealLabel,
 }: InvestmentListProps) {
   return (
     <Card>
@@ -35,7 +39,8 @@ export function InvestmentList({
             <thead>
               <tr>
                 <th>Date</th>
-                {showExecutive && <th>Executive</th>}
+                {showDeal && <th>Deal</th>}
+                {showAgent && <th>Agent</th>}
                 <th>Amount</th>
                 <th>Method</th>
                 <th>Reference</th>
@@ -46,9 +51,8 @@ export function InvestmentList({
               {investments.map((investment) => (
                 <tr key={investment.id}>
                   <td className="whitespace-nowrap">{formatDate(investment.created_at)}</td>
-                  {showExecutive && (
-                    <td>{executiveLabel?.(investment) ?? '—'}</td>
-                  )}
+                  {showDeal && <td>{dealLabel?.(investment) ?? '—'}</td>}
+                  {showAgent && <td>{agentLabel?.(investment) ?? '—'}</td>}
                   <td className="font-medium">{formatUsd(Number(investment.amount_usd))}</td>
                   <td>{investmentMethodLabel(investment.method)}</td>
                   <td className="max-w-[12rem] truncate font-mono text-xs">

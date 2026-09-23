@@ -19,11 +19,11 @@ async function resolveTermsVersion(): Promise<string> {
 export function useInvestmentAccessGate() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const executiveId = user?.id ?? null
+  const agentId = user?.id ?? null
 
   const termsVersionQuery = useQuery({
     queryKey: ['investment-terms-version'],
-    enabled: Boolean(executiveId),
+    enabled: Boolean(agentId),
     staleTime: 60_000,
     queryFn: resolveTermsVersion,
   })
@@ -31,13 +31,13 @@ export function useInvestmentAccessGate() {
   const termsVersion = termsVersionQuery.data ?? INVESTMENT_TERMS_VERSION
 
   const consentQuery = useQuery({
-    queryKey: ['investor-consent', executiveId, termsVersion],
-    enabled: Boolean(executiveId && termsVersionQuery.isSuccess),
+    queryKey: ['investor-consent', agentId, termsVersion],
+    enabled: Boolean(agentId && termsVersionQuery.isSuccess),
     queryFn: async (): Promise<{ accepted: boolean; acceptedAt: string | null }> => {
       const { data, error } = await supabase
         .from('investor_consents')
         .select('accepted_at')
-        .eq('executive_id', executiveId!)
+        .eq('agent_id', agentId!)
         .eq('terms_version', termsVersion)
         .maybeSingle()
 
@@ -53,14 +53,14 @@ export function useInvestmentAccessGate() {
   })
 
   const pendingDocsQuery = useQuery({
-    queryKey: ['investor-pending-agreements', executiveId],
-    enabled: Boolean(executiveId),
+    queryKey: ['investor-pending-agreements', agentId],
+    enabled: Boolean(agentId),
     queryFn: async (): Promise<Document[]> => {
       const { data, error } = await supabase
         .from('documents')
         .select(PENDING_DOC_COLUMNS)
-        .eq('investor_id', executiveId!)
-        .eq('assigned_to', executiveId!)
+        .eq('investor_id', agentId!)
+        .eq('assigned_to', agentId!)
         .eq('status', 'sent')
         .order('created_at', { ascending: true })
 
@@ -74,12 +74,12 @@ export function useInvestmentAccessGate() {
 
   const acceptTerms = useMutation({
     mutationFn: async () => {
-      if (!executiveId) {
+      if (!agentId) {
         throw new Error('You must be signed in to accept the terms.')
       }
 
       const { error } = await supabase.from('investor_consents').insert({
-        executive_id: executiveId,
+        agent_id: agentId,
         terms_version: termsVersion,
       })
 
@@ -92,25 +92,25 @@ export function useInvestmentAccessGate() {
     },
     onSuccess: () => {
       const acceptedAt = new Date().toISOString()
-      queryClient.setQueryData(['investor-consent', executiveId, termsVersion], {
+      queryClient.setQueryData(['investor-consent', agentId, termsVersion], {
         accepted: true,
         acceptedAt,
       })
       void queryClient.invalidateQueries({
-        queryKey: ['investor-consent', executiveId],
+        queryKey: ['investor-consent', agentId],
       })
     },
   })
 
   const refreshGate = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['investor-consent', executiveId] }),
+      queryClient.invalidateQueries({ queryKey: ['investor-consent', agentId] }),
       queryClient.invalidateQueries({
-        queryKey: ['investor-pending-agreements', executiveId],
+        queryKey: ['investor-pending-agreements', agentId],
       }),
-      queryClient.invalidateQueries({ queryKey: ['documents', 'investor', executiveId] }),
+      queryClient.invalidateQueries({ queryKey: ['documents', 'investor', agentId] }),
     ])
-  }, [executiveId, queryClient])
+  }, [agentId, queryClient])
 
   const termsAccepted = consentQuery.data?.accepted ?? false
   const pendingAgreements = pendingDocsQuery.data ?? []

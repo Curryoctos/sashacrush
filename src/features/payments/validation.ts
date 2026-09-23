@@ -58,12 +58,12 @@ export function validateCreatePayment(input: CreatePaymentInput): string | null 
     return 'UGX amount must be positive when provided.'
   }
 
-  if (input.method === 'crypto') {
-    return 'Crypto payouts are not available yet. Use mobile money or manual transfer.'
-  }
-
   if (input.method === 'stripe') {
     return 'Card payouts are not available. Use MTN/Airtel MoMo or manual transfer.'
+  }
+
+  if (input.method === 'crypto' && !input.manualReference?.trim()) {
+    return 'Crypto conversion requires an on-chain transaction reference.'
   }
 
   if (input.method === 'flutterwave' && !input.mobileMoneyNetwork) {
