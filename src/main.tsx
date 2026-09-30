@@ -8,7 +8,13 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60_000,
+      // Keep portal shells usable briefly offline (receipts/chat from cache).
+      gcTime: 1000 * 60 * 60 * 6,
       retry: 1,
+      networkMode: 'offlineFirst',
+    },
+    mutations: {
+      networkMode: 'online',
     },
   },
 })
