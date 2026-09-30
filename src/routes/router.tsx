@@ -10,6 +10,8 @@ import { SellerPortalLayout } from '@/components/layout/SellerPortalLayout'
 import { page } from '@/routes/lazyPage'
 import { LoginPage } from '@/pages/Login'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { StaffMfaChallengePage } from '@/pages/staff/MfaChallenge'
+import { StaffMfaSetupPage } from '@/pages/staff/MfaSetup'
 
 function lazyPage<T extends Record<string, ComponentType>>(
   loader: () => Promise<T>,
@@ -168,6 +170,14 @@ export const router = createBrowserRouter([
           },
           { path: 'chat', element: page(<AdminChatPage />) },
           { path: 'audit-log', element: page(<AdminAuditLogPage />) },
+          {
+            path: 'mfa-setup',
+            element: <StaffMfaSetupPage backPath="/admin/dashboard" />,
+          },
+          {
+            path: 'mfa-challenge',
+            element: <StaffMfaChallengePage backPath="/admin/dashboard" />,
+          },
         ],
       },
     ],
@@ -190,6 +200,14 @@ export const router = createBrowserRouter([
           {
             path: 'documents',
             element: <Navigate to="/executive/dashboard" replace />,
+          },
+          {
+            path: 'mfa-setup',
+            element: <StaffMfaSetupPage backPath="/executive/dashboard" />,
+          },
+          {
+            path: 'mfa-challenge',
+            element: <StaffMfaChallengePage backPath="/executive/dashboard" />,
           },
         ],
       },
@@ -217,6 +235,14 @@ export const router = createBrowserRouter([
           { path: 'agreements', element: page(<AgentAgreementsPage />) },
           { path: 'chat', element: page(<AgentChatPage />) },
           { path: 'photos', element: page(<AgentPhotosPage />) },
+          {
+            path: 'mfa-setup',
+            element: <StaffMfaSetupPage backPath="/agent/dashboard" />,
+          },
+          {
+            path: 'mfa-challenge',
+            element: <StaffMfaChallengePage backPath="/agent/dashboard" />,
+          },
         ],
       },
     ],

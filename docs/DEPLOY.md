@@ -68,7 +68,7 @@ Deploy `dist/` to your static host (Vercel, Netlify, etc.).
 
 ## 5. Post-deploy smoke test
 
-1. Staff login → dashboard (MFA temporarily disabled)
+1. Staff login → MFA setup/challenge (TOTP) → dashboard
 2. Admin Users → create a seller (or staff) and confirm access email / Mailpit link
 3. Seller magic link (provisioned active email only)
 3. Send document for signing → seller `?sign=` link
@@ -81,6 +81,12 @@ Deploy `dist/` to your static host (Vercel, Netlify, etc.).
 
 GitHub Actions runs on push/PR to `main`, `features`, `develop`:
 
-- **quality** — typecheck, lint, unit tests, build
-- **integration** — Supabase local + RLS tests
+- **secret-scan** — gitleaks (C-30)
+- **quality** — typecheck, lint, unit tests, `npm audit --omit=dev --audit-level=critical`, build
+- **integration** — Supabase local + seller RLS / isolation / GPS immutability
 - **e2e** — preview server + Puppeteer smoke tests
+- **lighthouse** — C-29 mobile performance gates
+
+## 7. Security (C-30)
+
+See [`docs/SECURITY.md`](./SECURITY.md) for OWASP checklist, RLS matrix, MIME gates, and go-live MFA / secret-scanning requirements.

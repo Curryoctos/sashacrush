@@ -12,10 +12,6 @@ import {
 } from '@/types/photos'
 import { MAX_UPLOAD_BYTES, photoObjectPath } from '@/features/photos/captureImage'
 import { TARGET_ACCURACY_M } from '@/features/photos/geolocation'
-import {
-  readGeolocation,
-  type GeoCoords,
-} from '@/features/photos/geolocation'
 
 /** Persist only a shutter fix that meets the 10m proof-of-site target. */
 function normalizePhoto(photo: LandPhoto): LandPhoto {
@@ -142,48 +138,6 @@ export function usePhotos(landId: string | null) {
     [queryClient, user],
   )
 
-  const attachPhotoGps = useCallback(
-    async (photoId: string, targetLandId: string, coords: GeoCoords): Promise<LandPhoto | null> => {
-      if (coords.latitude == null || coords.longitude == null) {
-        return null
-      }
-
-      const { data, error } = await supabase
-        .from('photos')
-        .update({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        })
-        .eq('id', photoId)
-        .select(PHOTO_COLUMNS)
-        .maybeSingle()
-
-      if (error || !data) {
-        return null
-      }
-
-      const photo = normalizePhoto(data as LandPhoto)
-      queryClient.setQueryData<LandPhoto[]>(['photos', targetLandId], (current) =>
-        (current ?? []).map((row) => (row.id === photo.id ? photo : row)),
-      )
-      void queryClient.invalidateQueries({ queryKey: ['land-map', targetLandId] })
-      return photo
-    },
-    [queryClient],
-  )
-
-  /** Refine GPS after upload without blocking the gallery. */
-  const refinePhotoGps = useCallback(
-    async (photoId: string, targetLandId: string): Promise<GeoCoords> => {
-      const coords = await readGeolocation()
-      if (coords.latitude != null && coords.longitude != null) {
-        await attachPhotoGps(photoId, targetLandId, coords)
-      }
-      return coords
-    },
-    [attachPhotoGps],
-  )
-
   const getPhotoUrl = useCallback(async (filePath: string): Promise<string> => {
     const { data, error } = await supabase.storage
       .from(PHOTOS_BUCKET)
@@ -201,12 +155,7 @@ export function usePhotos(landId: string | null) {
     isLoading: photosQuery.isLoading,
     error: photosQuery.error ?? actionError,
     uploadPhoto,
-    attachPhotoGps,
-    refinePhotoGps,
     getPhotoUrl,
     setActionError,
   }
 }
-
-export { readGeolocation }
-export type { GeoCoords }

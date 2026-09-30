@@ -50,8 +50,11 @@ describe('E2E smoke', () => {
     await browser.close()
   })
 
-  it('admin can sign in and reach dashboard', async () => {
+  it('admin can sign in and is routed to MFA setup (C-30)', async () => {
     if (!(await isReachable(BASE_URL))) {
+      if (process.env.CI === 'true') {
+        throw new Error(`E2E preview must be reachable in CI: ${BASE_URL}`)
+      }
       console.warn(`Skipping E2E: ${BASE_URL} not reachable`)
       return
     }
@@ -65,12 +68,11 @@ describe('E2E smoke', () => {
     await page.click('button[type="submit"]')
 
     await page.waitForFunction(
-      () => window.location.pathname.includes('/admin'),
+      () => window.location.pathname.includes('/admin/mfa-setup'),
       { timeout: 15_000 },
     )
 
-    const path = page.url()
-    expect(path).toMatch(/\/admin/)
+    expect(page.url()).toMatch(/\/admin\/mfa-setup/)
 
     await browser.close()
   })

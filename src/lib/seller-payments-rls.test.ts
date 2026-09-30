@@ -45,6 +45,9 @@ describe('Seller payments RLS (integration)', () => {
 
   it('admin can read payments (proves seed data exists)', async () => {
     if (!supabaseAvailable) {
+      if (process.env.CI === 'true') {
+        throw new Error('Supabase must be reachable for integration tests in CI')
+      }
       console.warn('Skipping integration test: Supabase not reachable')
       return
     }
@@ -65,6 +68,9 @@ describe('Seller payments RLS (integration)', () => {
 
   it('seller authenticated session returns ZERO rows from payments — not data', async () => {
     if (!supabaseAvailable) {
+      if (process.env.CI === 'true') {
+        throw new Error('Supabase must be reachable for integration tests in CI')
+      }
       console.warn('Skipping integration test: Supabase not reachable')
       return
     }

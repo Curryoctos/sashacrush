@@ -113,7 +113,7 @@ export async function processSignatureUpload(file: Blob): Promise<{
   pngBytes: Uint8Array
   previewUrl: string
 }> {
-  if (!file.type.startsWith('image/')) {
+  if (!file.type || !['image/png', 'image/jpeg'].includes(file.type)) {
     throw new Error('Upload a PNG or JPG of your handwritten signature.')
   }
 

@@ -306,7 +306,7 @@ function ShipmentDetail({
                 id={`cargo-doc-file-${shipment.id}`}
                 className="ui-input"
                 type="file"
-                accept=".pdf,.doc,.docx,image/*"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp"
                 disabled={busy}
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               />
