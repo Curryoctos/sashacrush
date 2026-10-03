@@ -18,6 +18,8 @@ import { generateManualPaymentReference } from '@/lib/landReference'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { formatUgx, formatUsd } from '@/lib/formatters'
+import airtelLogo from '@/assets/brands/Airtel_Uganda.svg'
+import mtnLogo from '@/assets/brands/mtn-telecom-uganda.svg'
 
 interface PaymentCheckoutFormProps {
   landId: string
@@ -228,7 +230,7 @@ export function PaymentCheckoutForm({
                 onClick={() => setPaymentChoice('mtn')}
                 title="MTN MoMo"
                 description="Uganda · Flutterwave transfer"
-                logo={<NetworkLogo label="MTN" />}
+                logo={<NetworkLogo network="mtn" />}
                 badge="Payout"
               />
               <PaymentMethodCard
@@ -236,7 +238,7 @@ export function PaymentCheckoutForm({
                 onClick={() => setPaymentChoice('airtel')}
                 title="Airtel Money"
                 description="Uganda · Flutterwave transfer"
-                logo={<NetworkLogo label="Airtel" />}
+                logo={<NetworkLogo network="airtel" />}
                 badge="Payout"
               />
               <PaymentMethodCard
@@ -453,7 +455,7 @@ function PaymentMethodCard({
             : 'border-border bg-surface-elevated hover:border-muted/40 hover:bg-surface'
       }`}
     >
-      <span className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-surface">
+      <span className="relative flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-surface">
         {logo}
       </span>
       <span className="min-w-0">
@@ -479,14 +481,22 @@ function PaymentMethodCard({
 }
 
 function StripeCardLogo() {
-  return (
-    <span className="flex items-center gap-1.5 text-ink">
-      <CreditCard className="h-5 w-5 text-muted" />
-      <span className="text-xs font-semibold tracking-tight">Stripe</span>
-    </span>
-  )
+  return <CreditCard className="h-5 w-5 shrink-0 text-ink" aria-hidden />
 }
 
-function NetworkLogo({ label }: { label: string }) {
-  return <span className="text-xs font-semibold tracking-tight text-ink">{label}</span>
+function NetworkLogo({ network }: { network: 'mtn' | 'airtel' }) {
+  const src = network === 'mtn' ? mtnLogo : airtelLogo
+  const alt = network === 'mtn' ? 'MTN' : 'Airtel'
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={
+        network === 'mtn'
+          ? 'absolute inset-0 h-full w-full object-cover'
+          : 'h-7 w-11 object-contain'
+      }
+      draggable={false}
+    />
+  )
 }

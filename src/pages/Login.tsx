@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
 
@@ -64,7 +65,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface-elevated">
+    <div className="flex min-h-screen flex-col bg-canvas">
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
         <BrandMark />
         <a href="/community" className="text-[13px] text-muted hover:text-ink">
@@ -73,15 +74,15 @@ export function LoginPage() {
       </header>
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16 pt-10 sm:pt-16">
-        <div className="w-full max-w-sm">
+        <Card className="w-full max-w-sm" padding="lg">
           <h1 className="text-[28px] font-semibold tracking-tight text-ink">
             Sign in
           </h1>
-          <p className="mt-3 text-[13px] text-muted">
+          <p className="mt-2 text-[13px] text-muted">
             Access your SashaCrush workspace.
           </p>
 
-          <div className="mt-8">
+          <div className="mt-6">
             <div
               className="ui-segment"
               role="tablist"
@@ -125,7 +126,7 @@ export function LoginPage() {
             </div>
 
             {mode === 'staff' ? (
-              <form onSubmit={handleStaffSubmit} className="mt-6 space-y-4">
+              <form onSubmit={handleStaffSubmit} className="mt-5 space-y-4">
                 <div className="ui-field">
                   <label htmlFor="email" className="ui-label">
                     Email
@@ -166,7 +167,7 @@ export function LoginPage() {
                 </Button>
               </form>
             ) : (
-              <form onSubmit={handleSellerSubmit} className="mt-6 space-y-4">
+              <form onSubmit={handleSellerSubmit} className="mt-5 space-y-4">
                 <p className="ui-hint">
                   We’ll email you a one-time sign-in link.
                 </p>
@@ -212,7 +213,7 @@ export function LoginPage() {
               </p>
             )}
           </div>
-        </div>
+        </Card>
       </main>
     </div>
   )

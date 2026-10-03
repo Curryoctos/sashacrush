@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-/* Runtime palette — flips with the OS appearance setting. */
+/* Runtime palette — default light; `.dark` is applied by ThemeProvider / boot script. */
 :root {
   color-scheme: light;
   --sc-canvas: #ffffff;
@@ -23,28 +23,26 @@
   --sc-success-soft: #ecfdf3;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --sc-canvas: #111111;
-    --sc-aside: #0a0a0a;
-    --sc-surface: #161616;
-    --sc-elevated: #1a1a1a;
-    --sc-ink: #ededed;
-    --sc-ink-inverse: #0a0a0a;
-    --sc-muted: #888888;
-    --sc-border: #2a2a2a;
-    --sc-hover: rgb(255 255 255 / 0.06);
-    --sc-active: rgb(255 255 255 / 0.1);
-    --sc-selection: #333333;
-    --sc-overlay: rgb(0 0 0 / 0.55);
-    --sc-danger: #f97066;
-    --sc-danger-soft: #2a1215;
-    --sc-warning: #fdb022;
-    --sc-warning-soft: #2a1f0e;
-    --sc-success: #47cd89;
-    --sc-success-soft: #0f2a1d;
-  }
+html.dark {
+  color-scheme: dark;
+  --sc-canvas: #111111;
+  --sc-aside: #0a0a0a;
+  --sc-surface: #161616;
+  --sc-elevated: #1a1a1a;
+  --sc-ink: #ededed;
+  --sc-ink-inverse: #0a0a0a;
+  --sc-muted: #888888;
+  --sc-border: #2a2a2a;
+  --sc-hover: rgb(255 255 255 / 0.06);
+  --sc-active: rgb(255 255 255 / 0.1);
+  --sc-selection: #333333;
+  --sc-overlay: rgb(0 0 0 / 0.55);
+  --sc-danger: #f97066;
+  --sc-danger-soft: #2a1215;
+  --sc-warning: #fdb022;
+  --sc-warning-soft: #2a1f0e;
+  --sc-success: #47cd89;
+  --sc-success-soft: #0f2a1d;
 }
 
 @theme {
@@ -152,10 +150,8 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
-  @media (prefers-color-scheme: dark) {
-    select.ui-input {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    }
+  html.dark select.ui-input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
   .ui-panel {

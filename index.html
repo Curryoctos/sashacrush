@@ -23,6 +23,20 @@
       rel="stylesheet"
     />
     <title>SashaCrush · CurryOctos</title>
+    <script>
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('sashacrush:theme') || 'system'
+          var dark =
+            stored === 'dark' ||
+            (stored !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('dark', dark)
+          document.documentElement.classList.toggle('light', !dark)
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
