@@ -1,7 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { FolderCards, type FolderCardItem } from '@/components/hierarchy/Hierarchy'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import {
+  FolderCards,
+  type FolderCardItem,
+} from '@/components/hierarchy/Hierarchy'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export interface HubFolder {
   id: string
@@ -13,9 +16,10 @@ export interface HubFolder {
 }
 
 interface PortalHubPageProps {
-  eyebrow: string
+  /** @deprecated Not rendered — kept for call-site compat. */
+  eyebrow?: string
   title: string
-  description: string
+  description?: string
   backTo: string
   backLabel: string
   folders: HubFolder[]
@@ -23,7 +27,6 @@ interface PortalHubPageProps {
 
 /** Side-nav parent destination: pick a child area via FolderCards. */
 export function PortalHubPage({
-  eyebrow,
   title,
   description,
   backTo,
@@ -42,16 +45,13 @@ export function PortalHubPage({
   }))
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to={backTo} label={backLabel} />
-        <PageHeader
-          className="mt-3"
-          eyebrow={eyebrow}
-          title={title}
-          description={description}
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        title={title}
+        description={description}
+        backTo={backTo}
+        backLabel={backLabel}
+      />
       <FolderCards folders={cards} />
     </div>
   )

@@ -255,7 +255,7 @@ function ShipmentDetail({
               <li key={doc.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span>{doc.title}</span>
                 {doc.signed_url ? (
-                  <a className="text-brand-800 underline" href={doc.signed_url} target="_blank" rel="noreferrer">
+                  <a className="text-ink underline" href={doc.signed_url} target="_blank" rel="noreferrer">
                     Open
                   </a>
                 ) : null}

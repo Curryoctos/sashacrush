@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { LandRecordsBrowser } from '@/features/land-records/components/LandRecordsBrowser'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { LandRecord } from '@/types'
 
@@ -18,8 +17,6 @@ const AGENT_FOLDERS = [
 ] as const
 
 export function AgentLandRecordsPage() {
-  const { user } = useAuth()
-
   const landsQuery = useQuery({
     queryKey: ['land-records', 'agent'],
     queryFn: async (): Promise<(LandRecord & { seller_label: string })[]> => {
@@ -58,19 +55,13 @@ export function AgentLandRecordsPage() {
   })
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/agent/dashboard" label="Agent Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Land Records"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Open a deal, then a folder.`
-              : 'Open a deal, then a folder.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/agent/dashboard"
+        backLabel="Dashboard"
+        title="Land Records"
+        description="Open a deal, then a folder."
+      />
 
       <LandRecordsBrowser
         lands={landsQuery.data ?? []}

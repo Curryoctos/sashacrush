@@ -107,7 +107,7 @@ export function SignaturePad({ className, disabled = false, onStrokeEnd }: Signa
     <canvas
       ref={canvasRef}
       className={cn(
-        'h-44 w-full touch-none rounded-md border border-border bg-[linear-gradient(180deg,#fbfcfb_0%,#f3f5f3_100%)]',
+        'h-44 w-full touch-none rounded-md border border-border bg-surface',
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-crosshair',
         className,
       )}

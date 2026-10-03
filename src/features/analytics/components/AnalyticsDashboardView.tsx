@@ -27,10 +27,9 @@ export type AnalyticsPortal = 'admin' | 'executive' | 'agent'
 
 interface AnalyticsDashboardViewProps {
   portal: AnalyticsPortal
-  userEmail?: string | null
 }
 
-export function AnalyticsDashboardView({ portal, userEmail }: AnalyticsDashboardViewProps) {
+export function AnalyticsDashboardView({ portal }: AnalyticsDashboardViewProps) {
   const query = useAnalyticsDashboard()
   const data = query.data
 
@@ -68,16 +67,12 @@ export function AnalyticsDashboardView({ portal, userEmail }: AnalyticsDashboard
   }
 
   return (
-    <div className="ui-page max-w-6xl space-y-6">
+    <div className="ui-page">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <PageHeader
           eyebrow="Analytics"
           title="Portfolio charts"
-          description={
-            userEmail
-              ? `Signed in as ${userEmail}. Payment progress, delays, photos, and documents.`
-              : 'Payment progress, delays, photos, and documents.'
-          }
+        description="Payment progress, delays, photos, and documents."
         />
         <Button type="button" variant="secondary" disabled={!data} onClick={exportCsv}>
           Export CSV

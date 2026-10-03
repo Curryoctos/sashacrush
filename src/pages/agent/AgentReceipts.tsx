@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, Download, Receipt } from 'lucide-react'
+import { Download, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { Card } from '@/components/ui/Card'
-import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
 import { IconActionButton } from '@/components/ui/IconActionButton'
 import {
   DealCards,
@@ -12,12 +13,10 @@ import {
 import { useReceipts } from '@/features/payments/useReceipts'
 import { useReceiptDownload } from '@/features/payments/useReceiptDownload'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
-import { useAuth } from '@/hooks/useAuth'
 import { formatDate, formatUgx, formatUsd } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
 export function AgentReceiptsPage() {
-  const { user } = useAuth()
   const { data: receipts, isLoading, error } = useReceipts()
   const { downloadReceipt, isDownloading } = useReceiptDownload()
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
@@ -50,19 +49,13 @@ export function AgentReceiptsPage() {
   )
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/agent/paperwork" label="Paperwork" />
-        <PageHeader
-          className="mt-3"
-          title="Receipts"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Confirmed payment receipts by deal.`
-              : 'Confirmed payment receipts by deal.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/agent/paperwork"
+        backLabel="Paperwork"
+        title="Receipts"
+        description="Confirmed payment receipts by deal."
+      />
 
       {isLoading && <p className="text-sm text-muted">Loading receipts…</p>}
 
@@ -99,8 +92,12 @@ export function AgentReceiptsPage() {
               <h2 className="ui-section-title">{selectedLand.title}</h2>
               <p className="ui-section-desc">Choose a folder</p>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(null, null)}
+            >
+              <BackArrow />
               All deals
             </Button>
           </div>
@@ -143,7 +140,7 @@ export function AgentReceiptsPage() {
               size="sm"
               onClick={() => setNavigation(selectedLand.id, null)}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <BackArrow />
               Folders
             </Button>
           </div>
@@ -156,10 +153,14 @@ export function AgentReceiptsPage() {
                 <Card key={receipt.id} padding="sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-ink">{receipt.receipt_number}</p>
+                      <p className="text-sm font-semibold text-ink">
+                        {receipt.receipt_number}
+                      </p>
                       <p className="mt-0.5 text-xs text-muted">
                         {formatUsd(receipt.amount_usd)}
-                        {receipt.amount_ugx != null ? ` · ${formatUgx(receipt.amount_ugx)}` : ''}
+                        {receipt.amount_ugx != null
+                          ? ` · ${formatUgx(receipt.amount_ugx)}`
+                          : ''}
                         {' · '}
                         {formatDate(receipt.created_at)}
                       </p>

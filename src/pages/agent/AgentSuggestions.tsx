@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { SuggestionList } from '@/features/suggestions/components/SuggestionList'
 import { SuggestionSubmitForm } from '@/features/suggestions/components/SuggestionSubmitForm'
 import {
   useSuggestionLands,
   useSuggestions,
 } from '@/features/suggestions/useSuggestions'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import type { SuggestionStatus } from '@/types/suggestions'
@@ -37,25 +40,19 @@ export function AgentSuggestionsPage() {
   )
 
   return (
-    <div className="ui-page max-w-4xl space-y-6">
-      <div>
-        <PageBackLink to="/agent/dashboard" label="Agent Dashboard" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="Field input"
-          title="Suggestions"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Propose on-site work; admin reviews and comments on status changes.`
-              : 'Propose on-site work; admin reviews and comments on status changes.'
-          }
-          actions={
-            <Button type="button" onClick={() => setShowCreate((open) => !open)}>
-              {showCreate ? 'Close' : 'New suggestion'}
-            </Button>
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/agent/dashboard"
+        backLabel="Dashboard"
+        eyebrow="Field input"
+        title="Suggestions"
+        description="Propose on-site work; admin reviews and comments on status changes."
+        actions={
+          <Button type="button" onClick={() => setShowCreate((open) => !open)}>
+            {showCreate ? 'Close' : 'New suggestion'}
+          </Button>
+        }
+      />
 
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((item) => (
@@ -87,7 +84,11 @@ export function AgentSuggestionsPage() {
               )
               setShowCreate(false)
             } catch (err) {
-              notifyInfo(err instanceof Error ? err.message : 'Could not save suggestion.')
+              notifyInfo(
+                err instanceof Error
+                  ? err.message
+                  : 'Could not save suggestion.',
+              )
               throw err
             } finally {
               setCreating(false)
@@ -96,7 +97,9 @@ export function AgentSuggestionsPage() {
         />
       ) : null}
 
-      {isLoading ? <p className="text-sm text-muted">Loading suggestions…</p> : null}
+      {isLoading ? (
+        <p className="text-sm text-muted">Loading suggestions…</p>
+      ) : null}
       {error ? (
         <p className="ui-alert-danger" role="alert">
           {formatSupabaseError(error as Error)}

@@ -169,7 +169,7 @@ export function PaymentCheckoutForm({
                 <button
                   type="button"
                   onClick={fillAvailable}
-                  className="text-xs font-bold text-brand-700 hover:text-brand-900"
+                  className="text-xs font-bold text-ink hover:text-ink"
                 >
                   Use available {formatUsd(fillAmount)}
                 </button>
@@ -244,7 +244,7 @@ export function PaymentCheckoutForm({
                 onClick={() => setPaymentChoice('manual')}
                 title="Bank / cash"
                 description="WU reference · confirm later"
-                logo={<Banknote className="h-6 w-6 text-brand-700" />}
+                logo={<Banknote className="h-6 w-6 text-ink" />}
               />
               <PaymentMethodCard
                 selected={paymentChoice === 'stripe'}
@@ -260,7 +260,7 @@ export function PaymentCheckoutForm({
                 onClick={() => setPaymentChoice('crypto')}
                 title="Crypto"
                 description="Owner wallet · Convert and Pay"
-                logo={<Bitcoin className="h-6 w-6 text-brand-700" />}
+                logo={<Bitcoin className="h-6 w-6 text-ink" />}
                 badge="Wallet"
               />
             </div>
@@ -281,13 +281,13 @@ export function PaymentCheckoutForm({
             <div className="ui-field-row">
               <div className="ui-field">
                 <span className="ui-label">USD</span>
-                <p className="font-display text-2xl font-bold text-ink">
+                <p className="text-[28px] font-semibold text-ink">
                   {hasValidUsd ? formatUsd(parsedUsd) : '—'}
                 </p>
               </div>
               <div className="ui-field">
                 <span className="ui-label">Seller receives (UGX)</span>
-                <p className="font-display text-2xl font-bold text-ink">
+                <p className="text-[28px] font-semibold text-ink">
                   {amountUgx.trim() && Number(amountUgx) > 0
                     ? formatUgx(Number(amountUgx))
                     : '—'}
@@ -333,13 +333,13 @@ export function PaymentCheckoutForm({
           </section>
         )}
 
-        <section className="rounded-lg border border-brand-200 bg-brand-50/60 px-4 py-4">
+        <section className="rounded-lg border border-border bg-surface px-4 py-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink">
                 Payout summary
               </p>
-              <p className="mt-2 font-display text-2xl font-semibold text-ink">
+              <p className="mt-2 text-[28px] font-semibold text-ink">
                 {hasValidUsd ? formatUsd(parsedUsd) : '—'}
               </p>
               <p className="mt-1 text-sm text-muted">{landTitle}</p>
@@ -349,7 +349,7 @@ export function PaymentCheckoutForm({
             </div>
             <div className="max-w-sm text-sm text-muted">
               <p className="flex items-start gap-2">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" />
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-ink" />
                 <span>{checkoutProviderHint(paymentChoice)}</span>
               </p>
             </div>
@@ -405,12 +405,12 @@ function CheckoutStep({
   return (
     <li
       className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
-        active ? 'border-brand-200 bg-brand-50 text-ink' : 'border-border bg-white text-muted'
+        active ? 'border-muted/40 bg-surface text-ink' : 'border-border bg-surface-elevated text-muted'
       }`}
     >
       <span
         className={`flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold ${
-          active ? 'bg-brand-700 text-white' : 'bg-surface text-muted'
+          active ? 'bg-ink text-ink-inverse' : 'bg-surface text-muted'
         }`}
       >
         {n}
@@ -449,8 +449,8 @@ function PaymentMethodCard({
         disabled
           ? 'cursor-not-allowed border-border bg-surface opacity-60'
           : selected
-            ? 'border-brand-700 bg-brand-50'
-            : 'border-border bg-white hover:border-brand-200 hover:bg-surface'
+            ? 'border-ink bg-surface'
+            : 'border-border bg-surface-elevated hover:border-muted/40 hover:bg-surface'
       }`}
     >
       <span className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-surface">
@@ -460,7 +460,7 @@ function PaymentMethodCard({
         <span className="block text-sm font-semibold text-ink">{title}</span>
         <span className="mt-0.5 block text-xs text-muted">{description}</span>
         {badge && (
-          <span className="mt-1 inline-block text-[10px] font-semibold uppercase tracking-[0.08em] text-brand-700">
+          <span className="mt-1 inline-block text-[10px] font-semibold uppercase tracking-[0.08em] text-ink">
             {badge}
           </span>
         )}
@@ -468,7 +468,7 @@ function PaymentMethodCard({
       {!disabled && (
         <span
           className={`absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-md border ${
-            selected ? 'border-brand-700 bg-brand-700 text-white' : 'border-border bg-white'
+            selected ? 'border-ink bg-ink text-ink-inverse' : 'border-border bg-surface-elevated'
           }`}
         >
           {selected && <Check className="h-3.5 w-3.5" strokeWidth={3} />}

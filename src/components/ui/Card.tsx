@@ -65,16 +65,18 @@ export function Stat({
   emphasize?: boolean
 }) {
   return (
-    <div className={cn('ui-stat', emphasize && 'border-brand-200 bg-brand-50')}>
+    <div className={cn('ui-stat', emphasize && 'border-muted/40 bg-surface')}>
       <p className="ui-stat-label">{label}</p>
       <p className="ui-stat-value">{value}</p>
-      {hint ? <div className="mt-1 text-xs font-semibold text-muted">{hint}</div> : null}
+      {hint ? <div className="mt-1 text-[12px] text-muted">{hint}</div> : null}
     </div>
   )
 }
 
 export function StatGrid({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('grid gap-3 sm:grid-cols-2 lg:grid-cols-4', className)}>{children}</div>
+    <div className={cn('grid gap-3 sm:grid-cols-2 lg:grid-cols-4', className)}>
+      {children}
+    </div>
   )
 }

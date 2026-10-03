@@ -2,11 +2,13 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Film } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, Stat } from '@/components/ui/Card'
-import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
 import { formatBytes, MAX_MEDIA_BYTES } from '@/features/media/constants'
 import { useMediaVault } from '@/features/media/useMediaVault'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
-import { useAuth } from '@/hooks/useAuth'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { formatDate } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
@@ -16,8 +18,11 @@ interface MediaVaultViewProps {
   backLabel?: string
 }
 
-export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewProps) {
-  const { user } = useAuth()
+export function MediaVaultView({
+  canUpload,
+  backTo,
+  backLabel,
+}: MediaVaultViewProps) {
   const [landFilter, setLandFilter] = useState<string | 'all'>('all')
   const {
     videos,
@@ -73,27 +78,24 @@ export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewP
   }
 
   return (
-    <div className="ui-page max-w-5xl space-y-6">
-      <div>
-        {backTo && backLabel ? <PageBackLink to={backTo} label={backLabel} /> : null}
-        <PageHeader
-          className={backTo ? 'mt-3' : undefined}
-          eyebrow="Media vault"
-          title="Video & media"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Private storage with signed-URL playback.`
-              : 'Private storage with signed-URL playback.'
-          }
-          actions={
-            canUpload ? (
-              <Button type="button" onClick={() => setShowUpload((open) => !open)}>
-                {showUpload ? 'Close' : 'Upload video'}
-              </Button>
-            ) : undefined
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        eyebrow="Media vault"
+        title="Video & media"
+        description="Private storage with signed-URL playback."
+        backTo={backTo}
+        backLabel={backLabel}
+        actions={
+          canUpload ? (
+            <Button
+              type="button"
+              onClick={() => setShowUpload((open) => !open)}
+            >
+              {showUpload ? 'Close' : 'Upload video'}
+            </Button>
+          ) : undefined
+        }
+      />
 
       {canUpload && usage ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -111,7 +113,10 @@ export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewP
             title="Upload video"
             description="MP4 or MOV, max 500MB. Organised by land deal and date."
           />
-          <form className="space-y-5" onSubmit={(event) => void onUpload(event)}>
+          <form
+            className="space-y-5"
+            onSubmit={(event) => void onUpload(event)}
+          >
             <div className="ui-field-row">
               <div className="ui-field">
                 <label htmlFor="media-land" className="ui-label">
@@ -125,7 +130,9 @@ export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewP
                   onChange={(event) => setLandId(event.target.value)}
                   required
                 >
-                  <option value="">{landsLoading ? 'Loading…' : 'Select a deal…'}</option>
+                  <option value="">
+                    {landsLoading ? 'Loading…' : 'Select a deal…'}
+                  </option>
                   {lands.map((land) => (
                     <option key={land.id} value={land.id}>
                       {land.title}
@@ -203,12 +210,15 @@ export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewP
       ) : null}
 
       {!isLoading && !error && videos.length === 0 ? (
-        <EmptyState title="No videos yet." description="Admin can upload MP4 or MOV site recordings." />
+        <EmptyState
+          title="No videos yet."
+          description="Admin can upload MP4 or MOV site recordings."
+        />
       ) : null}
 
       {grouped.map(([groupLandId, groupVideos]) => (
         <section key={groupLandId} className="space-y-3">
-          <h2 className="font-display text-lg font-semibold text-ink">
+          <h2 className="ui-section-title">
             {groupVideos[0]?.land_title ?? 'Land deal'}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -232,7 +242,9 @@ export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewP
                     >
                       <Film className="h-10 w-10 opacity-80" />
                       <span className="text-sm">
-                        {video.signed_url ? 'Play (signed URL)' : 'URL unavailable'}
+                        {video.signed_url
+                          ? 'Play (signed URL)'
+                          : 'URL unavailable'}
                       </span>
                     </button>
                   )}
@@ -240,7 +252,8 @@ export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewP
                 <div className="mt-3 space-y-1">
                   <p className="font-medium text-ink">{video.title}</p>
                   <p className="text-sm text-muted">
-                    {formatDate(video.captured_at)} · {formatBytes(video.size_bytes)}
+                    {formatDate(video.captured_at)} ·{' '}
+                    {formatBytes(video.size_bytes)}
                   </p>
                 </div>
                 {canUpload ? (
@@ -258,7 +271,11 @@ export function MediaVaultView({ canUpload, backTo, backLabel }: MediaVaultViewP
                             setPlayingId(null)
                           }
                         } catch (err) {
-                          notifyInfo(err instanceof Error ? err.message : 'Could not delete.')
+                          notifyInfo(
+                            err instanceof Error
+                              ? err.message
+                              : 'Could not delete.',
+                          )
                         }
                       })()
                     }}

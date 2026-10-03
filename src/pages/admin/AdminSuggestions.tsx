@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { SuggestionList } from '@/features/suggestions/components/SuggestionList'
 import { SuggestionSubmitForm } from '@/features/suggestions/components/SuggestionSubmitForm'
 import {
   useSuggestionLands,
   useSuggestions,
 } from '@/features/suggestions/useSuggestions'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import type { SuggestionStatus } from '@/types/suggestions'
@@ -47,27 +50,23 @@ export function AdminSuggestionsPage() {
   )
 
   return (
-    <div className="ui-page max-w-4xl space-y-6">
-      <div>
-        <PageBackLink to="/admin/pipeline" label="Pipeline" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="Field input"
-          title="Suggestions"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Review agent proposals and update status with a comment.`
-              : 'Review agent proposals and update status with a comment.'
-          }
-          actions={
-            <Button type="button" onClick={() => setShowCreate((open) => !open)}>
-              {showCreate ? 'Close' : 'New suggestion'}
-            </Button>
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/pipeline"
+        backLabel="Pipeline"
+        eyebrow="Field input"
+        title="Suggestions"
+        description="Review agent proposals and update status with a comment."
+        actions={
+          <Button type="button" onClick={() => setShowCreate((open) => !open)}>
+            {showCreate ? 'Close' : 'New suggestion'}
+          </Button>
+        }
+      />
 
-      {filter === 'submitted' || filter === 'under_review' || filter === 'all' ? (
+      {filter === 'submitted' ||
+      filter === 'under_review' ||
+      filter === 'all' ? (
         <p className="text-sm font-medium text-muted">
           Review queue in this view: {reviewQueueCount} open item
           {reviewQueueCount === 1 ? '' : 's'}.
@@ -97,10 +96,16 @@ export function AdminSuggestionsPage() {
             setCreating(true)
             try {
               await createSuggestion(input)
-              notifySuccess(input.submitNow ? 'Suggestion submitted.' : 'Draft saved.')
+              notifySuccess(
+                input.submitNow ? 'Suggestion submitted.' : 'Draft saved.',
+              )
               setShowCreate(false)
             } catch (err) {
-              notifyInfo(err instanceof Error ? err.message : 'Could not save suggestion.')
+              notifyInfo(
+                err instanceof Error
+                  ? err.message
+                  : 'Could not save suggestion.',
+              )
               throw err
             } finally {
               setCreating(false)
@@ -109,7 +114,9 @@ export function AdminSuggestionsPage() {
         />
       ) : null}
 
-      {isLoading ? <p className="text-sm text-muted">Loading suggestions…</p> : null}
+      {isLoading ? (
+        <p className="text-sm text-muted">Loading suggestions…</p>
+      ) : null}
       {error ? (
         <p className="ui-alert-danger" role="alert">
           {formatSupabaseError(error as Error)}

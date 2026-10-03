@@ -1,30 +1,83 @@
 @import 'tailwindcss';
 
+/* Runtime palette — flips with the OS appearance setting. */
+:root {
+  color-scheme: light;
+  --sc-canvas: #ffffff;
+  --sc-aside: #f7f7f7;
+  --sc-surface: #f7f7f7;
+  --sc-elevated: #ffffff;
+  --sc-ink: #0a0a0a;
+  --sc-ink-inverse: #ffffff;
+  --sc-muted: #666666;
+  --sc-border: #e8e8e8;
+  --sc-hover: rgb(0 0 0 / 0.045);
+  --sc-active: rgb(0 0 0 / 0.08);
+  --sc-selection: #e5e5e5;
+  --sc-overlay: rgb(10 10 10 / 0.35);
+  --sc-danger: #b42318;
+  --sc-danger-soft: #fef3f2;
+  --sc-warning: #b54708;
+  --sc-warning-soft: #fffaeb;
+  --sc-success: #027a48;
+  --sc-success-soft: #ecfdf3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --sc-canvas: #111111;
+    --sc-aside: #0a0a0a;
+    --sc-surface: #161616;
+    --sc-elevated: #1a1a1a;
+    --sc-ink: #ededed;
+    --sc-ink-inverse: #0a0a0a;
+    --sc-muted: #888888;
+    --sc-border: #2a2a2a;
+    --sc-hover: rgb(255 255 255 / 0.06);
+    --sc-active: rgb(255 255 255 / 0.1);
+    --sc-selection: #333333;
+    --sc-overlay: rgb(0 0 0 / 0.55);
+    --sc-danger: #f97066;
+    --sc-danger-soft: #2a1215;
+    --sc-warning: #fdb022;
+    --sc-warning-soft: #2a1f0e;
+    --sc-success: #47cd89;
+    --sc-success-soft: #0f2a1d;
+  }
+}
+
 @theme {
   --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Source Serif 4', 'Times New Roman', serif;
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #e8f6ee;
-  --color-brand-100: #c8e9d4;
-  --color-brand-200: #95d3ad;
+  --color-brand-50: #f0f7f3;
+  --color-brand-100: #dceee3;
+  --color-brand-200: #b5d9c3;
   --color-brand-500: #1a8a4a;
   --color-brand-600: #147a3f;
   --color-brand-700: #0f5c32;
   --color-brand-800: #0b4626;
   --color-brand-900: #07331c;
 
-  --color-surface: #eef1ef;
-  --color-surface-aside: #e6ebe7;
-  --color-surface-elevated: #ffffff;
-  --color-ink: #0b120e;
-  --color-muted: #4a5a4f;
-  --color-border: #c9d2cb;
-  --color-danger: #b42318;
-  --color-danger-soft: #fef3f2;
-  --color-warning: #b54708;
-  --color-warning-soft: #fffaeb;
-  --color-success: #027a48;
-  --color-success-soft: #ecfdf3;
+  --color-canvas: var(--sc-canvas);
+  --color-aside: var(--sc-aside);
+  --color-surface: var(--sc-surface);
+  --color-surface-aside: var(--sc-aside);
+  --color-surface-elevated: var(--sc-elevated);
+  --color-ink: var(--sc-ink);
+  --color-ink-inverse: var(--sc-ink-inverse);
+  --color-muted: var(--sc-muted);
+  --color-border: var(--sc-border);
+  --color-hover: var(--sc-hover);
+  --color-active: var(--sc-active);
+  --color-overlay: var(--sc-overlay);
+  --color-danger: var(--sc-danger);
+  --color-danger-soft: var(--sc-danger-soft);
+  --color-warning: var(--sc-warning);
+  --color-warning-soft: var(--sc-warning-soft);
+  --color-success: var(--sc-success);
+  --color-success-soft: var(--sc-success-soft);
 }
 
 @layer base {
@@ -34,30 +87,34 @@
   }
 
   body {
-    @apply min-h-screen bg-surface font-sans text-ink font-medium;
-    background-image:
-      radial-gradient(ellipse 90% 55% at 0% -10%, color-mix(in oklab, var(--color-brand-100) 55%, transparent), transparent 55%),
-      radial-gradient(ellipse 70% 45% at 100% 0%, color-mix(in oklab, var(--color-brand-50) 70%, transparent), transparent 50%),
-      linear-gradient(180deg, #f4f6f4 0%, var(--color-surface) 42%, #e9edea 100%);
-    background-attachment: fixed;
+    @apply min-h-screen bg-canvas font-sans text-[13px] leading-normal text-ink font-normal;
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-brand-200) 70%, white);
+    background: var(--sc-selection);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-brand-600);
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
   }
 
   table {
     border-collapse: collapse;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
-  /* —— Forms (Stripe / Linear–style field stack) —— */
   .ui-field {
     @apply flex flex-col gap-1.5;
   }
@@ -71,79 +128,88 @@
   }
 
   .ui-label {
-    @apply block text-[13px] font-bold tracking-tight text-ink;
+    @apply block text-[13px] font-medium text-ink;
   }
 
   .ui-hint {
-    @apply text-xs font-medium leading-relaxed text-muted;
+    @apply text-[13px] leading-relaxed text-muted;
   }
 
   .ui-input {
-    @apply w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm font-semibold text-ink
-      shadow-[inset_0_1px_0_rgb(255_255_255/0.8)] transition
-      placeholder:font-medium placeholder:text-muted/55
-      hover:border-brand-200
-      focus:border-brand-600 focus:outline-none focus:ring-[3px] focus:ring-brand-600/15;
+    @apply w-full rounded-lg border border-border bg-canvas px-3 py-2.5 text-[13px] text-ink
+      transition
+      placeholder:text-muted/70
+      hover:border-muted/40
+      focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10;
   }
 
   textarea.ui-input {
-    @apply min-h-[5.5rem] resize-y font-medium leading-relaxed;
+    @apply min-h-[5.5rem] resize-y leading-relaxed;
   }
 
   select.ui-input {
     @apply cursor-pointer appearance-none bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat pr-10;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a5a4f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
-  /* —— Surfaces —— */
+  @media (prefers-color-scheme: dark) {
+    select.ui-input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
+  }
+
   .ui-panel {
-    @apply rounded-xl border border-border/90 bg-surface-elevated
-      shadow-[0_1px_2px_rgb(11_18_14/0.04),0_8px_24px_-12px_rgb(11_18_14/0.12)];
+    @apply rounded-xl border border-border bg-surface-elevated;
   }
 
   .ui-page {
-    @apply mx-auto w-full max-w-6xl space-y-7 p-4 sm:p-6 lg:p-8;
+    @apply mx-auto flex w-full max-w-5xl flex-col gap-5 px-5 py-8 sm:gap-6 sm:px-8 sm:py-10;
+  }
+
+  /* Pull page body a touch closer to the title description */
+  .ui-page > header + *,
+  .ui-page > div:has(> header) + * {
+    margin-top: -0.25rem;
   }
 
   .ui-section-title {
-    @apply text-[15px] font-extrabold tracking-tight text-ink;
+    @apply text-[15px] font-medium tracking-tight text-ink;
   }
 
   .ui-section-desc {
-    @apply mt-1 text-sm font-medium leading-relaxed text-muted;
+    @apply mt-1.5 text-[13px] leading-relaxed text-muted;
   }
 
   .ui-stat {
-    @apply rounded-xl border border-border/90 bg-white px-4 py-3.5
-      shadow-[0_1px_2px_rgb(11_18_14/0.03)];
+    @apply rounded-xl border border-border bg-surface-elevated px-5 py-4;
   }
 
   .ui-stat-label {
-    @apply text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted;
+    @apply text-[13px] text-muted;
   }
 
   .ui-stat-value {
-    @apply mt-1.5 font-display text-2xl font-bold tracking-tight text-ink;
+    @apply mt-2 text-[28px] font-semibold tracking-tight text-ink tabular-nums;
   }
 
   .ui-table-wrap {
-    @apply overflow-x-auto rounded-xl border border-border/90 bg-white;
+    @apply overflow-x-auto rounded-xl border border-border bg-surface-elevated;
   }
 
   .ui-table {
-    @apply min-w-full text-left text-sm;
+    @apply min-w-full text-left text-[13px];
   }
 
   .ui-table thead {
-    @apply border-b border-border bg-surface/80 text-[10px] font-extrabold uppercase tracking-[0.1em] text-muted;
+    @apply border-b border-border text-[12px] font-medium text-muted;
   }
 
   .ui-table th {
-    @apply px-3.5 py-3 font-extrabold;
+    @apply px-4 py-2.5 font-medium;
   }
 
   .ui-table td {
-    @apply border-b border-border/70 px-3.5 py-3.5 align-top font-medium text-ink;
+    @apply border-b border-border px-4 py-3.5 align-top text-ink;
   }
 
   .ui-table tbody tr:last-child td {
@@ -151,39 +217,39 @@
   }
 
   .ui-table tbody tr:hover td {
-    @apply bg-brand-50/40;
+    @apply bg-hover;
   }
 
   .ui-alert-danger {
-    @apply rounded-lg border border-danger/25 bg-danger-soft px-3.5 py-2.5 text-sm font-semibold text-danger;
+    @apply rounded-lg border border-danger/20 bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger;
   }
 
   .ui-alert-success {
-    @apply rounded-lg border border-success/25 bg-success-soft px-3.5 py-2.5 text-sm font-semibold text-success;
+    @apply rounded-lg border border-success/20 bg-success-soft px-3.5 py-2.5 text-[13px] text-success;
   }
 
   .ui-alert-warning {
-    @apply rounded-lg border border-warning/25 bg-warning-soft px-3.5 py-2.5 text-sm font-semibold text-warning;
+    @apply rounded-lg border border-warning/20 bg-warning-soft px-3.5 py-2.5 text-[13px] text-warning;
   }
 
   .ui-alert-info {
-    @apply rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm font-semibold text-muted;
+    @apply rounded-lg border border-border bg-surface px-3.5 py-2.5 text-[13px] text-muted;
   }
 
   .ui-skeleton {
-    @apply animate-pulse rounded-lg bg-border/55;
+    @apply animate-pulse rounded-lg bg-border;
   }
 
   .ui-segment {
-    @apply flex rounded-xl border border-border bg-surface p-1;
+    @apply flex rounded-lg border border-border bg-surface p-0.5;
   }
 
   .ui-segment-item {
-    @apply flex-1 rounded-lg px-3 py-2 text-sm font-bold transition;
+    @apply flex-1 rounded-md px-3 py-1.5 text-[13px] font-medium transition;
   }
 
   .ui-segment-item-active {
-    @apply bg-white text-ink shadow-[0_1px_2px_rgb(11_18_14/0.08)];
+    @apply bg-surface-elevated text-ink;
   }
 
   .ui-segment-item-idle {

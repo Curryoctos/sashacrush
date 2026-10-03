@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
-import { StaffMfaGate } from '@/components/auth/StaffMfaGate'
 import { PortalShell } from '@/components/layout/PortalShell'
 import { useAdminUnreadMessages } from '@/features/dashboard/useAdminDashboardStats'
 import { useAuth } from '@/hooks/useAuth'
@@ -31,10 +30,8 @@ export function AdminPortalLayout() {
       headerActions={<NotificationCenter />}
       onSignOut={handleSignOut}
     >
-      <StaffMfaGate
-        mfaSetupPath="/admin/mfa-setup"
-        mfaChallengePath="/admin/mfa-challenge"
-      />
+      {/* MFA temporarily disabled — restore StaffMfaGate when re-enabling TOTP */}
+      <Outlet />
     </PortalShell>
   )
 }

@@ -82,7 +82,7 @@ export function Drawer({
         tabIndex={-1}
         className={cn(
           'relative flex h-full w-full flex-col border-l border-border bg-surface-elevated shadow-xl outline-none',
-          'focus-visible:ring-2 focus-visible:ring-brand-600',
+          'focus-visible:ring-2 focus-visible:ring-ink/20',
           widthClassName,
         )}
       >

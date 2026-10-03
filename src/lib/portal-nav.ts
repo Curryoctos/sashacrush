@@ -1,6 +1,25 @@
+import type { LucideIcon } from 'lucide-react'
+import {
+  BarChart3,
+  Camera,
+  ClipboardList,
+  FileText,
+  FolderKanban,
+  Landmark,
+  LayoutDashboard,
+  Lightbulb,
+  MessageSquare,
+  Package,
+  PiggyBank,
+  Receipt,
+  Users,
+  Video,
+} from 'lucide-react'
+
 export interface PortalNavItem {
   label: string
   to: string
+  icon?: LucideIcon
   badge?: number
   /**
    * Highlight this drawer item when the location matches any of these paths
@@ -19,10 +38,10 @@ export interface PortalNavSection {
 export const ADMIN_NAV: PortalNavSection[] = [
   {
     items: [
-      { label: 'Dashboard', to: '/admin/dashboard' },
-      { label: 'Users', to: '/admin/users' },
-      { label: 'Land Records', to: '/admin/land-records' },
-      { label: 'Analytics', to: '/admin/analytics' },
+      { label: 'Overview', to: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Users', to: '/admin/users', icon: Users },
+      { label: 'Land Records', to: '/admin/land-records', icon: FolderKanban },
+      { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
     ],
   },
   {
@@ -31,11 +50,13 @@ export const ADMIN_NAV: PortalNavSection[] = [
       {
         label: 'Media',
         to: '/admin/media-hub',
+        icon: Video,
         activeFor: ['/admin/media-hub', '/admin/photos', '/admin/media'],
       },
       {
         label: 'Documents',
         to: '/admin/documents-hub',
+        icon: FileText,
         activeFor: [
           '/admin/documents-hub',
           '/admin/documents',
@@ -50,6 +71,7 @@ export const ADMIN_NAV: PortalNavSection[] = [
       {
         label: 'Finance',
         to: '/admin/finance',
+        icon: Landmark,
         activeFor: [
           '/admin/finance',
           '/admin/payments',
@@ -65,6 +87,7 @@ export const ADMIN_NAV: PortalNavSection[] = [
       {
         label: 'Pipeline',
         to: '/admin/pipeline',
+        icon: Package,
         activeFor: [
           '/admin/pipeline',
           '/admin/suggestions',
@@ -72,8 +95,8 @@ export const ADMIN_NAV: PortalNavSection[] = [
           '/admin/cargo',
         ],
       },
-      { label: 'Messages', to: '/admin/chat' },
-      { label: 'Audit Log', to: '/admin/audit-log' },
+      { label: 'Messages', to: '/admin/chat', icon: MessageSquare },
+      { label: 'Audit Log', to: '/admin/audit-log', icon: ClipboardList },
     ],
   },
 ]
@@ -81,11 +104,11 @@ export const ADMIN_NAV: PortalNavSection[] = [
 export const SELLER_NAV: PortalNavSection[] = [
   {
     items: [
-      { label: 'Dashboard', to: '/seller/dashboard' },
-      { label: 'Messages', to: '/seller/chat' },
-      { label: 'Documents', to: '/seller/documents' },
-      { label: 'Receipts', to: '/seller/receipts' },
-      { label: 'Photos', to: '/seller/photos' },
+      { label: 'Overview', to: '/seller/dashboard', icon: LayoutDashboard },
+      { label: 'Messages', to: '/seller/chat', icon: MessageSquare },
+      { label: 'Documents', to: '/seller/documents', icon: FileText },
+      { label: 'Receipts', to: '/seller/receipts', icon: Receipt },
+      { label: 'Photos', to: '/seller/photos', icon: Camera },
     ],
   },
 ]
@@ -93,9 +116,9 @@ export const SELLER_NAV: PortalNavSection[] = [
 export const AGENT_NAV: PortalNavSection[] = [
   {
     items: [
-      { label: 'Dashboard', to: '/agent/dashboard' },
-      { label: 'Land Records', to: '/agent/land-records' },
-      { label: 'Analytics', to: '/agent/analytics' },
+      { label: 'Overview', to: '/agent/dashboard', icon: LayoutDashboard },
+      { label: 'Land Records', to: '/agent/land-records', icon: FolderKanban },
+      { label: 'Analytics', to: '/agent/analytics', icon: BarChart3 },
     ],
   },
   {
@@ -104,31 +127,33 @@ export const AGENT_NAV: PortalNavSection[] = [
       {
         label: 'Paperwork',
         to: '/agent/paperwork',
+        icon: FileText,
         activeFor: ['/agent/paperwork', '/agent/documents', '/agent/receipts'],
       },
       {
         label: 'Capital',
         to: '/agent/capital',
+        icon: PiggyBank,
         activeFor: ['/agent/capital', '/agent/investments', '/agent/agreements'],
       },
-      { label: 'Field Photos', to: '/agent/photos' },
-      { label: 'Suggestions', to: '/agent/suggestions' },
-      { label: 'Cargo', to: '/agent/cargo' },
+      { label: 'Field Photos', to: '/agent/photos', icon: Camera },
+      { label: 'Suggestions', to: '/agent/suggestions', icon: Lightbulb },
+      { label: 'Cargo', to: '/agent/cargo', icon: Package },
     ],
   },
   {
-    items: [{ label: 'Messages', to: '/agent/chat' }],
+    items: [{ label: 'Messages', to: '/agent/chat', icon: MessageSquare }],
   },
 ]
 
 export const EXECUTIVE_NAV: PortalNavSection[] = [
   {
     items: [
-      { label: 'Dashboard', to: '/executive/dashboard' },
-      { label: 'Portfolio', to: '/executive/deals' },
-      { label: 'Analytics', to: '/executive/analytics' },
-      { label: 'Communications', to: '/executive/communications' },
-      { label: 'Media', to: '/executive/media' },
+      { label: 'Overview', to: '/executive/dashboard', icon: LayoutDashboard },
+      { label: 'Portfolio', to: '/executive/deals', icon: FolderKanban },
+      { label: 'Analytics', to: '/executive/analytics', icon: BarChart3 },
+      { label: 'Communications', to: '/executive/communications', icon: MessageSquare },
+      { label: 'Media', to: '/executive/media', icon: Video },
     ],
   },
 ]

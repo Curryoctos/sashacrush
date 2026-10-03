@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { PhotosBrowser } from '@/features/photos/components/PhotosBrowser'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { LandRecord } from '@/types'
 
 export function AdminPhotosPage() {
-  const { user } = useAuth()
-
   const landsQuery = useQuery({
     queryKey: ['land-records', 'admin-photos'],
     queryFn: async (): Promise<LandRecord[]> => {
@@ -26,19 +23,13 @@ export function AdminPhotosPage() {
   })
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/admin/media-hub" label="Media" />
-        <PageHeader
-          className="mt-3"
-          title="Field Photos"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Open a deal, then take a site photo.`
-              : 'Open a deal, then take a site photo.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/media-hub"
+        backLabel="Media"
+        title="Field Photos"
+        description="Open a deal, then take a site photo."
+      />
 
       <PhotosBrowser
         lands={landsQuery.data ?? []}

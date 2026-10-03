@@ -5,45 +5,44 @@ import { cn } from '@/lib/cn'
 export function PageHeader({
   title,
   description,
-  eyebrow,
+  eyebrow: _eyebrow,
   actions,
+  backTo,
+  backLabel,
   className,
 }: {
   title: string
   description?: string
+  /** Deprecated — kept for call-site compat; not rendered. */
   eyebrow?: string
   actions?: ReactNode
+  backTo?: string
+  backLabel?: string
   className?: string
 }) {
+  void _eyebrow
+
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-end justify-between gap-4 border-b border-border/80 pb-6',
-        className,
-      )}
-    >
-      <div className="min-w-0">
-        {eyebrow ? (
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-brand-700">
-            {eyebrow}
-          </p>
-        ) : null}
-        <h1
-          className={cn(
-            'font-display text-[1.75rem] font-bold tracking-tight text-ink sm:text-[2rem]',
-            eyebrow && 'mt-1.5',
-          )}
-        >
+    <header className={cn('flex flex-wrap items-start gap-4', className)}>
+      <div className="min-w-0 flex-1">
+        <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-ink">
           {title}
         </h1>
         {description ? (
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-muted">
+          <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-muted">
             {description}
           </p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-    </div>
+      {actions || (backTo && backLabel) ? (
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-3 pt-1">
+          {actions}
+          {backTo && backLabel ? (
+            <PageBackLink to={backTo} label={backLabel} />
+          ) : null}
+        </div>
+      ) : null}
+    </header>
   )
 }
 
@@ -51,9 +50,15 @@ export function PageBackLink({ to, label }: { to: string; label: string }) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-1 text-sm font-bold text-brand-700 transition hover:text-brand-900"
+      className="group inline-flex items-center gap-1 text-[13px] text-muted transition hover:text-ink"
     >
-      ← {label}
+      <span
+        aria-hidden
+        className="inline-block max-w-0 -translate-x-1 overflow-hidden opacity-0 transition-all duration-200 ease-out -mr-1 group-hover:mr-0 group-hover:max-w-[1rem] group-hover:translate-x-0 group-hover:opacity-100"
+      >
+        ←
+      </span>
+      {label}
     </Link>
   )
 }
@@ -68,14 +73,14 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-border bg-white/60 px-6 py-16 text-center">
-      <p className="text-base font-extrabold tracking-tight text-ink">{title}</p>
+    <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
+      <p className="text-[15px] font-medium text-ink">{title}</p>
       {description ? (
-        <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-relaxed text-muted">
+        <p className="mx-auto mt-1.5 max-w-md text-[13px] text-muted">
           {description}
         </p>
       ) : null}
-      {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
+      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   )
 }
@@ -94,10 +99,12 @@ export function PageSection({
   return (
     <section className="ui-panel p-5 sm:p-6">
       {(title || actions) && (
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             {title ? <h2 className="ui-section-title">{title}</h2> : null}
-            {description ? <p className="ui-section-desc">{description}</p> : null}
+            {description ? (
+              <p className="ui-section-desc">{description}</p>
+            ) : null}
           </div>
           {actions}
         </div>

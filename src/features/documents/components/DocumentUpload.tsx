@@ -82,8 +82,8 @@ export function DocumentUpload({ landId, scope = 'land', onUpload }: DocumentUpl
         onClick={() => inputRef.current?.click()}
         className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
           isDragging
-            ? 'border-brand-600 bg-brand-50'
-            : 'border-border bg-surface hover:border-brand-500'
+            ? 'border-ink bg-surface'
+            : 'border-border bg-surface hover:border-muted/40'
         }`}
       >
         <p className="text-sm font-medium text-ink">
@@ -111,7 +111,7 @@ export function DocumentUpload({ landId, scope = 'land', onUpload }: DocumentUpl
         <div className="space-y-1">
           <div className="h-2 overflow-hidden rounded-full bg-border">
             <div
-              className="h-full bg-brand-700 transition-all"
+              className="h-full bg-ink transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>

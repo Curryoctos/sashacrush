@@ -1,18 +1,25 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { CargoShipmentList } from '@/features/cargo/components/CargoShipmentList'
 import { useCargoAgents, useCargoShipments } from '@/features/cargo/useCargo'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
-import { useAuth } from '@/hooks/useAuth'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
 export function AdminCargoPage() {
-  const { user } = useAuth()
   const agentsQuery = useCargoAgents()
-  const { shipments, isLoading, error, createShipment, advanceStatus, assignAgent } =
-    useCargoShipments()
+  const {
+    shipments,
+    isLoading,
+    error,
+    createShipment,
+    advanceStatus,
+    assignAgent,
+  } = useCargoShipments()
 
   const [showCreate, setShowCreate] = useState(false)
   const [origin, setOrigin] = useState('Shenzhen, China')
@@ -39,7 +46,8 @@ export function AdminCargoPage() {
       setDescription('')
       setShowCreate(false)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not create shipment.'
+      const message =
+        err instanceof Error ? err.message : 'Could not create shipment.'
       setFormError(message)
       notifyInfo(message)
     } finally {
@@ -48,25 +56,19 @@ export function AdminCargoPage() {
   }
 
   return (
-    <div className="ui-page max-w-4xl space-y-6">
-      <div>
-        <PageBackLink to="/admin/pipeline" label="Pipeline" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="CurryOctos"
-          title="Cargo & imports"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Track China→USA machine shipments and collaborator approvals.`
-              : 'Track China→USA machine shipments and collaborator approvals.'
-          }
-          actions={
-            <Button type="button" onClick={() => setShowCreate((open) => !open)}>
-              {showCreate ? 'Close' : 'New shipment'}
-            </Button>
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/pipeline"
+        backLabel="Pipeline"
+        eyebrow="CurryOctos"
+        title="Cargo & imports"
+        description="Track China→USA machine shipments and collaborator approvals."
+        actions={
+          <Button type="button" onClick={() => setShowCreate((open) => !open)}>
+            {showCreate ? 'Close' : 'New shipment'}
+          </Button>
+        }
+      />
 
       {showCreate ? (
         <Card>
@@ -74,7 +76,10 @@ export function AdminCargoPage() {
             title="New shipment"
             description="Origin, destination, cargo description, and expected arrival."
           />
-          <form className="space-y-5" onSubmit={(event) => void onCreate(event)}>
+          <form
+            className="space-y-5"
+            onSubmit={(event) => void onCreate(event)}
+          >
             <div className="ui-field-row">
               <div className="ui-field">
                 <label htmlFor="cargo-origin" className="ui-label">
@@ -150,7 +155,9 @@ export function AdminCargoPage() {
                     </option>
                   ))}
                 </select>
-                <p className="ui-hint">Optional — agent can approve stages and upload docs.</p>
+                <p className="ui-hint">
+                  Optional — agent can approve stages and upload docs.
+                </p>
               </div>
             </div>
             {formError ? (
@@ -167,7 +174,9 @@ export function AdminCargoPage() {
         </Card>
       ) : null}
 
-      {isLoading ? <p className="text-sm text-muted">Loading shipments…</p> : null}
+      {isLoading ? (
+        <p className="text-sm text-muted">Loading shipments…</p>
+      ) : null}
       {error ? (
         <p className="ui-alert-danger" role="alert">
           {formatSupabaseError(error as Error)}

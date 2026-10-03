@@ -2,15 +2,23 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BarChart3, FolderKanban, MessageSquare, Video } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Stat, StatGrid } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { DealCards, FolderCards } from '@/components/hierarchy/Hierarchy'
 import { useExecutiveDeals } from '@/features/deals/useDealSummary'
-import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
+function Metric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div>
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-2 text-[28px] font-semibold tracking-tight text-ink tabular-nums">
+        {value}
+      </p>
+    </div>
+  )
+}
+
 export function ExecutiveDashboard() {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const { data: deals, isLoading, error } = useExecutiveDeals()
 
@@ -35,18 +43,10 @@ export function ExecutiveDashboard() {
   )
 
   return (
-    <div className="ui-page max-w-4xl">
-      <PageHeader
-        eyebrow="Oversight"
-        title="Executive workspace"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Portfolio status and staff communications.`
-            : 'Portfolio status and staff communications.'
-        }
-      />
+    <div className="ui-page">
+      <PageHeader title="Overview" />
 
-      {isLoading && <p className="text-sm text-muted">Loading workspace…</p>}
+      {isLoading && <p className="text-[13px] text-muted">Loading…</p>}
 
       {error && (
         <p className="ui-alert-danger" role="alert">
@@ -56,22 +56,27 @@ export function ExecutiveDashboard() {
 
       {deals && (
         <>
-          <StatGrid className="lg:grid-cols-3">
-            <Stat label="Active deals" value={deals.length} />
-            <Stat label="Docs pending" value={totals.pendingDocs} />
-            <Stat label="Payments pending" value={totals.pendingPayments} />
-          </StatGrid>
+          <section className="ui-panel p-5 sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h2 className="ui-section-title">Portfolio</h2>
+              <p className="text-[12px] text-muted">Live counts</p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-3">
+              <Metric label="Active deals" value={deals.length} />
+              <Metric label="Docs pending" value={totals.pendingDocs} />
+              <Metric label="Payments pending" value={totals.pendingPayments} />
+            </div>
+          </section>
 
-          <div>
-            <h2 className="ui-section-title">Areas</h2>
-            <p className="ui-section-desc mb-4">Portfolio oversight tools.</p>
+          <section>
+            <h2 className="ui-section-title mb-4">Areas</h2>
             <FolderCards
               folders={[
                 {
                   id: 'deals',
                   title: 'Deal portfolio',
                   description: 'High-level land deal status',
-                  icon: <FolderKanban className="h-5 w-5" />,
+                  icon: <FolderKanban strokeWidth={1.75} />,
                   count: deals.length,
                   onSelect: () => navigate('/executive/deals'),
                 },
@@ -79,33 +84,30 @@ export function ExecutiveDashboard() {
                   id: 'analytics',
                   title: 'Analytics',
                   description: 'Portfolio charts and progress',
-                  icon: <BarChart3 className="h-5 w-5" />,
+                  icon: <BarChart3 strokeWidth={1.75} />,
                   onSelect: () => navigate('/executive/analytics'),
                 },
                 {
                   id: 'messages',
                   title: 'Communications',
                   description: 'Executive staff channel',
-                  icon: <MessageSquare className="h-5 w-5" />,
+                  icon: <MessageSquare strokeWidth={1.75} />,
                   onSelect: () => navigate('/executive/communications'),
                 },
                 {
                   id: 'media',
                   title: 'Media vault',
                   description: 'Watch private project videos',
-                  icon: <Video className="h-5 w-5" />,
+                  icon: <Video strokeWidth={1.75} />,
                   onSelect: () => navigate('/executive/media'),
                 },
               ]}
             />
-          </div>
+          </section>
 
-          <div>
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="ui-section-title">Recent deals</h2>
-                <p className="ui-section-desc">Select a deal for a high-level overview.</p>
-              </div>
+          <section>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="ui-section-title">Recent deals</h2>
               <Button
                 variant="secondary"
                 size="sm"
@@ -118,9 +120,8 @@ export function ExecutiveDashboard() {
               deals={dealCards}
               onSelect={(id) => navigate(`/executive/deals?land=${id}`)}
               emptyTitle="No active deals to display."
-              prompt="Select a deal to continue."
             />
-          </div>
+          </section>
         </>
       )}
     </div>

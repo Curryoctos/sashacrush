@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { useWallet } from '@/features/wallet/WalletProvider'
 import {
   ETHEREUM_MAINNET_CHAIN_ID,
@@ -15,7 +15,10 @@ import { settleCryptoConversion } from '@/features/wallet/settleCryptoConversion
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { formatUgx, formatUsd } from '@/lib/formatters'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { shortenAddress } from '@/features/wallet/constants'
 
 const LOCK_SECONDS = 60
@@ -78,7 +81,10 @@ export function AdminWalletConvertPage() {
       return
     }
     const tick = () => {
-      const left = Math.max(0, Math.ceil((locked.expiresAt - Date.now()) / 1000))
+      const left = Math.max(
+        0,
+        Math.ceil((locked.expiresAt - Date.now()) / 1000),
+      )
       setSecondsLeft(left)
       if (left === 0) {
         setLocked(null)
@@ -122,7 +128,10 @@ export function AdminWalletConvertPage() {
     try {
       const rates = await fetchWalletDisplayRates({ force: true })
       if (rates.stale || rates.usdToUgx <= 0 || rates.cryptoUsd[asset] <= 0) {
-        throw new Error(rates.error || 'Live rate unavailable — cannot initiate crypto payment.')
+        throw new Error(
+          rates.error ||
+            'Live rate unavailable — cannot initiate crypto payment.',
+        )
       }
       const usdNeeded = ugx / rates.usdToUgx
       const cryptoNeeded = usdNeeded / rates.cryptoUsd[asset]
@@ -194,36 +203,34 @@ export function AdminWalletConvertPage() {
       )
       navigate(`/admin/payments?land=${landId}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not complete conversion.')
+      setError(
+        err instanceof Error ? err.message : 'Could not complete conversion.',
+      )
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="ui-page max-w-4xl space-y-6">
-      <div>
-        <PageBackLink to="/admin/wallet" label="Owner wallet" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="Conversion kit"
-          title="Convert and Pay"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Fresh rate → approve in wallet → payment + seller receipt.`
-              : 'Fresh rate → approve in wallet → payment + seller receipt.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/wallet"
+        backLabel="Wallet"
+        eyebrow="Conversion kit"
+        title="Convert and Pay"
+        description="Fresh rate → approve in wallet → payment + seller receipt."
+      />
 
       {!treasuryAddress ? (
         <p className="ui-alert-danger" role="alert">
-          Missing <code className="text-xs">VITE_CRYPTO_TREASURY_ADDRESS</code> — company wallet that
-          receives the on-chain transfer. Add it to `.env.local` and restart.
+          Missing <code className="text-xs">VITE_CRYPTO_TREASURY_ADDRESS</code>{' '}
+          — company wallet that receives the on-chain transfer. Add it to
+          `.env.local` and restart.
         </p>
       ) : (
         <p className="text-sm text-muted">
-          Treasury: <span className="font-mono">{shortenAddress(treasuryAddress)}</span>
+          Treasury:{' '}
+          <span className="font-mono">{shortenAddress(treasuryAddress)}</span>
         </p>
       )}
 
@@ -283,7 +290,9 @@ export function AdminWalletConvertPage() {
             <span className="text-xs text-muted">
               Wallet balance:{' '}
               {holding
-                ? holding.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })
+                ? holding.balance.toLocaleString(undefined, {
+                    maximumFractionDigits: 8,
+                  })
                 : '—'}{' '}
               {asset}
             </span>
@@ -316,7 +325,10 @@ export function AdminWalletConvertPage() {
             <div className="space-y-3 rounded-lg border border-border bg-surface px-4 py-3">
               <p className="text-sm text-ink">
                 Locked: {formatUsd(locked.cryptoUsd)} / {asset} · 1 USD ={' '}
-                {locked.usdToUgx.toLocaleString(undefined, { maximumFractionDigits: 0 })} UGX
+                {locked.usdToUgx.toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })}{' '}
+                UGX
               </p>
               {preview ? (
                 <p className="text-sm font-medium text-ink">
@@ -325,7 +337,9 @@ export function AdminWalletConvertPage() {
                   {formatUgx(Number(ugxAmount))}.
                 </p>
               ) : null}
-              <p className="text-sm text-muted">Confirm in wallet within {secondsLeft}s</p>
+              <p className="text-sm text-muted">
+                Confirm in wallet within {secondsLeft}s
+              </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"

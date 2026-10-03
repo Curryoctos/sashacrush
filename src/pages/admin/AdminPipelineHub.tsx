@@ -8,7 +8,7 @@ export function AdminPipelineHubPage() {
       title="Pipeline"
       description="Project proposals, community incubation, and cargo imports."
       backTo="/admin/dashboard"
-      backLabel="Admin Dashboard"
+      backLabel="Dashboard"
       folders={[
         {
           id: 'suggestions',

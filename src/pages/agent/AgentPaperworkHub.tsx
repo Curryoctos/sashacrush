@@ -8,7 +8,7 @@ export function AgentPaperworkHubPage() {
       title="Paperwork"
       description="Deal documents for signing and confirmed payment receipts."
       backTo="/agent/dashboard"
-      backLabel="Agent Dashboard"
+      backLabel="Dashboard"
       folders={[
         {
           id: 'documents',

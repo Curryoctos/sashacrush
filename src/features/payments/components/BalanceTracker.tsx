@@ -203,7 +203,7 @@ export function BalanceTracker({
     <section className="ui-panel p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">
+          <h2 className="text-[15px] font-semibold text-ink">
             {landTitle} — {landReference}
           </h2>
           <p className="mt-1 text-sm text-muted">Payment Progress</p>
@@ -217,7 +217,7 @@ export function BalanceTracker({
                 `${landReference.toLowerCase()}-payments.csv`,
               )
             }
-            className="rounded-md border border-border bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface"
+            className="rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface"
           >
             ↓ Export CSV
           </button>
@@ -233,7 +233,7 @@ export function BalanceTracker({
           <div className="mt-5">
             <div className="relative h-4 overflow-hidden rounded-full bg-border">
               <div
-                className="h-full rounded-full bg-brand-700 transition-[width]"
+                className="h-full rounded-full bg-ink transition-[width]"
                 style={{ width: `${Math.min(100, summary.pctPaid)}%` }}
               />
             </div>
@@ -291,11 +291,11 @@ function BalanceStat({
   return (
     <div
       className={`rounded-lg border px-4 py-3 ${
-        emphasize ? 'border-brand-200 bg-brand-50' : 'border-border bg-surface'
+        emphasize ? 'border-muted/40 bg-surface' : 'border-border bg-surface-elevated'
       }`}
     >
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="mt-1 font-display text-lg font-semibold text-ink">{usd}</p>
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-1 text-[15px] font-semibold text-ink">{usd}</p>
       <p className="mt-0.5 text-xs text-muted">{ugx}</p>
     </div>
   )

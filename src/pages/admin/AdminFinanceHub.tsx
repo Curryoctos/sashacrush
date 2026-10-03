@@ -8,7 +8,7 @@ export function AdminFinanceHubPage() {
       title="Finance"
       description="Seller payouts, agent capital confirmations, and the owner wallet."
       backTo="/admin/dashboard"
-      backLabel="Admin Dashboard"
+      backLabel="Dashboard"
       folders={[
         {
           id: 'payments',

@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { DocumentsBrowser } from '@/features/documents/components/DocumentsBrowser'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { LandSummary } from '@/features/documents/useDocumentWorkspace'
 
 export function AdminInvestorDocumentsPage() {
-  const { user } = useAuth()
-
   const agentsQuery = useQuery({
     queryKey: ['users', 'agents', 'investor-documents'],
     queryFn: async (): Promise<LandSummary[]> => {
@@ -32,19 +29,13 @@ export function AdminInvestorDocumentsPage() {
   })
 
   return (
-    <div className="ui-page max-w-6xl">
-      <div>
-        <PageBackLink to="/admin/documents-hub" label="Documents" />
-        <PageHeader
-          className="mt-3"
-          title="Agent agreements"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Upload investment agreements, then send them to an agent to sign.`
-              : 'Upload investment agreements, then send them to an agent to sign.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/documents-hub"
+        backLabel="Documents"
+        title="Agent agreements"
+        description="Upload investment agreements, then send them to an agent to sign."
+      />
 
       <DocumentsBrowser
         mode="investor"

@@ -1,19 +1,18 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+
 import { Badge, statusTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { Card, Stat, StatGrid } from '@/components/ui/Card'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { DealCards, HierarchyNav } from '@/components/hierarchy/Hierarchy'
 import { useExecutiveDeals } from '@/features/deals/useDealSummary'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
-import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
 export function ExecutiveDealsPage() {
-  const { user } = useAuth()
   const dealsQuery = useExecutiveDeals()
 
   const deals = useMemo(
@@ -36,21 +35,17 @@ export function ExecutiveDealsPage() {
   const { selectedLand, setNavigation } = useLandHierarchyNav(deals)
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/executive/dashboard" label="Executive Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Deal Portfolio"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. High-level deal status — no field tools or payment sources.`
-              : 'High-level deal status — no field tools or payment sources.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/executive/dashboard"
+        backLabel="Dashboard"
+        title="Deal Portfolio"
+        description="High-level deal status — no field tools or payment sources."
+      />
 
-      {dealsQuery.isLoading && <p className="text-sm text-muted">Loading deals…</p>}
+      {dealsQuery.isLoading && (
+        <p className="text-sm text-muted">Loading deals…</p>
+      )}
 
       {dealsQuery.error && (
         <p className="ui-alert-danger" role="alert">
@@ -84,13 +79,21 @@ export function ExecutiveDealsPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="ui-section-title">{selectedLand.title}</h2>
-                <Badge tone={statusTone(selectedLand.status)}>{selectedLand.status}</Badge>
+                <Badge tone={statusTone(selectedLand.status)}>
+                  {selectedLand.status}
+                </Badge>
               </div>
-              <p className="ui-section-desc">{selectedLand.location ?? 'Deal overview'}</p>
+              <p className="ui-section-desc">
+                {selectedLand.location ?? 'Deal overview'}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-                <ArrowLeft className="h-4 w-4" />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setNavigation(null, null)}
+              >
+                <BackArrow />
                 All deals
               </Button>
               <Link to={`/executive/deals/${selectedLand.id}`}>
@@ -102,17 +105,13 @@ export function ExecutiveDealsPage() {
           <Card>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
-                <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-                  Seller
-                </dt>
+                <dt className="text-[13px] text-muted">Seller</dt>
                 <dd className="mt-1 text-sm font-medium text-ink">
                   {selectedLand.seller_name ?? 'Unassigned'}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-                  Value
-                </dt>
+                <dt className="text-[13px] text-muted">Value</dt>
                 <dd className="mt-1 text-sm font-medium text-ink">
                   {formatUsd(Number(selectedLand.total_value_usd))}
                 </dd>
@@ -121,10 +120,22 @@ export function ExecutiveDealsPage() {
           </Card>
 
           <StatGrid>
-            <Stat label="Docs awaiting" value={String(selectedLand.pending_docs)} />
-            <Stat label="Docs signed" value={String(selectedLand.signed_docs)} />
-            <Stat label="Payments confirmed" value={String(selectedLand.confirmed_payments)} />
-            <Stat label="Payments pending" value={String(selectedLand.pending_payments)} />
+            <Stat
+              label="Docs awaiting"
+              value={String(selectedLand.pending_docs)}
+            />
+            <Stat
+              label="Docs signed"
+              value={String(selectedLand.signed_docs)}
+            />
+            <Stat
+              label="Payments confirmed"
+              value={String(selectedLand.confirmed_payments)}
+            />
+            <Stat
+              label="Payments pending"
+              value={String(selectedLand.pending_payments)}
+            />
           </StatGrid>
         </div>
       )}

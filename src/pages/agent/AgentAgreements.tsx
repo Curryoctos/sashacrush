@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { DocumentsBrowser } from '@/features/documents/components/DocumentsBrowser'
 import { notifySuccess } from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
@@ -49,26 +50,21 @@ export function AgentAgreementsPage() {
     : []
 
   return (
-    <div className="ui-page max-w-6xl">
-      <div>
-        <PageBackLink to="/agent/capital" label="Capital" />
-        <PageHeader
-          className="mt-3"
-          title="Agreements"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Sign investment agreements before contributing toward a deal.`
-              : 'Sign investment agreements before contributing toward a deal.'
-          }
-          actions={
-            <Link to="/agent/investments">
-              <Button variant="secondary" size="sm">
-                Back to investments
-              </Button>
-            </Link>
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/agent/capital"
+        backLabel="Capital"
+        title="Agreements"
+        description="Sign investment agreements before contributing toward a deal."
+        actions={
+          <Link to="/agent/investments">
+            <Button variant="secondary" size="sm">
+              <BackArrow />
+              Investments
+            </Button>
+          </Link>
+        }
+      />
 
       <DocumentsBrowser
         mode="investor"
@@ -89,7 +85,9 @@ export function AgentAgreementsPage() {
             },
             { replace: true },
           )
-          notifySuccess('Agreement signed. Continue to Investments when you are ready.')
+          notifySuccess(
+            'Agreement signed. Continue to Investments when you are ready.',
+          )
           window.setTimeout(() => {
             navigate('/agent/investments')
           }, 900)

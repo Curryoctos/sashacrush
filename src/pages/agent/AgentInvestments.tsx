@@ -9,17 +9,18 @@ import {
   useMyInvestments,
   type InvestmentWithMeta,
 } from '@/features/investments/useInvestments'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { Button } from '@/components/ui/Button'
 import { Card, Stat } from '@/components/ui/Card'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
-import { useAuth } from '@/hooks/useAuth'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { formatUsd } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import type { CreateInvestmentInput } from '@/features/investments/validation'
 
 export function AgentInvestmentsPage() {
-  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showCreate, setShowCreate] = useState(false)
   const gate = useInvestmentAccessGate()
@@ -84,12 +85,16 @@ export function AgentInvestmentsPage() {
     try {
       await createInvestment(input)
       if (input.method !== 'stripe') {
-        notifySuccess('Investment submitted. Admin will confirm once funds arrive.')
+        notifySuccess(
+          'Investment submitted. Admin will confirm once funds arrive.',
+        )
         setShowCreate(false)
       }
     } catch (submitError) {
       const message =
-        submitError instanceof Error ? submitError.message : 'Could not submit investment.'
+        submitError instanceof Error
+          ? submitError.message
+          : 'Could not submit investment.'
       notifyInfo(message)
       throw submitError instanceof Error ? submitError : new Error(message)
     }
@@ -121,39 +126,41 @@ export function AgentInvestmentsPage() {
   }, [investments])
 
   return (
-    <div className="ui-page max-w-4xl space-y-6">
-      <div>
-        <PageBackLink to="/agent/capital" label="Capital" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="Capital"
-          title="Investments"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Invest toward a deal — confirmed amounts fund the company capital pool.`
-              : 'Invest toward a deal — confirmed amounts fund the company capital pool.'
-          }
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <Link to="/agent/agreements">
-                <Button variant="secondary">Agreements</Button>
-              </Link>
-              {gate.canContribute ? (
-                <Button type="button" onClick={() => setShowCreate((open) => !open)}>
-                  {showCreate ? 'Close' : 'New investment'}
-                </Button>
-              ) : null}
-            </div>
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/agent/capital"
+        backLabel="Capital"
+        eyebrow="Capital"
+        title="Investments"
+        description="Invest toward a deal — confirmed amounts fund the company capital pool."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link to="/agent/agreements">
+              <Button variant="secondary">Agreements</Button>
+            </Link>
+            {gate.canContribute ? (
+              <Button
+                type="button"
+                onClick={() => setShowCreate((open) => !open)}
+              >
+                {showCreate ? 'Close' : 'New investment'}
+              </Button>
+            ) : null}
+          </div>
+        }
+      />
 
       {showSummary ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Stat label="Your confirmed investments" value={formatUsd(confirmedTotalUsd)} />
+          <Stat
+            label="Your confirmed investments"
+            value={formatUsd(confirmedTotalUsd)}
+          />
           <Stat
             label="Awaiting confirmation"
-            value={String(investments.filter((row) => row.status === 'pending').length)}
+            value={String(
+              investments.filter((row) => row.status === 'pending').length,
+            )}
             hint="In the capital pool once confirmed"
           />
         </div>
@@ -164,7 +171,8 @@ export function AgentInvestmentsPage() {
           <div>
             <h2 className="ui-section-title">By deal</h2>
             <p className="ui-section-desc">
-              Earmarked toward each project; all confirmed totals still sit in one capital pool.
+              Earmarked toward each project; all confirmed totals still sit in
+              one capital pool.
             </p>
           </div>
           <div className="space-y-2">
@@ -174,7 +182,9 @@ export function AgentInvestmentsPage() {
                   <p className="text-sm font-semibold text-ink">{deal.title}</p>
                   <p className="text-sm text-muted">
                     {formatUsd(deal.confirmed)} confirmed
-                    {deal.pending > 0 ? ` · ${formatUsd(deal.pending)} pending` : ''}
+                    {deal.pending > 0
+                      ? ` · ${formatUsd(deal.pending)} pending`
+                      : ''}
                   </p>
                 </div>
               </Card>
@@ -215,9 +225,9 @@ export function AgentInvestmentsPage() {
             }
             showDeal
             dealLabel={(row) => {
-              const withMeta = investments.find((item) => item.id === row.id) as
-                | InvestmentWithMeta
-                | undefined
+              const withMeta = investments.find(
+                (item) => item.id === row.id,
+              ) as InvestmentWithMeta | undefined
               return withMeta?.land_title ?? null
             }}
           />

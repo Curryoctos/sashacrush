@@ -26,7 +26,7 @@ export function AgentDealPage() {
       {dealQuery.data && (
         <DealSummaryPanel
           deal={{ ...dealQuery.data, unreadCount: 0 }}
-          backLink={{ to: '/agent/land-records', label: 'Land Records' }}
+          backLink={{ to: '/agent/land-records', label: 'Land records' }}
           quickActions={[
             {
               label: 'Field photos',

@@ -3,16 +3,20 @@ import { RefreshCw, Unplug, Wallet } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { WalletPortfolioPanel } from '@/features/wallet/components/WalletPortfolioPanel'
 import { useWallet } from '@/features/wallet/WalletProvider'
-import { ETHEREUM_MAINNET_CHAIN_ID, shortenAddress } from '@/features/wallet/constants'
+import {
+  ETHEREUM_MAINNET_CHAIN_ID,
+  shortenAddress,
+} from '@/features/wallet/constants'
 import { useWalletDisplayRates } from '@/features/wallet/useWalletDisplayRates'
-import { useAuth } from '@/hooks/useAuth'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 
 export function AdminWalletPage() {
-  const { user } = useAuth()
   const wallet = useWallet()
   const ratesQuery = useWalletDisplayRates(Boolean(wallet.address))
 
@@ -24,18 +28,26 @@ export function AdminWalletPage() {
   const handleMetaMask = async () => {
     try {
       await wallet.connectMetaMask()
-      notifySuccess('MetaMask connected. Balances are read-only — keys stay on your device.')
+      notifySuccess(
+        'MetaMask connected. Balances are read-only — keys stay on your device.',
+      )
     } catch (err) {
-      notifyInfo(err instanceof Error ? err.message : 'Could not connect MetaMask.')
+      notifyInfo(
+        err instanceof Error ? err.message : 'Could not connect MetaMask.',
+      )
     }
   }
 
   const handleWalletConnect = async () => {
     try {
       await wallet.connectWalletConnect()
-      notifySuccess('Wallet connected via WalletConnect. Keys stay on your device.')
+      notifySuccess(
+        'Wallet connected via WalletConnect. Keys stay on your device.',
+      )
     } catch (err) {
-      notifyInfo(err instanceof Error ? err.message : 'Could not connect WalletConnect.')
+      notifyInfo(
+        err instanceof Error ? err.message : 'Could not connect WalletConnect.',
+      )
     }
   }
 
@@ -49,23 +61,19 @@ export function AdminWalletPage() {
   }
 
   const ratesReady = Boolean(ratesQuery.data && !ratesQuery.data.stale)
-  const canConvertAndPay = Boolean(wallet.address && ratesReady && !onWrongChain)
+  const canConvertAndPay = Boolean(
+    wallet.address && ratesReady && !onWrongChain,
+  )
 
   return (
-    <div className="ui-page max-w-4xl space-y-6">
-      <div>
-        <PageBackLink to="/admin/finance" label="Finance" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="Web3"
-          title="Owner wallet"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Connect MetaMask or WalletConnect. SashaCrush never asks for or stores private keys.`
-              : 'Connect MetaMask or WalletConnect. SashaCrush never asks for or stores private keys.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/finance"
+        backLabel="Finance"
+        eyebrow="Web3"
+        title="Owner wallet"
+        description="Connect MetaMask or WalletConnect. SashaCrush never asks for or stores private keys."
+      />
 
       {wallet.error ? (
         <p className="ui-alert-danger" role="alert">
@@ -104,7 +112,8 @@ export function AdminWalletPage() {
           ) : null}
           {!wallet.walletConnectConfigured ? (
             <p className="mt-3 text-sm text-muted">
-              WalletConnect needs <code className="text-xs">VITE_WALLETCONNECT_PROJECT_ID</code> in
+              WalletConnect needs{' '}
+              <code className="text-xs">VITE_WALLETCONNECT_PROJECT_ID</code> in
               `.env.local` (from{' '}
               <a
                 className="underline"
@@ -123,14 +132,15 @@ export function AdminWalletPage() {
           <Card>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-                  Connected
-                </p>
+                <p className="text-[13px] text-muted">Connected</p>
                 <p className="mt-1 font-mono text-sm font-semibold text-ink">
                   {shortenAddress(wallet.address)}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  via {wallet.connector === 'walletconnect' ? 'WalletConnect' : 'MetaMask'}
+                  via{' '}
+                  {wallet.connector === 'walletconnect'
+                    ? 'WalletConnect'
+                    : 'MetaMask'}
                   {wallet.chainId != null ? ` · chain ${wallet.chainId}` : ''}
                 </p>
               </div>

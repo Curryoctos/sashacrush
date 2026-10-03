@@ -11,15 +11,23 @@ import {
   PiggyBank,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Stat, StatGrid } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { DealCards, FolderCards } from '@/components/hierarchy/Hierarchy'
 import { useAgentDashboardStats } from '@/features/dashboard/useAgentDashboardStats'
-import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
+function Metric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div>
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-2 text-[28px] font-semibold tracking-tight text-ink tabular-nums">
+        {value}
+      </p>
+    </div>
+  )
+}
+
 export function AgentDashboard() {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const { data: stats, isLoading, error } = useAgentDashboardStats()
 
@@ -34,18 +42,10 @@ export function AgentDashboard() {
   )
 
   return (
-    <div className="ui-page max-w-4xl">
-      <PageHeader
-        eyebrow="Field ops"
-        title="Agent workspace"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Land maps, camera, paperwork, capital, and seller chat.`
-            : 'Land maps, camera, paperwork, capital, and seller chat.'
-        }
-      />
+    <div className="ui-page">
+      <PageHeader title="Overview" />
 
-      {isLoading && <p className="text-sm text-muted">Loading workspace…</p>}
+      {isLoading && <p className="text-[13px] text-muted">Loading…</p>}
 
       {error && (
         <p className="ui-alert-danger" role="alert">
@@ -55,22 +55,33 @@ export function AgentDashboard() {
 
       {stats && (
         <>
-          <StatGrid className="lg:grid-cols-3">
-            <Stat label="Active deals" value={stats.activeLands} />
-            <Stat label="Docs awaiting sign" value={stats.docsAwaitingSign} />
-            <Stat label="Unconfirmed payments" value={stats.pendingPayments} />
-          </StatGrid>
+          <section className="ui-panel p-5 sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h2 className="ui-section-title">Workspace</h2>
+              <p className="text-[12px] text-muted">Live counts</p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-3">
+              <Metric label="Active deals" value={stats.activeLands} />
+              <Metric
+                label="Docs awaiting sign"
+                value={stats.docsAwaitingSign}
+              />
+              <Metric
+                label="Unconfirmed payments"
+                value={stats.pendingPayments}
+              />
+            </div>
+          </section>
 
-          <div>
-            <h2 className="ui-section-title">Areas</h2>
-            <p className="ui-section-desc mb-4">Grouped the same way as the side drawer.</p>
+          <section>
+            <h2 className="ui-section-title mb-4">Areas</h2>
             <FolderCards
               folders={[
                 {
                   id: 'deals',
                   title: 'Land records',
                   description: 'Maps, site visits, and deal workspaces',
-                  icon: <FolderKanban className="h-5 w-5" />,
+                  icon: <FolderKanban strokeWidth={1.75} />,
                   count: stats.activeLands,
                   onSelect: () => navigate('/agent/land-records'),
                 },
@@ -78,14 +89,14 @@ export function AgentDashboard() {
                   id: 'analytics',
                   title: 'Analytics',
                   description: 'Deal progress and portfolio charts',
-                  icon: <BarChart3 className="h-5 w-5" />,
+                  icon: <BarChart3 strokeWidth={1.75} />,
                   onSelect: () => navigate('/agent/analytics'),
                 },
                 {
                   id: 'paperwork',
                   title: 'Paperwork',
                   description: 'Documents and payment receipts',
-                  icon: <FileText className="h-5 w-5" />,
+                  icon: <FileText strokeWidth={1.75} />,
                   count: stats.docsAwaitingSign,
                   onSelect: () => navigate('/agent/paperwork'),
                 },
@@ -93,47 +104,44 @@ export function AgentDashboard() {
                   id: 'capital',
                   title: 'Capital',
                   description: 'Investments and agreements',
-                  icon: <PiggyBank className="h-5 w-5" />,
+                  icon: <PiggyBank strokeWidth={1.75} />,
                   onSelect: () => navigate('/agent/capital'),
                 },
                 {
                   id: 'suggestions',
                   title: 'Suggestions',
                   description: 'Propose ideas for active projects',
-                  icon: <Lightbulb className="h-5 w-5" />,
+                  icon: <Lightbulb strokeWidth={1.75} />,
                   onSelect: () => navigate('/agent/suggestions'),
                 },
                 {
                   id: 'cargo',
                   title: 'Cargo',
                   description: 'Assigned shipments and stage approvals',
-                  icon: <Package className="h-5 w-5" />,
+                  icon: <Package strokeWidth={1.75} />,
                   onSelect: () => navigate('/agent/cargo'),
                 },
                 {
                   id: 'photos',
                   title: 'Field photos',
                   description: 'GPS camera captures on site',
-                  icon: <Camera className="h-5 w-5" />,
+                  icon: <Camera strokeWidth={1.75} />,
                   onSelect: () => navigate('/agent/photos'),
                 },
                 {
                   id: 'messages',
                   title: 'Messages',
                   description: 'Seller conversations',
-                  icon: <MessageSquare className="h-5 w-5" />,
+                  icon: <MessageSquare strokeWidth={1.75} />,
                   onSelect: () => navigate('/agent/chat'),
                 },
               ]}
             />
-          </div>
+          </section>
 
-          <div>
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="ui-section-title">Recent deals</h2>
-                <p className="ui-section-desc">Jump straight into a deal workspace.</p>
-              </div>
+          <section>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="ui-section-title">Recent deals</h2>
               <Button
                 variant="secondary"
                 size="sm"
@@ -146,9 +154,8 @@ export function AgentDashboard() {
               deals={dealCards}
               onSelect={(id) => navigate(`/agent/land-records?land=${id}`)}
               emptyTitle="No active deals yet"
-              prompt="Select a deal to continue."
             />
-          </div>
+          </section>
         </>
       )}
     </div>

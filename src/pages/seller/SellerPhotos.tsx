@@ -1,26 +1,18 @@
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { PhotosBrowser } from '@/features/photos/components/PhotosBrowser'
 import { useSellerLands } from '@/features/seller/useSellerLands'
-import { useAuth } from '@/hooks/useAuth'
 
 export function SellerPhotosPage() {
-  const { user } = useAuth()
   const { lands, isLoading, error } = useSellerLands()
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/seller/dashboard" label="Seller Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Property Photos"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Open a deal, then take a site photo.`
-              : 'Open a deal, then take a site photo.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/seller/dashboard"
+        backLabel="Dashboard"
+        title="Property Photos"
+        description="Open a deal, then take a site photo."
+      />
 
       <PhotosBrowser
         lands={lands}

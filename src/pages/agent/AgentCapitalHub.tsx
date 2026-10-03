@@ -8,7 +8,7 @@ export function AgentCapitalHubPage() {
       title="Capital"
       description="Invest toward deals and sign agreements before contributing."
       backTo="/agent/dashboard"
-      backLabel="Agent Dashboard"
+      backLabel="Dashboard"
       folders={[
         {
           id: 'investments',

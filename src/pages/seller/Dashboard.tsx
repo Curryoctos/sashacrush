@@ -1,8 +1,15 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { ArrowLeft, Camera, FileText, MapPin, MessageSquare, Receipt } from 'lucide-react'
+import {
+  Camera,
+  FileText,
+  MapPin,
+  MessageSquare,
+  Receipt,
+} from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { PageHeader } from '@/components/ui/PageHeader'
 import {
   DealCards,
@@ -43,7 +50,8 @@ export function SellerDashboard() {
   })
 
   const lands = data ?? []
-  const { selectedLand, selectedFolder, setNavigation } = useLandHierarchyNav(lands)
+  const { selectedLand, selectedFolder, setNavigation } =
+    useLandHierarchyNav(lands)
 
   const dealCards = useMemo(
     () =>
@@ -56,18 +64,10 @@ export function SellerDashboard() {
   )
 
   return (
-    <div className="ui-page max-w-4xl">
-      <PageHeader
-        eyebrow="Seller portal"
-        title="Your workspace"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Open a deal, then a folder.`
-            : 'Open a deal, then a folder.'
-        }
-      />
+    <div className="ui-page">
+      <PageHeader title="Overview" />
 
-      {isLoading && <p className="text-sm text-muted">Loading workspace…</p>}
+      {isLoading && <p className="text-[13px] text-muted">Loading…</p>}
 
       {error && (
         <p className="ui-alert-danger" role="alert">
@@ -97,17 +97,14 @@ export function SellerDashboard() {
               { label: 'Map' },
             ]}
           />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="ui-section-title">Site map</h2>
-              <p className="ui-section-desc">Your land boundary and field photo pins</p>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="ui-section-title">Site map</h2>
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setNavigation(selectedLand.id, null)}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <BackArrow />
               Folders
             </Button>
           </div>
@@ -127,13 +124,14 @@ export function SellerDashboard() {
               { label: selectedLand.title },
             ]}
           />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="ui-section-title">{selectedLand.title}</h2>
-              <p className="ui-section-desc">Choose a folder</p>
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="ui-section-title">{selectedLand.title}</h2>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(null, null)}
+            >
+              <BackArrow />
               Workspace
             </Button>
           </div>
@@ -153,28 +151,32 @@ export function SellerDashboard() {
                 description: 'Talk with the SashaCrush team',
                 icon: <MessageSquare className="h-5 w-5" />,
                 count: unreadCount > 0 ? unreadCount : undefined,
-                onSelect: () => navigate(`/seller/chat?land=${selectedLand.id}`),
+                onSelect: () =>
+                  navigate(`/seller/chat?land=${selectedLand.id}`),
               },
               {
                 id: 'documents',
                 title: 'Documents',
                 description: 'Review and sign deal documents',
                 icon: <FileText className="h-5 w-5" />,
-                onSelect: () => navigate(`/seller/documents?land=${selectedLand.id}`),
+                onSelect: () =>
+                  navigate(`/seller/documents?land=${selectedLand.id}`),
               },
               {
                 id: 'receipts',
                 title: 'Receipts',
                 description: 'Download payment receipts',
                 icon: <Receipt className="h-5 w-5" />,
-                onSelect: () => navigate(`/seller/receipts?land=${selectedLand.id}`),
+                onSelect: () =>
+                  navigate(`/seller/receipts?land=${selectedLand.id}`),
               },
               {
                 id: 'photos',
                 title: 'Photos',
                 description: 'Property photo gallery',
                 icon: <Camera className="h-5 w-5" />,
-                onSelect: () => navigate(`/seller/photos?land=${selectedLand.id}`),
+                onSelect: () =>
+                  navigate(`/seller/photos?land=${selectedLand.id}`),
               },
             ]}
           />

@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Camera,
   FileText,
   FolderOpen,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Badge, statusTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { Card, Stat, StatGrid } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/PageHeader'
 import { IconActionButton } from '@/components/ui/IconActionButton'
@@ -149,7 +149,7 @@ export function LandRecordsBrowser({
         <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <button
             type="button"
-            className="font-medium text-brand-700 hover:text-brand-800"
+            className="font-medium text-ink hover:text-neutral-700"
             onClick={() => setNavigation(null, null)}
           >
             All deals
@@ -164,7 +164,7 @@ export function LandRecordsBrowser({
             <p className="ui-section-desc">Add a deal workspace for documents, payments, and chat.</p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-            <ArrowLeft className="h-4 w-4" />
+            <BackArrow />
             All deals
           </Button>
         </div>
@@ -208,7 +208,7 @@ export function LandRecordsBrowser({
         <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <button
             type="button"
-            className="font-medium text-brand-700 hover:text-brand-800"
+            className="font-medium text-ink hover:text-neutral-700"
             onClick={() => setNavigation(null, null)}
           >
             All deals
@@ -237,7 +237,7 @@ export function LandRecordsBrowser({
 
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+              <BackArrow />
               All deals
             </Button>
             {editForm && folders.includes('edit') && (
@@ -266,9 +266,9 @@ export function LandRecordsBrowser({
                   }
                   setNavigation(selectedLand.id, folder)
                 }}
-                className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+                className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-muted/40 hover:bg-surface/60"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface text-brand-800 transition group-hover:bg-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface text-ink transition group-hover:bg-surface-elevated">
                   <FolderIcon className="h-5 w-5" aria-hidden />
                 </div>
                 <p className="mt-4 text-sm font-semibold text-ink">{LAND_FOLDER_LABELS[folder]}</p>
@@ -331,12 +331,12 @@ export function LandRecordsBrowser({
               key={land.id}
               type="button"
               onClick={() => setNavigation(land.id, null)}
-              className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+              className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-muted/40 hover:bg-surface/60"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-50 text-brand-800">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface text-ink">
                 <FolderOpen className="h-5 w-5" aria-hidden />
               </div>
-              <h3 className="mt-4 truncate text-sm font-semibold text-ink group-hover:text-brand-900">
+              <h3 className="mt-4 truncate text-sm font-semibold text-ink group-hover:text-ink">
                 {land.title}
               </h3>
               <p className="mt-1 text-xs text-muted">
@@ -378,7 +378,7 @@ function FolderDetail({
       <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
         <button
           type="button"
-          className="font-medium text-brand-700 hover:text-brand-800"
+          className="font-medium text-ink hover:text-neutral-700"
           onClick={onBackToDeals}
         >
           All deals
@@ -386,7 +386,7 @@ function FolderDetail({
         <span aria-hidden>/</span>
         <button
           type="button"
-          className="font-medium text-brand-700 hover:text-brand-800"
+          className="font-medium text-ink hover:text-neutral-700"
           onClick={onBackToFolders}
         >
           {land.title}
@@ -397,7 +397,7 @@ function FolderDetail({
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-800">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-surface text-ink">
             <FolderIcon className="h-5 w-5" aria-hidden />
           </div>
           <div>
@@ -409,7 +409,7 @@ function FolderDetail({
         </div>
 
         <Button variant="secondary" size="sm" onClick={onBackToFolders}>
-          <ArrowLeft className="h-4 w-4" />
+          <BackArrow />
           Folders
         </Button>
       </div>
@@ -496,7 +496,7 @@ function OverviewPanel({
           <Metric label="Seller" value={deal.land.seller_name ?? 'Unassigned'} />
           <Metric label="Total value" value={formatUsd(deal.land.total_value_usd)} />
           <div>
-            <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">Status</dt>
+            <dt className="text-[13px] text-muted">Status</dt>
             <dd className="mt-1">
               <Badge tone={statusTone(deal.land.status)}>{deal.land.status}</Badge>
             </dd>
@@ -525,7 +525,7 @@ function OverviewPanel({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{label}</dt>
+      <dt className="text-[13px] text-muted">{label}</dt>
       <dd className="mt-1 text-sm font-medium text-ink">{value}</dd>
     </div>
   )

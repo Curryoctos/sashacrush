@@ -343,7 +343,7 @@ export function UsersBrowser() {
             <label className="flex items-start gap-3 rounded-xl border border-border/80 bg-surface/60 px-4 py-3 text-sm font-semibold text-ink">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-border text-brand-700"
+                className="mt-0.5 h-4 w-4 rounded border-border text-ink"
                 checked={sendInvite}
                 onChange={(e) => setSendInvite(e.target.checked)}
               />

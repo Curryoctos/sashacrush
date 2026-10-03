@@ -197,13 +197,13 @@ export function SignatureCaptureModal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative z-10 w-full max-w-xl outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+        className="relative z-10 w-full max-w-xl outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
       >
         <div className="space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
             Electronic signature
           </p>
-          <h2 id={titleId} className="font-display text-xl font-semibold text-ink">
+          <h2 id={titleId} className="text-[15px] font-semibold text-ink">
             Sign with your hand
           </h2>
           <p className="text-sm text-muted">
@@ -247,8 +247,8 @@ export function SignatureCaptureModal({
             </div>
           ) : (
             <div className="space-y-3">
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface px-4 py-8 text-center transition hover:border-brand-300 hover:bg-brand-50/40">
-                <Upload className="h-5 w-5 text-brand-700" aria-hidden />
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface px-4 py-8 text-center transition hover:border-muted/40 hover:bg-surface">
+                <Upload className="h-5 w-5 text-ink" aria-hidden />
                 <span className="text-sm font-medium text-ink">
                   {processing ? 'Cleaning background…' : 'Choose PNG or JPG'}
                 </span>
@@ -267,7 +267,7 @@ export function SignatureCaptureModal({
           )}
 
           {previewUrl ? (
-            <div className="rounded-lg border border-border bg-white p-4">
+            <div className="rounded-lg border border-border bg-surface-elevated p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                 Preview
               </p>
@@ -340,7 +340,7 @@ function ModeTab({
       className={cn(
         'inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition',
         active
-          ? 'bg-white text-ink shadow-sm'
+          ? 'bg-surface-elevated text-ink shadow-sm'
           : 'text-muted hover:text-ink',
         disabled ? 'opacity-50' : '',
       )}

@@ -3,12 +3,20 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/PageHeader'
 import { useIncubationSchedule } from '@/features/community/useCommunity'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { formatDateTime } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-export function CommunitySchedulePage({ compact = false }: { compact?: boolean }) {
-  const { events, isLoading, error, isAdmin, createEvent, deleteEvent } = useIncubationSchedule()
+export function CommunitySchedulePage({
+  compact = false,
+}: {
+  compact?: boolean
+}) {
+  const { events, isLoading, error, isAdmin, createEvent, deleteEvent } =
+    useIncubationSchedule()
   const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
   const [startsAt, setStartsAt] = useState('')
@@ -46,9 +54,15 @@ export function CommunitySchedulePage({ compact = false }: { compact?: boolean }
           {compact ? (
             <h2 className="ui-section-title">Incubation schedule</h2>
           ) : (
-            <h1 className="font-display text-3xl font-semibold text-ink">Incubation schedule</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight text-ink">
+              Incubation schedule
+            </h1>
           )}
-          <p className={compact ? 'ui-section-desc' : 'mt-2 text-sm text-muted'}>
+          <p
+            className={
+              compact ? 'ui-section-desc' : 'mt-3 text-[13px] text-muted'
+            }
+          >
             Upcoming dates for visitors and collaborators.
           </p>
         </div>
@@ -61,8 +75,14 @@ export function CommunitySchedulePage({ compact = false }: { compact?: boolean }
 
       {isAdmin && showCreate ? (
         <Card>
-          <CardHeader title="Add date" description="Visible on the public community schedule." />
-          <form className="space-y-5" onSubmit={(event) => void onCreate(event)}>
+          <CardHeader
+            title="Add date"
+            description="Visible on the public community schedule."
+          />
+          <form
+            className="space-y-5"
+            onSubmit={(event) => void onCreate(event)}
+          >
             <div className="ui-field-row">
               <div className="ui-field">
                 <label htmlFor="schedule-title" className="ui-label">
@@ -128,7 +148,9 @@ export function CommunitySchedulePage({ compact = false }: { compact?: boolean }
         </Card>
       ) : null}
 
-      {isLoading ? <p className="text-sm text-muted">Loading schedule…</p> : null}
+      {isLoading ? (
+        <p className="text-sm text-muted">Loading schedule…</p>
+      ) : null}
       {error ? (
         <p className="ui-alert-danger" role="alert">
           {formatSupabaseError(error as Error)}
@@ -136,7 +158,10 @@ export function CommunitySchedulePage({ compact = false }: { compact?: boolean }
       ) : null}
 
       {!isLoading && !error && events.length === 0 ? (
-        <EmptyState title="No upcoming dates." description="Check back soon for incubation visits." />
+        <EmptyState
+          title="No upcoming dates."
+          description="Check back soon for incubation visits."
+        />
       ) : null}
 
       <div className="space-y-3">
@@ -145,10 +170,16 @@ export function CommunitySchedulePage({ compact = false }: { compact?: boolean }
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-medium text-ink">{item.title}</p>
-                <p className="mt-1 text-sm text-muted">{formatDateTime(item.starts_at)}</p>
-                {item.location ? <p className="mt-1 text-sm text-muted">{item.location}</p> : null}
+                <p className="mt-1 text-sm text-muted">
+                  {formatDateTime(item.starts_at)}
+                </p>
+                {item.location ? (
+                  <p className="mt-1 text-sm text-muted">{item.location}</p>
+                ) : null}
                 {item.description ? (
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-ink">{item.description}</p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-ink">
+                    {item.description}
+                  </p>
                 ) : null}
               </div>
               {isAdmin ? (
@@ -160,7 +191,11 @@ export function CommunitySchedulePage({ compact = false }: { compact?: boolean }
                     void deleteEvent(item.id).then(
                       () => notifySuccess('Date removed.'),
                       (err: unknown) =>
-                        notifyInfo(err instanceof Error ? err.message : 'Could not delete.'),
+                        notifyInfo(
+                          err instanceof Error
+                            ? err.message
+                            : 'Could not delete.',
+                        ),
                     )
                   }}
                 >

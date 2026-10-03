@@ -446,7 +446,7 @@ function LandDocumentGroup({
         <button
           type="button"
           onClick={onToggle}
-          className="inline-flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="inline-flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:ring-2 focus-visible:ring-ink/20"
           aria-expanded={expanded}
           aria-controls={`land-docs-${land.id}`}
         >

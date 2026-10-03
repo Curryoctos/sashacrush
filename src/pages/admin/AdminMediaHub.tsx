@@ -8,7 +8,7 @@ export function AdminMediaHubPage() {
       title="Media"
       description="Field photos from site visits and the private video vault."
       backTo="/admin/dashboard"
-      backLabel="Admin Dashboard"
+      backLabel="Dashboard"
       folders={[
         {
           id: 'photos',

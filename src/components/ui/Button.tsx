@@ -11,18 +11,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary:
-    'bg-brand-700 text-white shadow-[0_1px_2px_rgb(11_18_14/0.2),inset_0_1px_0_rgb(255_255_255/0.12)] hover:bg-brand-800 active:bg-brand-900',
+  primary: 'bg-ink text-ink-inverse hover:opacity-90',
   secondary:
-    'border border-border bg-white text-ink shadow-[0_1px_2px_rgb(11_18_14/0.04)] hover:border-brand-200 hover:bg-brand-50/50',
-  ghost: 'text-muted hover:bg-white/80 hover:text-ink',
-  danger: 'bg-danger text-white shadow-[0_1px_2px_rgb(180_35_24/0.25)] hover:bg-danger/90',
+    'border border-border bg-surface-elevated text-ink hover:bg-hover',
+  ghost: 'text-muted hover:bg-hover hover:text-ink',
+  danger: 'bg-danger text-white hover:opacity-90',
 }
 
 const sizeClass: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-xs font-bold',
-  md: 'px-4 py-2.5 text-sm font-bold',
-  lg: 'px-5 py-3 text-sm font-extrabold tracking-tight',
+  sm: 'h-8 px-3 text-[12px] font-medium',
+  md: 'h-9 px-3.5 text-[13px] font-medium',
+  lg: 'h-10 px-4 text-[13px] font-medium',
 }
 
 export function Button({
@@ -39,7 +38,7 @@ export function Button({
       type={type}
       disabled={disabled}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg transition',
+        'group inline-flex items-center justify-center gap-2 rounded-lg transition',
         'disabled:pointer-events-none disabled:opacity-45',
         variantClass[variant],
         sizeClass[size],

@@ -91,7 +91,7 @@ export function WalletPortfolioPanel({
           <div className="grid gap-3 sm:grid-cols-3">
             {rows.map(({ holding, usd, ugx }) => (
               <Card key={holding.asset} padding="sm">
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
+                <p className="text-[13px] text-muted">
                   {holding.asset}
                   {holding.sourceLabel ? ` · ${holding.sourceLabel}` : ''}
                 </p>

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ClipboardList, History, Scale, Wallet } from 'lucide-react'
+import { ClipboardList, History, Scale, Wallet } from 'lucide-react'
 import { BalanceTracker } from '@/features/payments/components/BalanceTracker'
 import { PaymentCheckoutForm } from '@/features/payments/components/PaymentCheckoutForm'
 import { computeDealBalance } from '@/features/payments/balance'
@@ -19,11 +19,17 @@ import {
   PAYMENT_FOLDER_ORDER,
   isPaymentFolder,
 } from '@/features/payments/paymentFolders'
-import { useAllPayments, type PaymentWithLand } from '@/features/payments/usePayments'
+import {
+  useAllPayments,
+  type PaymentWithLand,
+} from '@/features/payments/usePayments'
 import { useReceiptDownload } from '@/features/payments/useReceiptDownload'
 import type { CreatePaymentInput } from '@/features/payments/validation'
 import { useCompanyCapital } from '@/features/investments/useInvestments'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import {
   DealCards,
   FolderCards,
@@ -31,10 +37,10 @@ import {
 } from '@/components/hierarchy/Hierarchy'
 import { Badge, statusTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
-import { useAuth } from '@/hooks/useAuth'
 import { formatDate, formatUgx, formatUsd } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import { supabase } from '@/lib/supabase'
@@ -43,14 +49,15 @@ import type { LandRecord } from '@/types'
 const LAND_COLUMNS = 'id, title, total_value_usd'
 
 export function AdminPaymentsPage() {
-  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const gatewayStatus = searchParams.get('gateway')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [payoutId, setPayoutId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isPayingOut, setIsPayingOut] = useState(false)
-  const [awaitingPaymentId, setAwaitingPaymentId] = useState<string | null>(null)
+  const [awaitingPaymentId, setAwaitingPaymentId] = useState<string | null>(
+    null,
+  )
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
 
   const landsQuery = useQuery({
@@ -95,14 +102,18 @@ export function AdminPaymentsPage() {
     if (!selectedLand) {
       return null
     }
-    return computeDealBalance(Number(selectedLand.total_value_usd), filteredPayments)
+    return computeDealBalance(
+      Number(selectedLand.total_value_usd),
+      filteredPayments,
+    )
   }, [selectedLand, filteredPayments])
 
   const outstandingUsd = dealBalance?.outstandingUsd ?? null
   const availableToPayOutUsd = dealBalance?.availableToPayOutUsd ?? null
 
   const awaitingPayout = filteredPayments.filter(
-    (payment) => payment.status === 'pending' && isGatewayPayment(payment.method),
+    (payment) =>
+      payment.status === 'pending' && isGatewayPayment(payment.method),
   )
   const pendingManual = filteredPayments.filter((payment) =>
     isAwaitingManualConfirm(payment.status, payment.method),
@@ -149,7 +160,9 @@ export function AdminPaymentsPage() {
       return
     }
 
-    const tracked = filteredPayments.find((payment) => payment.id === awaitingPaymentId)
+    const tracked = filteredPayments.find(
+      (payment) => payment.id === awaitingPaymentId,
+    )
     if (!tracked) {
       return
     }
@@ -162,7 +175,9 @@ export function AdminPaymentsPage() {
 
     if (tracked.status === 'failed') {
       setAwaitingPaymentId(null)
-      notifyInfo('MoMo payout failed at Flutterwave. Create a new payout to retry.')
+      notifyInfo(
+        'MoMo payout failed at Flutterwave. Create a new payout to retry.',
+      )
     }
   }, [awaitingPaymentId, filteredPayments])
 
@@ -211,7 +226,9 @@ export function AdminPaymentsPage() {
       }
     } catch (payoutError) {
       const message =
-        payoutError instanceof Error ? payoutError.message : 'Could not start seller payout.'
+        payoutError instanceof Error
+          ? payoutError.message
+          : 'Could not start seller payout.'
       setActionError(message)
       notifyInfo(message)
     } finally {
@@ -243,7 +260,9 @@ export function AdminPaymentsPage() {
       }
     } catch (recordError) {
       const message =
-        recordError instanceof Error ? recordError.message : 'Could not create payout.'
+        recordError instanceof Error
+          ? recordError.message
+          : 'Could not create payout.'
       setActionError(message)
       throw recordError instanceof Error ? recordError : new Error(message)
     } finally {
@@ -252,20 +271,14 @@ export function AdminPaymentsPage() {
   }
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/admin/finance" label="Finance" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="Treasury"
-          title="Payments"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Open a deal, then a folder.`
-              : 'Open a deal, then a folder.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/finance"
+        backLabel="Finance"
+        eyebrow="Treasury"
+        title="Payments"
+        description="Open a deal, then a folder."
+      />
 
       {awaitingPaymentId && (
         <p className="rounded-md bg-success-soft px-4 py-3 text-sm text-success">
@@ -273,7 +286,9 @@ export function AdminPaymentsPage() {
         </p>
       )}
 
-      {landsQuery.isLoading && <p className="text-sm text-muted">Loading deals…</p>}
+      {landsQuery.isLoading && (
+        <p className="text-sm text-muted">Loading deals…</p>
+      )}
 
       {landsQuery.error && (
         <p className="ui-alert-danger" role="alert">
@@ -311,8 +326,12 @@ export function AdminPaymentsPage() {
               <h2 className="ui-section-title">{selectedLand.title}</h2>
               <p className="ui-section-desc">Choose a payments folder</p>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(null, null)}
+            >
+              <BackArrow />
               All deals
             </Button>
           </div>
@@ -358,15 +377,19 @@ export function AdminPaymentsPage() {
 
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="ui-section-title">{PAYMENT_FOLDER_LABELS[activeFolder]}</h2>
-              <p className="ui-section-desc">{PAYMENT_FOLDER_DESCRIPTIONS[activeFolder]}</p>
+              <h2 className="ui-section-title">
+                {PAYMENT_FOLDER_LABELS[activeFolder]}
+              </h2>
+              <p className="ui-section-desc">
+                {PAYMENT_FOLDER_DESCRIPTIONS[activeFolder]}
+              </p>
             </div>
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setNavigation(selectedLand.id, null)}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <BackArrow />
               Folders
             </Button>
           </div>
@@ -374,7 +397,9 @@ export function AdminPaymentsPage() {
           {(error || actionError) && (
             <p className="ui-alert-danger" role="alert">
               {actionError ??
-                (error instanceof Error ? formatSupabaseError(error) : 'Could not load payments.')}
+                (error instanceof Error
+                  ? formatSupabaseError(error)
+                  : 'Could not load payments.')}
             </p>
           )}
 
@@ -441,7 +466,10 @@ export function AdminPaymentsPage() {
                 </div>
               )}
               {!isLoading && filteredPayments.length === 0 && (
-                <EmptyState title="No payouts yet" description="Pay out to a seller to begin." />
+                <EmptyState
+                  title="No payouts yet"
+                  description="Pay out to a seller to begin."
+                />
               )}
               {filteredPayments.length > 0 && (
                 <div className="space-y-3">
@@ -507,7 +535,9 @@ function PaymentHistoryRow({
           </p>
           <p className="mt-0.5 text-xs text-muted">
             {formatUsd(payment.amount_usd)}
-            {payment.amount_ugx != null ? ` · ${formatUgx(payment.amount_ugx)}` : ''}
+            {payment.amount_ugx != null
+              ? ` · ${formatUgx(payment.amount_ugx)}`
+              : ''}
             {' · '}
             {paymentMethodLabel(payment.method, payment.mobile_money_network)}
             {payment.manual_reference ? ` · ${payment.manual_reference}` : ''}
@@ -520,7 +550,11 @@ function PaymentHistoryRow({
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {payment.status === 'pending' && gateway && !payoutSubmitted && (
-          <Button size="sm" onClick={onRetryPayout} disabled={payoutId === payment.id}>
+          <Button
+            size="sm"
+            onClick={onRetryPayout}
+            disabled={payoutId === payment.id}
+          >
             {payoutId === payment.id ? 'Sending…' : 'Submit payout'}
           </Button>
         )}
@@ -561,7 +595,7 @@ function PendingPayoutRow({
   const submitted = Boolean(payment.flutterwave_tx_ref)
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50/50 px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3">
       <div>
         <p className="text-sm font-semibold text-ink">
           {submitted
@@ -570,10 +604,14 @@ function PendingPayoutRow({
         </p>
         <p className="mt-0.5 text-sm text-muted">
           {formatUsd(payment.amount_usd)}
-          {payment.amount_ugx != null ? ` · ${formatUgx(payment.amount_ugx)}` : ''}
+          {payment.amount_ugx != null
+            ? ` · ${formatUgx(payment.amount_ugx)}`
+            : ''}
           {payment.payer_phone ? ` · ${payment.payer_phone}` : ''}
           {submitted && payment.flutterwave_tx_ref ? (
-            <span className="ml-2 font-mono text-xs text-ink">{payment.flutterwave_tx_ref}</span>
+            <span className="ml-2 font-mono text-xs text-ink">
+              {payment.flutterwave_tx_ref}
+            </span>
           ) : null}
         </p>
         {submitted && (
@@ -606,12 +644,15 @@ function PendingManualRow({
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3">
       <div>
         <p className="text-sm font-semibold text-ink">
-          Confirm {paymentMethodLabel(payment.method, payment.mobile_money_network)}
+          Confirm{' '}
+          {paymentMethodLabel(payment.method, payment.mobile_money_network)}
         </p>
         <p className="mt-0.5 text-sm text-muted">
           {formatUsd(payment.amount_usd)}
           {payment.manual_reference ? (
-            <span className="ml-2 font-mono text-xs text-ink">{payment.manual_reference}</span>
+            <span className="ml-2 font-mono text-xs text-ink">
+              {payment.manual_reference}
+            </span>
           ) : null}
           {payment.payer_phone ? (
             <span className="ml-2 text-xs">{payment.payer_phone}</span>

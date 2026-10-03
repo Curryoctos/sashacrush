@@ -151,7 +151,7 @@ export function ChatWindow({ landId, channel }: ChatWindowProps) {
           <button
             type="button"
             onClick={() => scrollToBottom()}
-            className="text-sm font-medium text-brand-700 hover:text-brand-800"
+            className="text-[13px] font-medium text-ink hover:text-neutral-700"
           >
             New message ↓
           </button>

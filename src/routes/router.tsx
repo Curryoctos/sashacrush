@@ -10,8 +10,9 @@ import { SellerPortalLayout } from '@/components/layout/SellerPortalLayout'
 import { page } from '@/routes/lazyPage'
 import { LoginPage } from '@/pages/Login'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { StaffMfaChallengePage } from '@/pages/staff/MfaChallenge'
-import { StaffMfaSetupPage } from '@/pages/staff/MfaSetup'
+// MFA temporarily disabled — restore when re-enabling TOTP:
+// import { StaffMfaChallengePage } from '@/pages/staff/MfaChallenge'
+// import { StaffMfaSetupPage } from '@/pages/staff/MfaSetup'
 
 function lazyPage<T extends Record<string, ComponentType>>(
   loader: () => Promise<T>,
@@ -23,29 +24,74 @@ function lazyPage<T extends Record<string, ComponentType>>(
   })
 }
 
-const AdminAnalyticsPage = lazyPage(() => import('@/pages/admin/AdminAnalytics'), 'AdminAnalyticsPage')
-const AdminAuditLogPage = lazyPage(() => import('@/pages/admin/AdminAuditLog'), 'AdminAuditLogPage')
-const AdminCapitalPage = lazyPage(() => import('@/pages/admin/AdminCapital'), 'AdminCapitalPage')
-const AdminCargoPage = lazyPage(() => import('@/pages/admin/AdminCargo'), 'AdminCargoPage')
-const AdminChatPage = lazyPage(() => import('@/pages/admin/AdminChat'), 'AdminChatPage')
-const AdminCommunityPage = lazyPage(() => import('@/pages/admin/AdminCommunity'), 'AdminCommunityPage')
-const AdminDashboard = lazyPage(() => import('@/pages/admin/Dashboard'), 'AdminDashboard')
-const AdminDealPage = lazyPage(() => import('@/pages/admin/AdminDeal'), 'AdminDealPage')
+const AdminAnalyticsPage = lazyPage(
+  () => import('@/pages/admin/AdminAnalytics'),
+  'AdminAnalyticsPage',
+)
+const AdminAuditLogPage = lazyPage(
+  () => import('@/pages/admin/AdminAuditLog'),
+  'AdminAuditLogPage',
+)
+const AdminCapitalPage = lazyPage(
+  () => import('@/pages/admin/AdminCapital'),
+  'AdminCapitalPage',
+)
+const AdminCargoPage = lazyPage(
+  () => import('@/pages/admin/AdminCargo'),
+  'AdminCargoPage',
+)
+const AdminChatPage = lazyPage(
+  () => import('@/pages/admin/AdminChat'),
+  'AdminChatPage',
+)
+const AdminCommunityPage = lazyPage(
+  () => import('@/pages/admin/AdminCommunity'),
+  'AdminCommunityPage',
+)
+const AdminDashboard = lazyPage(
+  () => import('@/pages/admin/Dashboard'),
+  'AdminDashboard',
+)
+const AdminDealPage = lazyPage(
+  () => import('@/pages/admin/AdminDeal'),
+  'AdminDealPage',
+)
 const AdminDocumentsHubPage = lazyPage(
   () => import('@/pages/admin/AdminDocumentsHub'),
   'AdminDocumentsHubPage',
 )
-const AdminDocumentsPage = lazyPage(() => import('@/pages/admin/AdminDocuments'), 'AdminDocumentsPage')
-const AdminFinanceHubPage = lazyPage(() => import('@/pages/admin/AdminFinanceHub'), 'AdminFinanceHubPage')
+const AdminDocumentsPage = lazyPage(
+  () => import('@/pages/admin/AdminDocuments'),
+  'AdminDocumentsPage',
+)
+const AdminFinanceHubPage = lazyPage(
+  () => import('@/pages/admin/AdminFinanceHub'),
+  'AdminFinanceHubPage',
+)
 const AdminInvestorDocumentsPage = lazyPage(
   () => import('@/pages/admin/AdminInvestorDocuments'),
   'AdminInvestorDocumentsPage',
 )
-const AdminLandRecordsPage = lazyPage(() => import('@/pages/admin/LandRecords'), 'AdminLandRecordsPage')
-const AdminMediaHubPage = lazyPage(() => import('@/pages/admin/AdminMediaHub'), 'AdminMediaHubPage')
-const AdminMediaPage = lazyPage(() => import('@/pages/admin/AdminMedia'), 'AdminMediaPage')
-const AdminPaymentsPage = lazyPage(() => import('@/pages/admin/AdminPayments'), 'AdminPaymentsPage')
-const AdminPhotosPage = lazyPage(() => import('@/pages/admin/AdminPhotos'), 'AdminPhotosPage')
+const AdminLandRecordsPage = lazyPage(
+  () => import('@/pages/admin/LandRecords'),
+  'AdminLandRecordsPage',
+)
+const AdminMediaHubPage = lazyPage(
+  () => import('@/pages/admin/AdminMediaHub'),
+  'AdminMediaHubPage',
+)
+const AdminMediaPage = lazyPage(
+  () => import('@/pages/admin/AdminMedia'),
+  'AdminMediaPage',
+)
+const AdminPaymentsPage = lazyPage(
+  () => import('@/pages/admin/AdminPayments'),
+  'AdminPaymentsPage',
+)
+const AdminPhotosPage = lazyPage(
+  () => import('@/pages/admin/AdminPhotos'),
+  'AdminPhotosPage',
+)
 const AdminPipelineHubPage = lazyPage(
   () => import('@/pages/admin/AdminPipelineHub'),
   'AdminPipelineHubPage',
@@ -54,22 +100,55 @@ const AdminSuggestionsPage = lazyPage(
   () => import('@/pages/admin/AdminSuggestions'),
   'AdminSuggestionsPage',
 )
-const AdminUsersPage = lazyPage(() => import('@/pages/admin/AdminUsers'), 'AdminUsersPage')
+const AdminUsersPage = lazyPage(
+  () => import('@/pages/admin/AdminUsers'),
+  'AdminUsersPage',
+)
 const AdminWalletConvertPage = lazyPage(
   () => import('@/pages/admin/AdminWalletConvert'),
   'AdminWalletConvertPage',
 )
-const AdminWalletPage = lazyPage(() => import('@/pages/admin/AdminWallet'), 'AdminWalletPage')
-const WalletLayout = lazyPage(() => import('@/components/layout/WalletLayout'), 'WalletLayout')
+const AdminWalletPage = lazyPage(
+  () => import('@/pages/admin/AdminWallet'),
+  'AdminWalletPage',
+)
+const WalletLayout = lazyPage(
+  () => import('@/components/layout/WalletLayout'),
+  'WalletLayout',
+)
 
-const AgentAgreementsPage = lazyPage(() => import('@/pages/agent/AgentAgreements'), 'AgentAgreementsPage')
-const AgentAnalyticsPage = lazyPage(() => import('@/pages/agent/AgentAnalytics'), 'AgentAnalyticsPage')
-const AgentCapitalHubPage = lazyPage(() => import('@/pages/agent/AgentCapitalHub'), 'AgentCapitalHubPage')
-const AgentCargoPage = lazyPage(() => import('@/pages/agent/AgentCargo'), 'AgentCargoPage')
-const AgentChatPage = lazyPage(() => import('@/pages/agent/AgentChat'), 'AgentChatPage')
-const AgentDashboard = lazyPage(() => import('@/pages/agent/Dashboard'), 'AgentDashboard')
-const AgentDealPage = lazyPage(() => import('@/pages/agent/AgentDeal'), 'AgentDealPage')
-const AgentDocumentsPage = lazyPage(() => import('@/pages/agent/AgentDocuments'), 'AgentDocumentsPage')
+const AgentAgreementsPage = lazyPage(
+  () => import('@/pages/agent/AgentAgreements'),
+  'AgentAgreementsPage',
+)
+const AgentAnalyticsPage = lazyPage(
+  () => import('@/pages/agent/AgentAnalytics'),
+  'AgentAnalyticsPage',
+)
+const AgentCapitalHubPage = lazyPage(
+  () => import('@/pages/agent/AgentCapitalHub'),
+  'AgentCapitalHubPage',
+)
+const AgentCargoPage = lazyPage(
+  () => import('@/pages/agent/AgentCargo'),
+  'AgentCargoPage',
+)
+const AgentChatPage = lazyPage(
+  () => import('@/pages/agent/AgentChat'),
+  'AgentChatPage',
+)
+const AgentDashboard = lazyPage(
+  () => import('@/pages/agent/Dashboard'),
+  'AgentDashboard',
+)
+const AgentDealPage = lazyPage(
+  () => import('@/pages/agent/AgentDeal'),
+  'AgentDealPage',
+)
+const AgentDocumentsPage = lazyPage(
+  () => import('@/pages/agent/AgentDocuments'),
+  'AgentDocumentsPage',
+)
 const AgentInvestmentsPage = lazyPage(
   () => import('@/pages/agent/AgentInvestments'),
   'AgentInvestmentsPage',
@@ -82,8 +161,14 @@ const AgentPaperworkHubPage = lazyPage(
   () => import('@/pages/agent/AgentPaperworkHub'),
   'AgentPaperworkHubPage',
 )
-const AgentPhotosPage = lazyPage(() => import('@/pages/agent/AgentPhotos'), 'AgentPhotosPage')
-const AgentReceiptsPage = lazyPage(() => import('@/pages/agent/AgentReceipts'), 'AgentReceiptsPage')
+const AgentPhotosPage = lazyPage(
+  () => import('@/pages/agent/AgentPhotos'),
+  'AgentPhotosPage',
+)
+const AgentReceiptsPage = lazyPage(
+  () => import('@/pages/agent/AgentReceipts'),
+  'AgentReceiptsPage',
+)
 const AgentSuggestionsPage = lazyPage(
   () => import('@/pages/agent/AgentSuggestions'),
   'AgentSuggestionsPage',
@@ -93,11 +178,26 @@ const ExecutiveAnalyticsPage = lazyPage(
   () => import('@/pages/executive/ExecutiveAnalytics'),
   'ExecutiveAnalyticsPage',
 )
-const ExecutiveChatPage = lazyPage(() => import('@/pages/executive/ExecutiveChat'), 'ExecutiveChatPage')
-const ExecutiveDashboard = lazyPage(() => import('@/pages/executive/Dashboard'), 'ExecutiveDashboard')
-const ExecutiveDealPage = lazyPage(() => import('@/pages/executive/ExecutiveDeal'), 'ExecutiveDealPage')
-const ExecutiveDealsPage = lazyPage(() => import('@/pages/executive/ExecutiveDeals'), 'ExecutiveDealsPage')
-const ExecutiveMediaPage = lazyPage(() => import('@/pages/executive/ExecutiveMedia'), 'ExecutiveMediaPage')
+const ExecutiveChatPage = lazyPage(
+  () => import('@/pages/executive/ExecutiveChat'),
+  'ExecutiveChatPage',
+)
+const ExecutiveDashboard = lazyPage(
+  () => import('@/pages/executive/Dashboard'),
+  'ExecutiveDashboard',
+)
+const ExecutiveDealPage = lazyPage(
+  () => import('@/pages/executive/ExecutiveDeal'),
+  'ExecutiveDealPage',
+)
+const ExecutiveDealsPage = lazyPage(
+  () => import('@/pages/executive/ExecutiveDeals'),
+  'ExecutiveDealsPage',
+)
+const ExecutiveMediaPage = lazyPage(
+  () => import('@/pages/executive/ExecutiveMedia'),
+  'ExecutiveMediaPage',
+)
 
 const CommunityBoardPage = lazyPage(
   () => import('@/pages/community/CommunityBoard'),
@@ -116,11 +216,26 @@ const CommunitySchedulePage = lazyPage(
   'CommunitySchedulePage',
 )
 
-const SellerChatPage = lazyPage(() => import('@/pages/seller/SellerChat'), 'SellerChatPage')
-const SellerDashboard = lazyPage(() => import('@/pages/seller/Dashboard'), 'SellerDashboard')
-const SellerDocumentsPage = lazyPage(() => import('@/pages/seller/SellerDocuments'), 'SellerDocumentsPage')
-const SellerPhotosPage = lazyPage(() => import('@/pages/seller/SellerPhotos'), 'SellerPhotosPage')
-const SellerReceiptsPage = lazyPage(() => import('@/pages/seller/SellerReceipts'), 'SellerReceiptsPage')
+const SellerChatPage = lazyPage(
+  () => import('@/pages/seller/SellerChat'),
+  'SellerChatPage',
+)
+const SellerDashboard = lazyPage(
+  () => import('@/pages/seller/Dashboard'),
+  'SellerDashboard',
+)
+const SellerDocumentsPage = lazyPage(
+  () => import('@/pages/seller/SellerDocuments'),
+  'SellerDocumentsPage',
+)
+const SellerPhotosPage = lazyPage(
+  () => import('@/pages/seller/SellerPhotos'),
+  'SellerPhotosPage',
+)
+const SellerReceiptsPage = lazyPage(
+  () => import('@/pages/seller/SellerReceipts'),
+  'SellerReceiptsPage',
+)
 
 export const router = createBrowserRouter([
   { path: '/', element: <RoleRedirect /> },
@@ -157,7 +272,10 @@ export const router = createBrowserRouter([
           { path: 'land-records', element: page(<AdminLandRecordsPage />) },
           { path: 'deals/:landId', element: page(<AdminDealPage />) },
           { path: 'documents', element: page(<AdminDocumentsPage />) },
-          { path: 'investor-documents', element: page(<AdminInvestorDocumentsPage />) },
+          {
+            path: 'investor-documents',
+            element: page(<AdminInvestorDocumentsPage />),
+          },
           { path: 'photos', element: page(<AdminPhotosPage />) },
           { path: 'payments', element: page(<AdminPaymentsPage />) },
           { path: 'capital', element: page(<AdminCapitalPage />) },
@@ -165,19 +283,17 @@ export const router = createBrowserRouter([
             element: page(<WalletLayout />),
             children: [
               { path: 'wallet', element: page(<AdminWalletPage />) },
-              { path: 'wallet/convert', element: page(<AdminWalletConvertPage />) },
+              {
+                path: 'wallet/convert',
+                element: page(<AdminWalletConvertPage />),
+              },
             ],
           },
           { path: 'chat', element: page(<AdminChatPage />) },
           { path: 'audit-log', element: page(<AdminAuditLogPage />) },
-          {
-            path: 'mfa-setup',
-            element: <StaffMfaSetupPage backPath="/admin/dashboard" />,
-          },
-          {
-            path: 'mfa-challenge',
-            element: <StaffMfaChallengePage backPath="/admin/dashboard" />,
-          },
+          // MFA temporarily disabled — restore when re-enabling TOTP:
+          // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/admin/dashboard" /> },
+          // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/admin/dashboard" /> },
         ],
       },
     ],
@@ -195,20 +311,18 @@ export const router = createBrowserRouter([
           { path: 'deals', element: page(<ExecutiveDealsPage />) },
           { path: 'deals/:landId', element: page(<ExecutiveDealPage />) },
           { path: 'communications', element: page(<ExecutiveChatPage />) },
-          { path: 'chat', element: <Navigate to="/executive/communications" replace /> },
+          {
+            path: 'chat',
+            element: <Navigate to="/executive/communications" replace />,
+          },
           { path: 'media', element: page(<ExecutiveMediaPage />) },
           {
             path: 'documents',
             element: <Navigate to="/executive/dashboard" replace />,
           },
-          {
-            path: 'mfa-setup',
-            element: <StaffMfaSetupPage backPath="/executive/dashboard" />,
-          },
-          {
-            path: 'mfa-challenge',
-            element: <StaffMfaChallengePage backPath="/executive/dashboard" />,
-          },
+          // MFA temporarily disabled — restore when re-enabling TOTP:
+          // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/executive/dashboard" /> },
+          // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/executive/dashboard" /> },
         ],
       },
     ],
@@ -235,14 +349,9 @@ export const router = createBrowserRouter([
           { path: 'agreements', element: page(<AgentAgreementsPage />) },
           { path: 'chat', element: page(<AgentChatPage />) },
           { path: 'photos', element: page(<AgentPhotosPage />) },
-          {
-            path: 'mfa-setup',
-            element: <StaffMfaSetupPage backPath="/agent/dashboard" />,
-          },
-          {
-            path: 'mfa-challenge',
-            element: <StaffMfaChallengePage backPath="/agent/dashboard" />,
-          },
+          // MFA temporarily disabled — restore when re-enabling TOTP:
+          // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/agent/dashboard" /> },
+          // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/agent/dashboard" /> },
         ],
       },
     ],

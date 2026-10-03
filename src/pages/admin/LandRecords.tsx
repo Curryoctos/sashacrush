@@ -2,9 +2,8 @@ import { notifySellerAssigned } from '@/features/land-records/notify'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { LandRecordsBrowser } from '@/features/land-records/components/LandRecordsBrowser'
-import { useAuth } from '@/hooks/useAuth'
 import {
   emptyLandRecordForm,
   formToLandRecordPayload,
@@ -32,7 +31,6 @@ const ADMIN_FOLDERS = [
 ] as const
 
 export function AdminLandRecordsPage() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
   const [, setSearchParams] = useSearchParams()
   const [mode, setMode] = useState<'create' | 'edit'>('create')
@@ -219,19 +217,13 @@ export function AdminLandRecordsPage() {
   }
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/admin/dashboard" label="Admin Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Land Records"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Open a deal, then a folder.`
-              : 'Open a deal, then a folder.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/dashboard"
+        backLabel="Dashboard"
+        title="Land Records"
+        description="Open a deal, then a folder."
+      />
 
       <LandRecordsBrowser
         lands={landRecordsQuery.data ?? []}

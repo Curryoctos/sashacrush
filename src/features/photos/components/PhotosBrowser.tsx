@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Camera, MapPin, Upload } from 'lucide-react'
+import { Camera, MapPin, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { EmptyState } from '@/components/ui/PageHeader'
 import { IconActionButton } from '@/components/ui/IconActionButton'
 import {
@@ -264,7 +265,7 @@ export function PhotosBrowser({
             size="sm"
             onClick={() => setNavigation(selectedLand.id, null)}
           >
-            <ArrowLeft className="h-4 w-4" />
+            <BackArrow />
             Folders
           </Button>
         </div>
@@ -308,7 +309,7 @@ export function PhotosBrowser({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+              <BackArrow />
               All deals
             </Button>
             {canUpload && (
@@ -384,7 +385,7 @@ export function PhotosBrowser({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => setNavigation(selectedLand.id, null)}>
-            <ArrowLeft className="h-4 w-4" />
+            <BackArrow />
             Folders
           </Button>
           {canUpload && (
@@ -538,8 +539,8 @@ function PhotoThumb({
       onClick={onSelect}
       className={`overflow-hidden rounded-lg border text-left transition ${
         selected
-          ? 'border-brand-500 ring-2 ring-brand-500 ring-offset-2'
-          : 'border-border hover:border-brand-300'
+          ? 'border-muted/50 ring-2 ring-ink/20 ring-offset-2'
+          : 'border-border hover:border-muted/40'
       }`}
     >
       {url ? (

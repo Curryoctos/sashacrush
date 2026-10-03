@@ -8,7 +8,7 @@ export function AdminDocumentsHubPage() {
       title="Documents"
       description="Deal signing packs and agent capital agreements."
       backTo="/admin/dashboard"
-      backLabel="Admin Dashboard"
+      backLabel="Dashboard"
       folders={[
         {
           id: 'deal-docs',

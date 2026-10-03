@@ -3,15 +3,20 @@ import { Link } from 'react-router-dom'
 import { Badge, statusTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, Stat } from '@/components/ui/Card'
-import { EmptyState, PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
 import { InvestmentList } from '@/features/investments/components/InvestmentList'
 import {
   useAdminInvestments,
   useCompanyCapital,
 } from '@/features/investments/useInvestments'
-import { investmentMethodLabel, isStripeInvestmentMethod } from '@/features/investments/validation'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
-import { useAuth } from '@/hooks/useAuth'
+import {
+  investmentMethodLabel,
+  isStripeInvestmentMethod,
+} from '@/features/investments/validation'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { formatDate, formatUsd } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 import type { InvestmentStatus } from '@/types/database'
@@ -19,14 +24,17 @@ import type { InvestmentStatus } from '@/types/database'
 type StatusFilter = InvestmentStatus | 'all'
 
 export function AdminCapitalPage() {
-  const { user } = useAuth()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const { capital, isLoading: capitalLoading, error: capitalError } = useCompanyCapital()
+  const {
+    capital,
+    isLoading: capitalLoading,
+    error: capitalError,
+  } = useCompanyCapital()
   const {
     investments,
     pending,
@@ -47,12 +55,14 @@ export function AdminCapitalPage() {
         {
           id: 'confirmed' as const,
           label: 'Confirmed',
-          count: allInvestments.filter((row) => row.status === 'confirmed').length,
+          count: allInvestments.filter((row) => row.status === 'confirmed')
+            .length,
         },
         {
           id: 'rejected' as const,
           label: 'Rejected',
-          count: allInvestments.filter((row) => row.status === 'rejected').length,
+          count: allInvestments.filter((row) => row.status === 'rejected')
+            .length,
         },
       ] as const,
     [allInvestments, pendingCount],
@@ -88,7 +98,9 @@ export function AdminCapitalPage() {
       setRejectReason('')
     } catch (rejectError) {
       const message =
-        rejectError instanceof Error ? rejectError.message : 'Could not reject investment.'
+        rejectError instanceof Error
+          ? rejectError.message
+          : 'Could not reject investment.'
       setActionError(message)
       notifyInfo(message)
     } finally {
@@ -97,30 +109,24 @@ export function AdminCapitalPage() {
   }
 
   return (
-    <div className="ui-page max-w-4xl space-y-6">
-      <div>
-        <PageBackLink to="/admin/finance" label="Finance" />
-        <PageHeader
-          className="mt-3"
-          eyebrow="Treasury"
-          title="Company capital"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Confirm agent investments toward deals into the company pool.`
-              : 'Confirm agent investments toward deals into the company pool.'
-          }
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <Link to="/admin/investor-documents">
-                <Button variant="secondary">Agent agreements</Button>
-              </Link>
-              <Link to="/admin/payments">
-                <Button variant="secondary">Seller payouts</Button>
-              </Link>
-            </div>
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/finance"
+        backLabel="Finance"
+        eyebrow="Treasury"
+        title="Company capital"
+        description="Confirm agent investments toward deals into the company pool."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link to="/admin/investor-documents">
+              <Button variant="secondary">Agent agreements</Button>
+            </Link>
+            <Link to="/admin/payments">
+              <Button variant="secondary">Seller payouts</Button>
+            </Link>
+          </div>
+        }
+      />
 
       {(capitalLoading || capital) && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -150,8 +156,7 @@ export function AdminCapitalPage() {
 
       {(error || capitalError || actionError) && (
         <p className="ui-alert-danger" role="alert">
-          {actionError ??
-            formatSupabaseError((error ?? capitalError) as Error)}
+          {actionError ?? formatSupabaseError((error ?? capitalError) as Error)}
         </p>
       )}
 
@@ -181,35 +186,50 @@ export function AdminCapitalPage() {
                       </p>
                       <p className="text-sm text-muted">
                         {investment.land_title || 'Deal'} ·{' '}
-                        {investment.agent_name || investment.agent_email || 'Agent'} ·{' '}
-                        {formatDate(investment.created_at)}
+                        {investment.agent_name ||
+                          investment.agent_email ||
+                          'Agent'}{' '}
+                        · {formatDate(investment.created_at)}
                       </p>
-                      <p className="font-mono text-xs text-ink">{investment.reference}</p>
+                      <p className="font-mono text-xs text-ink">
+                        {investment.reference}
+                      </p>
                       {investment.notes ? (
                         <p className="text-xs text-muted">{investment.notes}</p>
                       ) : null}
                       {stripePending ? (
                         <p className="text-xs text-muted">
-                          Waiting for Stripe — capital updates automatically on successful payment.
+                          Waiting for Stripe — capital updates automatically on
+                          successful payment.
                         </p>
                       ) : null}
                     </div>
-                    <Badge tone={statusTone(investment.status)}>{investment.status}</Badge>
+                    <Badge tone={statusTone(investment.status)}>
+                      {investment.status}
+                    </Badge>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {!stripePending && (
                       <Button
                         size="sm"
-                        disabled={confirmingId === investment.id || rejectingId === investment.id}
+                        disabled={
+                          confirmingId === investment.id ||
+                          rejectingId === investment.id
+                        }
                         onClick={() => void handleConfirm(investment.id)}
                       >
-                        {confirmingId === investment.id ? 'Confirming…' : 'Confirm'}
+                        {confirmingId === investment.id
+                          ? 'Confirming…'
+                          : 'Confirm'}
                       </Button>
                     )}
                     <Button
                       size="sm"
                       variant="secondary"
-                      disabled={confirmingId === investment.id || rejectingId === investment.id}
+                      disabled={
+                        confirmingId === investment.id ||
+                        rejectingId === investment.id
+                      }
                       onClick={() => void handleReject(investment.id)}
                     >
                       {rejectingId === investment.id ? 'Rejecting…' : 'Reject'}
@@ -239,7 +259,7 @@ export function AdminCapitalPage() {
             type="button"
             className={
               statusFilter === option.id
-                ? 'rounded-md bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-800'
+                ? 'rounded-lg bg-ink px-3 py-1.5 text-[12px] font-medium text-ink-inverse'
                 : 'rounded-md bg-surface px-3 py-1.5 text-xs font-medium text-muted'
             }
             onClick={() => setStatusFilter(option.id)}

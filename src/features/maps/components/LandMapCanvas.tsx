@@ -341,7 +341,7 @@ export function LandMapEditorToolbar({
         <button
           type="button"
           onClick={onStartDraw}
-          className="rounded-md bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800"
+          className="rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-ink-inverse hover:opacity-90"
         >
           {hasBoundary ? 'Edit boundary' : 'Draw boundary'}
         </button>
@@ -377,7 +377,7 @@ export function LandMapEditorToolbar({
             type="button"
             onClick={onSave}
             disabled={!canSave || saving}
-            className="rounded-md bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50"
+            className="rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-ink-inverse hover:opacity-90 disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Save boundary'}
           </button>

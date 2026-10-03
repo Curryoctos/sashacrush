@@ -150,7 +150,7 @@ export function PhotoDetailDrawer({
             </p>
           ) : null}
           {hasGps ? (
-            <dl className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-white p-3 text-sm">
+            <dl className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-surface-elevated p-3 text-sm">
               <div>
                 <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                   Latitude

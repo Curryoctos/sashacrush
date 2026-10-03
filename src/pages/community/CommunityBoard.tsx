@@ -5,15 +5,26 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/PageHeader'
 import { useCommunityBoard } from '@/features/community/useCommunity'
-import { notifyInfo, notifySuccess } from '@/features/notifications/useNotifications'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDateTime } from '@/lib/formatters'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
 export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
   const { user } = useAuth()
-  const { posts, isLoading, error, canPost, isAdmin, createPost, setPinned, deletePost } =
-    useCommunityBoard()
+  const {
+    posts,
+    isLoading,
+    error,
+    canPost,
+    isAdmin,
+    createPost,
+    setPinned,
+    deletePost,
+  } = useCommunityBoard()
   const [showComposer, setShowComposer] = useState(false)
   const [body, setBody] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
@@ -51,17 +62,25 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
           {compact ? (
             <h2 className="ui-section-title">Community board</h2>
           ) : (
-            <h1 className="font-display text-3xl font-semibold text-ink">Community board</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight text-ink">
+              Community board
+            </h1>
           )}
-          <p className={compact ? 'ui-section-desc' : 'mt-2 text-sm text-muted'}>
-            Updates from incubation visitors and collaborators. Public to read — members can post and
-            reply.
+          <p
+            className={
+              compact ? 'ui-section-desc' : 'mt-3 text-[13px] text-muted'
+            }
+          >
+            Updates from incubation visitors and collaborators. Public to read —
+            members can post and reply.
           </p>
         </div>
         {canPost ? (
           <Button
             type="button"
-            onClick={() => (showComposer && !replyTo ? closeComposer() : openComposer(null))}
+            onClick={() =>
+              showComposer && !replyTo ? closeComposer() : openComposer(null)
+            }
           >
             {showComposer && !replyTo ? 'Close' : 'New post'}
           </Button>
@@ -78,11 +97,14 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
                 : 'Visible to everyone on the community board.'
             }
           />
-          <form className="space-y-5" onSubmit={(event) => void onSubmit(event)}>
+          <form
+            className="space-y-5"
+            onSubmit={(event) => void onSubmit(event)}
+          >
             {replyTo ? (
               <button
                 type="button"
-                className="text-sm font-bold text-brand-700 underline hover:text-brand-900"
+                className="text-[13px] font-medium text-ink underline underline-offset-2"
                 onClick={() => setReplyTo(null)}
               >
                 Cancel reply — start a new post
@@ -118,11 +140,17 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
               'Your account cannot post here. Join as a community member to contribute.'
             ) : (
               <>
-                <Link className="font-bold text-brand-700 underline" to="/community/register">
+                <Link
+                  className="font-medium text-ink underline underline-offset-2"
+                  to="/community/register"
+                >
                   Register
                 </Link>{' '}
                 or{' '}
-                <Link className="font-bold text-brand-700 underline" to="/community/login">
+                <Link
+                  className="font-medium text-ink underline underline-offset-2"
+                  to="/community/login"
+                >
                   sign in
                 </Link>{' '}
                 to post updates.
@@ -140,7 +168,10 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
       ) : null}
 
       {!isLoading && !error && posts.length === 0 ? (
-        <EmptyState title="No posts yet." description="Be the first to share an incubation update." />
+        <EmptyState
+          title="No posts yet."
+          description="Be the first to share an incubation update."
+        />
       ) : null}
 
       <div className="space-y-4">
@@ -149,14 +180,23 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="font-medium text-ink">{post.author_name}</p>
-                <p className="text-xs text-muted">{formatDateTime(post.created_at)}</p>
+                <p className="text-xs text-muted">
+                  {formatDateTime(post.created_at)}
+                </p>
               </div>
               {post.is_pinned ? <Badge tone="brand">Pinned</Badge> : null}
             </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{post.body}</p>
+            <p className="mt-3 whitespace-pre-wrap text-sm text-ink">
+              {post.body}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {canPost ? (
-                <Button type="button" size="sm" variant="secondary" onClick={() => openComposer(post.id)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => openComposer(post.id)}
+                >
                   Reply
                 </Button>
               ) : null}
@@ -168,9 +208,16 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
                     variant="secondary"
                     onClick={() => {
                       void setPinned(post.id, !post.is_pinned).then(
-                        () => notifySuccess(post.is_pinned ? 'Unpinned.' : 'Pinned.'),
+                        () =>
+                          notifySuccess(
+                            post.is_pinned ? 'Unpinned.' : 'Pinned.',
+                          ),
                         (err: unknown) =>
-                          notifyInfo(err instanceof Error ? err.message : 'Could not update pin.'),
+                          notifyInfo(
+                            err instanceof Error
+                              ? err.message
+                              : 'Could not update pin.',
+                          ),
                       )
                     }}
                   >
@@ -184,7 +231,11 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
                       void deletePost(post.id).then(
                         () => notifySuccess('Post deleted.'),
                         (err: unknown) =>
-                          notifyInfo(err instanceof Error ? err.message : 'Could not delete.'),
+                          notifyInfo(
+                            err instanceof Error
+                              ? err.message
+                              : 'Could not delete.',
+                          ),
                       )
                     }}
                   >
@@ -197,12 +248,21 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
             {post.replies.length > 0 ? (
               <ul className="mt-4 space-y-3 border-t border-border pt-4">
                 {post.replies.map((reply) => (
-                  <li key={reply.id} className="rounded-md bg-surface px-3 py-2">
+                  <li
+                    key={reply.id}
+                    className="rounded-md bg-surface px-3 py-2"
+                  >
                     <div className="flex flex-wrap justify-between gap-2">
-                      <p className="text-sm font-medium text-ink">{reply.author_name}</p>
-                      <p className="text-xs text-muted">{formatDateTime(reply.created_at)}</p>
+                      <p className="text-sm font-medium text-ink">
+                        {reply.author_name}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {formatDateTime(reply.created_at)}
+                      </p>
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{reply.body}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                      {reply.body}
+                    </p>
                     {isAdmin ? (
                       <Button
                         type="button"
@@ -213,7 +273,11 @@ export function CommunityBoardPage({ compact = false }: { compact?: boolean }) {
                           void deletePost(reply.id).then(
                             () => notifySuccess('Reply deleted.'),
                             (err: unknown) =>
-                              notifyInfo(err instanceof Error ? err.message : 'Could not delete.'),
+                              notifyInfo(
+                                err instanceof Error
+                                  ? err.message
+                                  : 'Could not delete.',
+                              ),
                           )
                         }}
                       >

@@ -27,7 +27,7 @@ export function AdminDealPage() {
         <DealSummaryPanel
           deal={dealQuery.data}
           canEditBoundary
-          backLink={{ to: '/admin/land-records', label: 'Land Records' }}
+          backLink={{ to: '/admin/land-records', label: 'Land records' }}
           quickActions={[
             {
               label:
