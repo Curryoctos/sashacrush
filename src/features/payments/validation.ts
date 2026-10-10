@@ -4,18 +4,23 @@ import type { PaymentMethod } from '@/types/database'
 export type MobileMoneyNetwork = 'mtn' | 'airtel'
 
 export interface CreatePaymentInput {
-  landId: string
+  /** Required project this purchase/disbursement is for. */
+  projectId: string
+  /** Optional land linkage when the project is a land acquisition. */
+  landId?: string | null
+  /** Why funds are being disbursed (required). */
+  disbursementReason: string
   amountUsd: number
   amountUgx?: number | null
   method?: PaymentMethod
   mobileMoneyNetwork?: MobileMoneyNetwork | null
-  /** Seller MoMo receive number (stored as payments.payer_phone). */
+  /** Payee MoMo receive number (stored as payments.payer_phone). */
   recipientPhone?: string | null
   /** @deprecated Use recipientPhone */
   payerPhone?: string | null
   manualReference?: string | null
   rateUsed?: number | null
-  /** Deal total — used for soft-cap checks when provided */
+  /** Project funding goal — soft-cap checks when provided */
   totalValueUsd?: number | null
   /**
    * Amount still open for new payouts (outstanding − pending).
@@ -45,9 +50,22 @@ export function resolveRecipientPhone(input: CreatePaymentInput): string | null 
   return raw?.trim() ? raw.trim() : null
 }
 
+export function normalizeDisbursementReason(raw: string | null | undefined): string {
+  return (raw ?? '').replace(/\s+/g, ' ').trim()
+}
+
 export function validateCreatePayment(input: CreatePaymentInput): string | null {
-  if (!input.landId.trim()) {
-    return 'Select a land record.'
+  const projectId = input.projectId?.trim() || null
+  if (!projectId) {
+    return 'Select a funding project.'
+  }
+
+  const reason = normalizeDisbursementReason(input.disbursementReason)
+  if (reason.length < 3) {
+    return 'Enter a disbursement reason (at least 3 characters).'
+  }
+  if (reason.length > 500) {
+    return 'Disbursement reason must be 500 characters or fewer.'
   }
 
   if (!Number.isFinite(input.amountUsd) || input.amountUsd <= 0) {
@@ -80,7 +98,7 @@ export function validateCreatePayment(input: CreatePaymentInput): string | null 
   if (input.method === 'flutterwave') {
     const phone = resolveRecipientPhone(input)
     if (!phone) {
-      return 'Enter the seller’s mobile money phone number.'
+      return 'Enter the payee’s mobile money phone number.'
     }
     if (!normalizeUgandaPhone(phone)) {
       return 'Enter a valid Uganda phone number (e.g. 07XXXXXXXX or +2567XXXXXXXX).'
@@ -100,7 +118,7 @@ export function validateCreatePayment(input: CreatePaymentInput): string | null 
     Number.isFinite(input.totalValueUsd) &&
     input.amountUsd > Number(input.totalValueUsd)
   ) {
-    return `Amount exceeds deal total of $${Number(input.totalValueUsd).toLocaleString('en-US', { minimumFractionDigits: 2 })}.`
+    return `Amount exceeds project funding goal of $${Number(input.totalValueUsd).toLocaleString('en-US', { minimumFractionDigits: 2 })}.`
   }
 
   const available =

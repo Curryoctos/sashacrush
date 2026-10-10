@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Camera,
   FileText,
@@ -28,10 +28,19 @@ import {
   type LandFolderId,
 } from '@/features/land-records/landFolders'
 import { computeDealBalance } from '@/features/payments/balance'
+import { LinkedProjectCard } from '@/features/projects/components/LandProjectBridge'
+import {
+  ensureLandFundingProject,
+  landPurchasesPath,
+  projectPurchasesPath,
+} from '@/features/projects/projectLandLink'
+import { useLandLinkedProject } from '@/features/projects/useLandLinkedProject'
 import { DealsMap } from '@/features/maps/components/DealsMap'
 import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
+import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
+import { supabase } from '@/lib/supabase'
 import type { LandRecord, LandRecordFormValues, SellerOption } from '@/types'
 
 type LandListItem = LandRecord & { seller_label?: string }
@@ -253,6 +262,10 @@ export function LandRecordsBrowser({
           </div>
         </div>
 
+        {roleBasePath === '/admin' && (
+          <LandLinkedProjectBanner land={selectedLand} />
+        )}
+
         <div className="grid gap-3 sm:grid-cols-2">
           {folders.map((folder) => {
             const FolderIcon = FOLDER_ICONS[folder]
@@ -371,7 +384,15 @@ function FolderDetail({
   onBackToDeals: () => void
 }) {
   const FolderIcon = FOLDER_ICONS[folder]
-  const destination = folderDestination(roleBasePath, land.id, folder)
+  const { project: linkedProject, isLoading: linkLoading } = useLandLinkedProject(
+    roleBasePath === '/admin' && folder === 'payments' ? land.id : null,
+  )
+  const destination =
+    folder === 'payments' && roleBasePath === '/admin'
+      ? linkedProject
+        ? projectPurchasesPath(linkedProject.id, 'collect')
+        : landPurchasesPath(land.id, 'collect')
+      : folderDestination(roleBasePath, land.id, folder)
 
   return (
     <div className="space-y-5">
@@ -439,7 +460,16 @@ function FolderDetail({
         </Card>
       )}
 
-      {destination && (
+      {folder === 'payments' && roleBasePath === '/admin' && (
+        <PurchasesFolderCard
+          land={land}
+          linkedProject={linkedProject}
+          linkLoading={linkLoading}
+          destination={destination}
+        />
+      )}
+
+      {destination && folder !== 'payments' && (
         <Card>
           <p className="text-sm text-muted">
             Open the full {LAND_FOLDER_LABELS[folder].toLowerCase()} workspace for this deal.
@@ -454,6 +484,144 @@ function FolderDetail({
         </Card>
       )}
     </div>
+  )
+}
+
+function LandLinkedProjectBanner({ land }: { land: LandListItem }) {
+  const { user } = useAuth()
+  const { project, isLoading, refresh } = useLandLinkedProject(land.id)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (isLoading) {
+    return <p className="text-xs text-muted">Checking linked funding project…</p>
+  }
+
+  if (project) {
+    return (
+      <LinkedProjectCard
+        projectId={project.id}
+        projectTitle={project.title}
+        projectSlug={project.slug}
+        showPurchases={false}
+      />
+    )
+  }
+
+  return (
+    <aside className="rounded-lg border border-dashed border-border bg-surface-elevated px-4 py-3">
+      <p className="text-sm font-medium text-ink">No funding project linked</p>
+      <p className="mt-1 text-xs text-muted">
+        Create a private land-acquisition project so purchases and the deal stay connected.
+      </p>
+      {error ? (
+        <p className="ui-alert-danger mt-2" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-3">
+        <Button
+          size="sm"
+          disabled={busy || !user}
+          onClick={() => {
+            if (!user) return
+            setBusy(true)
+            setError(null)
+            void ensureLandFundingProject(supabase, land, user.id)
+              .then(() => refresh())
+              .catch((err: unknown) => {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : 'Could not create linked project.',
+                )
+              })
+              .finally(() => setBusy(false))
+          }}
+        >
+          {busy ? 'Linking…' : 'Create linked funding project'}
+        </Button>
+      </div>
+    </aside>
+  )
+}
+
+function PurchasesFolderCard({
+  land,
+  linkedProject,
+  linkLoading,
+  destination,
+}: {
+  land: LandListItem
+  linkedProject: { id: string; title: string; slug: string } | null
+  linkLoading: boolean
+  destination: string | null
+}) {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (linkLoading) {
+    return <p className="text-sm text-muted">Loading linked project…</p>
+  }
+
+  if (linkedProject && destination) {
+    return (
+      <Card>
+        <p className="text-sm text-muted">
+          Purchases for this deal are recorded on{' '}
+          <span className="font-medium text-ink">{linkedProject.title}</span> with
+          a disbursement reason. Land context is kept on each payout when linked.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link to={destination}>
+            <Button>Open purchases</Button>
+          </Link>
+          <Link to={`/admin/funding/${encodeURIComponent(linkedProject.slug)}`}>
+            <Button variant="secondary">Open funding project</Button>
+          </Link>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <p className="text-sm text-muted">
+        This land deal needs a linked funding project before purchases can be
+        recorded in context.
+      </p>
+      {error ? (
+        <p className="ui-alert-danger mt-3" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button
+          disabled={busy || !user}
+          onClick={() => {
+            if (!user) return
+            setBusy(true)
+            setError(null)
+            void ensureLandFundingProject(supabase, land, user.id)
+              .then((project) => {
+                navigate(projectPurchasesPath(project.id, 'collect'))
+              })
+              .catch((err: unknown) => {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : 'Could not create linked project.',
+                )
+              })
+              .finally(() => setBusy(false))
+          }}
+        >
+          {busy ? 'Creating…' : 'Create linked project & open purchases'}
+        </Button>
+      </div>
+    </Card>
   )
 }
 
@@ -542,7 +710,7 @@ function folderDestination(
     case 'messages':
       return `${roleBasePath}/chat?land=${landId}`
     case 'payments':
-      return roleBasePath === '/admin' ? `/admin/payments?land=${landId}` : null
+      return roleBasePath === '/admin' ? landPurchasesPath(landId, 'collect') : null
     case 'photos':
       return `${roleBasePath}/photos?land=${landId}`
     case 'investments':

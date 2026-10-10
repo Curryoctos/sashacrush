@@ -24,7 +24,9 @@ export async function confirmPaymentAndIssueReceipt(
 ): Promise<ConfirmPaymentResult> {
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
-    .select('id, land_id, amount_usd, amount_ugx, rate_used, status, method')
+    .select(
+      'id, land_id, project_id, amount_usd, amount_ugx, rate_used, status, method',
+    )
     .eq('id', paymentId)
     .single()
 
@@ -90,14 +92,52 @@ export async function confirmPaymentAndIssueReceipt(
     }
   }
 
-  const { data: land, error: landError } = await supabase
-    .from('land_records')
-    .select('seller_id')
-    .eq('id', payment.land_id)
-    .single()
+  let payeeId: string | null = null
 
-  if (landError || !land?.seller_id) {
-    throw new ConfirmPaymentError('This land record has no seller assigned.', 400)
+  if (!payment.project_id) {
+    throw new ConfirmPaymentError('Payment has no project target.', 400)
+  }
+
+  if (payment.land_id) {
+    const { data: land } = await supabase
+      .from('land_records')
+      .select('seller_id')
+      .eq('id', payment.land_id)
+      .maybeSingle()
+    payeeId = land?.seller_id ?? null
+  }
+
+  if (!payeeId) {
+    const { data: counterpart } = await supabase
+      .from('project_participants')
+      .select('user_id')
+      .eq('project_id', payment.project_id)
+      .eq('role', 'counterpart')
+      .order('joined_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (counterpart?.user_id) {
+      payeeId = counterpart.user_id
+    } else {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('owner_id, created_by')
+        .eq('id', payment.project_id)
+        .single()
+
+      if (projectError || !project) {
+        throw new ConfirmPaymentError('Project not found for this purchase.', 400)
+      }
+      payeeId = project.owner_id ?? project.created_by
+    }
+  }
+
+  if (!payeeId) {
+    throw new ConfirmPaymentError(
+      'Assign a project payee (counterpart, owner, or linked land seller) before confirming.',
+      400,
+    )
   }
 
   const amountUsd = Number(payment.amount_usd)
@@ -121,7 +161,8 @@ export async function confirmPaymentAndIssueReceipt(
       supabase,
       paymentId: payment.id,
       landId: payment.land_id,
-      sellerId: land.seller_id,
+      projectId: payment.project_id,
+      sellerId: payeeId,
       amountUsd,
       amountUgx,
       rateUsed,

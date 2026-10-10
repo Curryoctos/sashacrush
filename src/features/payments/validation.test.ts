@@ -4,11 +4,15 @@ import {
   validateCreatePayment,
 } from '@/features/payments/validation'
 
+const projectId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+const reason = 'Seller installment for titled parcel'
+
 describe('validateCreatePayment', () => {
-  it('accepts valid manual payout with reference', () => {
+  it('accepts valid manual purchase with reason and reference', () => {
     expect(
       validateCreatePayment({
-        landId: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 50000,
         amountUgx: 185_000_000,
         method: 'manual',
@@ -17,10 +21,48 @@ describe('validateCreatePayment', () => {
     ).toBeNull()
   })
 
+  it('accepts project purchase with optional land linkage', () => {
+    expect(
+      validateCreatePayment({
+        projectId,
+        landId: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
+        disbursementReason: reason,
+        amountUsd: 2500,
+        method: 'manual',
+        manualReference: 'WU-PROJECT-123',
+      }),
+    ).toBeNull()
+  })
+
+  it('rejects purchase without project', () => {
+    expect(
+      validateCreatePayment({
+        projectId: '',
+        disbursementReason: reason,
+        amountUsd: 100,
+        method: 'manual',
+        manualReference: 'WU-X',
+      }),
+    ).toMatch(/funding project/)
+  })
+
+  it('requires disbursement reason', () => {
+    expect(
+      validateCreatePayment({
+        projectId,
+        disbursementReason: 'ab',
+        amountUsd: 100,
+        method: 'manual',
+        manualReference: 'WU-X',
+      }),
+    ).toMatch(/disbursement reason/)
+  })
+
   it('requires manual reference for manual payouts', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         method: 'manual',
       }),
@@ -30,7 +72,8 @@ describe('validateCreatePayment', () => {
   it('accepts crypto when an on-chain reference is present', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         method: 'crypto',
         manualReference: '0xabc123',
@@ -41,7 +84,8 @@ describe('validateCreatePayment', () => {
   it('requires a tx reference for crypto', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         method: 'crypto',
       }),
@@ -51,35 +95,29 @@ describe('validateCreatePayment', () => {
   it('rejects stripe card payouts', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         method: 'stripe',
       }),
     ).toMatch(/Card payouts are not available/)
   })
 
-  it('rejects missing land id', () => {
-    expect(
-      validateCreatePayment({
-        landId: '',
-        amountUsd: 100,
-      }),
-    ).toBe('Select a land record.')
-  })
-
   it('rejects non-positive USD amount', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 0,
       }),
     ).toBe('Enter a positive USD amount.')
   })
 
-  it('requires network, UGX, and seller phone for mobile money', () => {
+  it('requires network, UGX, and payee phone for mobile money', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         method: 'flutterwave',
       }),
@@ -87,7 +125,8 @@ describe('validateCreatePayment', () => {
 
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         method: 'flutterwave',
         mobileMoneyNetwork: 'mtn',
@@ -96,7 +135,8 @@ describe('validateCreatePayment', () => {
 
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         amountUgx: 370_000,
         method: 'flutterwave',
@@ -105,11 +145,12 @@ describe('validateCreatePayment', () => {
     ).toMatch(/phone number/)
   })
 
-  it('accepts MTN and Airtel with seller phone', () => {
+  it('accepts MTN and Airtel with payee phone', () => {
     for (const network of ['mtn', 'airtel'] as const) {
       expect(
         validateCreatePayment({
-          landId: 'land-id',
+          projectId,
+          disbursementReason: reason,
           amountUsd: 100,
           amountUgx: 370_000,
           method: 'flutterwave',
@@ -123,7 +164,8 @@ describe('validateCreatePayment', () => {
   it('rejects invalid Uganda phone format with a clear message', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 100,
         amountUgx: 370_000,
         method: 'flutterwave',
@@ -139,20 +181,22 @@ describe('validateCreatePayment', () => {
     expect(normalizeUgandaPhone('bad')).toBeNull()
   })
 
-  it('rejects amount above deal total', () => {
+  it('rejects amount above project funding goal', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 400_000,
         totalValueUsd: 300_000,
       }),
-    ).toMatch(/exceeds deal total/)
+    ).toMatch(/funding goal/)
   })
 
   it('rejects amount above available-to-pay-out', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 60_000,
         availableToPayOutUsd: 50_000,
       }),
@@ -162,7 +206,8 @@ describe('validateCreatePayment', () => {
   it('rejects amount above company capital available', () => {
     expect(
       validateCreatePayment({
-        landId: 'land-id',
+        projectId,
+        disbursementReason: reason,
         amountUsd: 12_000,
         companyCapitalAvailableUsd: 5_000,
       }),

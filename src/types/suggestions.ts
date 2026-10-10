@@ -8,6 +8,7 @@ export type SuggestionStatus =
 export interface Suggestion {
   id: string
   land_id: string
+  project_id?: string | null
   submitter_id: string
   title: string
   body: string
@@ -41,4 +42,4 @@ export const SUGGESTION_STATUS_LABEL: Record<SuggestionStatus, string> = {
 }
 
 export const SUGGESTION_COLUMNS =
-  'id, land_id, submitter_id, title, body, status, created_at, updated_at'
+  'id, land_id, project_id, submitter_id, title, body, status, created_at, updated_at'

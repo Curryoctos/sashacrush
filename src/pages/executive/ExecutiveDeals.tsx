@@ -37,9 +37,9 @@ export function ExecutiveDealsPage() {
   return (
     <div className="ui-page">
       <PageHeader
-        backTo="/executive/dashboard"
-        backLabel="Dashboard"
-        title="Deal Portfolio"
+        backTo="/executive/portfolio"
+        backLabel="Portfolio"
+        title="Land deals"
         description="High-level deal status — no field tools or payment sources."
       />
 

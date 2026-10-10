@@ -12,6 +12,8 @@ export interface ReceiptPdfParams {
   confirmedAt: string // ISO datetime string
   /** Manual wire reference when applicable (C-15); omitted for gateway payments. */
   manualReference?: string | null
+  /** Why funds were disbursed toward the project. */
+  disbursementReason?: string | null
 }
 
 /**
@@ -94,8 +96,8 @@ export async function generateReceiptPdf(p: ReceiptPdfParams): Promise<Uint8Arra
   const fields: Array<{ label: string; value: string; highlight?: boolean }> = [
     { label: 'Receipt Number', value: p.receiptNumber, highlight: true },
     { label: 'Date & Time', value: formatDate(p.confirmedAt) },
-    { label: 'Land Reference', value: p.landReference },
-    { label: 'Property', value: p.landTitle },
+    { label: 'Project Reference', value: p.landReference },
+    { label: 'Project', value: p.landTitle },
     { label: 'Recipient', value: p.sellerName },
     { label: 'Amount (USD)', value: formatUsd(p.amountUsd), highlight: true },
     { label: 'Amount (UGX)', value: formatUgx(p.amountUgx), highlight: true },
@@ -105,6 +107,10 @@ export async function generateReceiptPdf(p: ReceiptPdfParams): Promise<Uint8Arra
     },
     { label: 'Transaction ID', value: p.transactionId },
   ]
+
+  if (p.disbursementReason?.trim()) {
+    fields.push({ label: 'Disbursement Reason', value: p.disbursementReason.trim() })
+  }
 
   if (p.manualReference) {
     fields.push({ label: 'Payment Reference', value: p.manualReference })

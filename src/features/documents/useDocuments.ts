@@ -23,7 +23,7 @@ import {
 } from '@/types/documents'
 
 const DOCUMENT_COLUMNS =
-  'id, land_id, investor_id, investment_id, uploader_id, assigned_to, signed_by, file_path, title, status, signature_hash, signed_at, created_at'
+  'id, land_id, project_id, investor_id, investment_id, uploader_id, assigned_to, signed_by, file_path, title, status, signature_hash, signed_at, created_at'
 
 function mapDocument(row: Document): Document {
   return row
@@ -53,6 +53,8 @@ export function useDocuments(
 
       if (scope === 'investor') {
         query = query.eq('investor_id', scopeId!)
+      } else if (scope === 'project') {
+        query = query.eq('project_id', scopeId!)
       } else {
         query = query.eq('land_id', scopeId!)
       }
@@ -100,7 +102,9 @@ export function useDocuments(
       const storagePath =
         scope === 'investor'
           ? `investor/${targetScopeId}/${objectId}-${file.name}`
-          : `${targetScopeId}/${objectId}-${file.name}`
+          : scope === 'project'
+            ? `project/${targetScopeId}/${objectId}-${file.name}`
+            : `${targetScopeId}/${objectId}-${file.name}`
 
       onProgress?.(35)
 
@@ -121,26 +125,39 @@ export function useDocuments(
         scope === 'investor'
           ? {
               land_id: null,
+              project_id: null,
               investor_id: targetScopeId,
               uploader_id: user.id,
               file_path: storagePath,
               title: file.name,
               status: 'draft' as const,
             }
-          : {
-              land_id: targetScopeId,
-              investor_id: null,
-              uploader_id: user.id,
-              file_path: storagePath,
-              title: file.name,
-              status: 'draft' as const,
-            }
+          : scope === 'project'
+            ? {
+                land_id: null,
+                project_id: targetScopeId,
+                investor_id: null,
+                uploader_id: user.id,
+                file_path: storagePath,
+                title: file.name,
+                status: 'draft' as const,
+              }
+            : {
+                land_id: targetScopeId,
+                project_id: null,
+                investor_id: null,
+                uploader_id: user.id,
+                file_path: storagePath,
+                title: file.name,
+                status: 'draft' as const,
+              }
 
       const { data, error: insertError } = await supabase
         .from('documents')
         .insert(
           insertRow as {
             land_id: string | null
+            project_id: string | null
             investor_id: string | null
             uploader_id: string
             file_path: string
@@ -153,7 +170,14 @@ export function useDocuments(
 
       if (insertError || !data) {
         await supabase.storage.from(DOCUMENT_BUCKET).remove([storagePath])
-        throw new Error(UPLOAD_FAILED_ERROR)
+        const message = insertError?.message?.trim()
+        const err = new Error(
+          message && !message.toLowerCase().includes('row-level security')
+            ? message
+            : UPLOAD_FAILED_ERROR,
+        )
+        setActionError(err.message)
+        throw err
       }
 
       onProgress?.(100)

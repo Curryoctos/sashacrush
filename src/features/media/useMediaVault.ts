@@ -88,6 +88,7 @@ export function useMediaVault(landIdFilter: string | 'all' = 'all') {
       : (() => {
           const map = new Map<string, string>()
           for (const video of listQuery.data ?? []) {
+            if (!video.land_id) continue
             map.set(video.land_id, video.land_title)
           }
           return [...map.entries()].map(([id, title]) => ({ id, title }))

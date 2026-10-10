@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select(
-        'id, land_id, amount_usd, amount_ugx, method, status, flutterwave_tx_ref, mobile_money_network, payer_phone',
+        'id, land_id, project_id, disbursement_reason, amount_usd, amount_ugx, method, status, flutterwave_tx_ref, mobile_money_network, payer_phone',
       )
       .eq('id', paymentId)
       .single()
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
     if (payment.method === 'stripe') {
       return errorResponse(
-        'Card payouts are not enabled. Use MTN/Airtel MoMo or manual transfer to pay the seller.',
+        'Card payouts are not enabled. Use MTN/Airtel MoMo or manual transfer.',
         400,
       )
     }
@@ -92,29 +92,64 @@ Deno.serve(async (req) => {
     }
 
     if (!payment.payer_phone?.trim()) {
-      return errorResponse('Seller mobile-money phone is required for payouts', 400)
+      return errorResponse('Payee mobile-money phone is required for payouts', 400)
     }
 
-    const { data: land, error: landError } = await supabase
-      .from('land_records')
-      .select('title, seller_id')
-      .eq('id', payment.land_id)
+    if (!payment.project_id) {
+      return errorResponse('Payment is missing project_id', 400)
+    }
+
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, title, owner_id, created_by')
+      .eq('id', payment.project_id)
       .single()
 
-    if (landError || !land) {
-      return errorResponse('Land record not found', 404)
+    if (projectError || !project) {
+      return errorResponse('Project not found for payment', 404)
     }
 
-    if (!land.seller_id) {
-      return errorResponse('Assign a seller to this land before paying out', 400)
+    let payeeId: string | null = null
+
+    if (payment.land_id) {
+      const { data: land } = await supabase
+        .from('land_records')
+        .select('seller_id')
+        .eq('id', payment.land_id)
+        .maybeSingle()
+      payeeId = land?.seller_id ?? null
     }
 
-    const { data: seller } = await supabase
+    if (!payeeId) {
+      const { data: counterpart } = await supabase
+        .from('project_participants')
+        .select('user_id')
+        .eq('project_id', payment.project_id)
+        .eq('role', 'counterpart')
+        .order('joined_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      payeeId = counterpart?.user_id ?? null
+    }
+
+    if (!payeeId) {
+      payeeId = project.owner_id ?? project.created_by ?? null
+    }
+
+    if (!payeeId) {
+      return errorResponse(
+        'Assign a project payee (counterpart, owner, or linked land seller) before paying out',
+        400,
+      )
+    }
+
+    const { data: payee } = await supabase
       .from('users')
       .select('full_name, email')
-      .eq('id', land.seller_id)
+      .eq('id', payeeId)
       .single()
 
+    const subjectTitle = project.title
     const reference =
       payment.flutterwave_tx_ref?.trim() || buildFlutterwavePayoutReference(payment.id)
 
@@ -193,9 +228,9 @@ Deno.serve(async (req) => {
       const transfer = await createFlutterwaveMobileMoneyTransfer({
         amountUgx: Number(payment.amount_ugx),
         paymentId: payment.id,
-        landTitle: land.title,
+        landTitle: subjectTitle,
         recipientPhone: payment.payer_phone,
-        recipientName: seller?.full_name ?? seller?.email ?? null,
+        recipientName: payee?.full_name ?? payee?.email ?? null,
         mobileMoneyNetwork: payment.mobile_money_network,
         reference,
       })

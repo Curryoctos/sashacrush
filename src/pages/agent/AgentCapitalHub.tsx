@@ -1,4 +1,4 @@
-import { FileSignature, PiggyBank } from 'lucide-react'
+import { FileSignature, FolderKanban, PiggyBank } from 'lucide-react'
 import { PortalHubPage } from '@/components/hierarchy/PortalHubPage'
 
 export function AgentCapitalHubPage() {
@@ -6,13 +6,20 @@ export function AgentCapitalHubPage() {
     <PortalHubPage
       eyebrow="Investing"
       title="Capital"
-      description="Invest toward deals and sign agreements before contributing."
+      description="Land investments fund the company pool for deals. Funding projects are community causes you can contribute to."
       backTo="/agent/dashboard"
       backLabel="Dashboard"
       folders={[
         {
+          id: 'projects',
+          title: 'Funding projects',
+          description: 'Browse causes and contribute as an investor',
+          to: '/agent/projects',
+          icon: <FolderKanban className="h-5 w-5" />,
+        },
+        {
           id: 'investments',
-          title: 'Investments',
+          title: 'Land investments',
           description: 'Contribute toward a deal — funds the company pool',
           to: '/agent/investments',
           icon: <PiggyBank className="h-5 w-5" />,

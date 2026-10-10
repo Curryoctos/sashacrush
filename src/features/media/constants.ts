@@ -6,7 +6,8 @@ export type MediaMimeType = (typeof MEDIA_MIME_TYPES)[number]
 
 export interface MediaVideo {
   id: string
-  land_id: string
+  land_id: string | null
+  project_id?: string | null
   uploader_id: string
   title: string
   land_title: string
@@ -22,7 +23,7 @@ export interface MediaVideoWithMeta extends MediaVideo {
 }
 
 export const MEDIA_COLUMNS =
-  'id, land_id, uploader_id, title, land_title, file_path, mime_type, size_bytes, captured_at, created_at'
+  'id, land_id, project_id, uploader_id, title, land_title, file_path, mime_type, size_bytes, captured_at, created_at'
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) {

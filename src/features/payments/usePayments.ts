@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { confirmPaymentWithReceipt } from '@/features/payments/confirmPayment'
 import { initiateGatewayPayment } from '@/features/payments/initiateGatewayPayment'
 import {
+  normalizeDisbursementReason,
   normalizeUgandaPhone,
   resolveRecipientPhone,
   validateCreatePayment,
@@ -12,8 +13,11 @@ import type { PaymentMethod } from '@/types/database'
 
 export interface PaymentWithLand {
   id: string
-  land_id: string
+  land_id: string | null
+  project_id: string
+  disbursement_reason: string
   land_title: string
+  project_title: string | null
   amount_usd: number
   amount_ugx: number | null
   rate_used: number | null
@@ -31,7 +35,7 @@ export interface PaymentWithLand {
 }
 
 const PAYMENT_COLUMNS =
-  'id, land_id, amount_usd, amount_ugx, rate_used, method, status, stripe_payment_intent_id, flutterwave_tx_ref, gateway_checkout_url, mobile_money_network, manual_reference, payer_phone, created_at'
+  'id, land_id, project_id, disbursement_reason, amount_usd, amount_ugx, rate_used, method, status, stripe_payment_intent_id, flutterwave_tx_ref, gateway_checkout_url, mobile_money_network, manual_reference, payer_phone, created_at'
 
 async function fetchPaymentsWithLand(): Promise<PaymentWithLand[]> {
   const { data: payments, error } = await supabase
@@ -43,8 +47,23 @@ async function fetchPaymentsWithLand(): Promise<PaymentWithLand[]> {
     throw error
   }
 
-  const landIds = [...new Set((payments ?? []).map((payment) => payment.land_id))]
+  const landIds = [
+    ...new Set(
+      (payments ?? [])
+        .map((payment) => payment.land_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ]
+  const projectIds = [
+    ...new Set(
+      (payments ?? [])
+        .map((payment) => payment.project_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ]
+
   const landTitles = new Map<string, string>()
+  const projectTitles = new Map<string, string>()
 
   if (landIds.length > 0) {
     const { data: lands } = await supabase
@@ -57,8 +76,22 @@ async function fetchPaymentsWithLand(): Promise<PaymentWithLand[]> {
     }
   }
 
+  if (projectIds.length > 0) {
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('id, title')
+      .in('id', projectIds)
+
+    for (const project of projects ?? []) {
+      projectTitles.set(project.id, project.title)
+    }
+  }
+
   const paymentIds = (payments ?? []).map((payment) => payment.id)
-  const receiptByPayment = new Map<string, { receipt_number: string; pdf_path: string | null }>()
+  const receiptByPayment = new Map<
+    string,
+    { receipt_number: string; pdf_path: string | null }
+  >()
 
   if (paymentIds.length > 0) {
     const { data: receipts } = await supabase
@@ -76,9 +109,16 @@ async function fetchPaymentsWithLand(): Promise<PaymentWithLand[]> {
 
   return (payments ?? []).map((payment) => {
     const receipt = receiptByPayment.get(payment.id)
+    const projectTitle = payment.project_id
+      ? projectTitles.get(payment.project_id) ?? null
+      : null
+    const landTitle = payment.land_id
+      ? landTitles.get(payment.land_id) ?? 'Unknown property'
+      : projectTitle ?? 'Purchase'
     return {
       ...payment,
-      land_title: landTitles.get(payment.land_id) ?? 'Unknown property',
+      land_title: landTitle,
+      project_title: projectTitle,
       receipt_number: receipt?.receipt_number ?? null,
       pdf_path: receipt?.pdf_path ?? null,
     }
@@ -91,6 +131,7 @@ function invalidatePaymentQueries(queryClient: ReturnType<typeof useQueryClient>
   void queryClient.invalidateQueries({ queryKey: ['deal-summary'] })
   void queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] })
   void queryClient.invalidateQueries({ queryKey: ['company-capital'] })
+  void queryClient.invalidateQueries({ queryKey: ['project-balance'] })
 }
 
 export function useAllPayments() {
@@ -141,12 +182,18 @@ export function useAllPayments() {
       const method = input.method ?? 'manual'
       const status = method === 'manual' ? 'pending_manual' : 'pending'
       const rawPhone = resolveRecipientPhone(input)
-      const recipientPhone = rawPhone ? normalizeUgandaPhone(rawPhone) ?? rawPhone : null
+      const recipientPhone = rawPhone
+        ? normalizeUgandaPhone(rawPhone) ?? rawPhone
+        : null
 
       const { data, error } = await supabase
         .from('payments')
         .insert({
-          land_id: input.landId,
+          project_id: input.projectId.trim(),
+          land_id: input.landId?.trim() || null,
+          disbursement_reason: normalizeDisbursementReason(
+            input.disbursementReason,
+          ),
           amount_usd: input.amountUsd,
           amount_ugx: input.amountUgx ?? null,
           rate_used: input.rateUsed ?? null,
@@ -171,8 +218,6 @@ export function useAllPayments() {
   })
 
   const startGatewayPayout = useMutation({
-    // The newly inserted payment may not be in the query cache yet. The edge
-    // function is authoritative and validates status + gateway method.
     mutationFn: initiateGatewayPayment,
     onSuccess: () => {
       invalidatePaymentQueries(queryClient)
@@ -202,6 +247,25 @@ export function usePayments(landId: string | null) {
     payments: landId
       ? all.payments.filter((payment) => payment.land_id === landId)
       : all.payments,
+    isLoading: all.isLoading,
+    error: all.error,
+    confirmPayment: all.confirmPayment,
+    isConfirming: all.isConfirming,
+    createPayment: all.createPayment,
+    isCreating: all.isCreating,
+    startGatewayPayout: all.startGatewayPayout,
+    isStartingPayout: all.isStartingPayout,
+    refresh: all.refresh,
+  }
+}
+
+export function useProjectPayments(projectId: string | null) {
+  const all = useAllPayments()
+
+  return {
+    payments: projectId
+      ? all.payments.filter((payment) => payment.project_id === projectId)
+      : all.payments.filter((payment) => Boolean(payment.project_id)),
     isLoading: all.isLoading,
     error: all.error,
     confirmPayment: all.confirmPayment,

@@ -13,11 +13,20 @@ import type { ChatChannel } from '@/types/database'
 interface ChatWindowProps {
   landId: string | null
   channel: ChatChannel
+  projectId?: string | null
 }
 
-export function ChatWindow({ landId, channel }: ChatWindowProps) {
+export function ChatWindow({
+  landId,
+  channel,
+  projectId = null,
+}: ChatWindowProps) {
   const { user } = useAuth()
-  const { messages, sendMessage, isLoading, error, isSending } = useChat(landId, channel)
+  const { messages, sendMessage, isLoading, error, isSending } = useChat(
+    landId,
+    channel,
+    projectId,
+  )
   const [adminUserId, setAdminUserId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [hasNewBelow, setHasNewBelow] = useState(false)

@@ -24,10 +24,10 @@ import { shortenAddress } from '@/features/wallet/constants'
 const LOCK_SECONDS = 60
 const ASSETS: CryptoAsset[] = ['BTC', 'ETH', 'USDT']
 
-interface LandOption {
+interface ProjectOption {
   id: string
   title: string
-  total_value_usd: number
+  funding_goal_usd: number | null
 }
 
 /**
@@ -40,7 +40,8 @@ export function AdminWalletConvertPage() {
   const queryClient = useQueryClient()
   const treasuryAddress = getTreasuryAddress()
 
-  const [landId, setLandId] = useState('')
+  const [projectId, setProjectId] = useState('')
+  const [disbursementReason, setDisbursementReason] = useState('')
   const [asset, setAsset] = useState<CryptoAsset>('ETH')
   const [ugxAmount, setUgxAmount] = useState('')
   const [locked, setLocked] = useState<{
@@ -54,13 +55,13 @@ export function AdminWalletConvertPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const landsQuery = useQuery({
-    queryKey: ['land-records', 'crypto-convert'],
-    queryFn: async (): Promise<LandOption[]> => {
+  const projectsQuery = useQuery({
+    queryKey: ['projects', 'crypto-convert'],
+    queryFn: async (): Promise<ProjectOption[]> => {
       const { data, error: queryError } = await supabase
-        .from('land_records')
-        .select('id, title, total_value_usd')
-        .neq('status', 'archived')
+        .from('projects')
+        .select('id, title, funding_goal_usd')
+        .neq('status', 'cancelled')
         .order('title', { ascending: true })
       if (queryError) {
         throw queryError
@@ -68,7 +69,8 @@ export function AdminWalletConvertPage() {
       return (data ?? []).map((row) => ({
         id: row.id,
         title: row.title,
-        total_value_usd: Number(row.total_value_usd),
+        funding_goal_usd:
+          row.funding_goal_usd != null ? Number(row.funding_goal_usd) : null,
       }))
     },
   })
@@ -115,8 +117,12 @@ export function AdminWalletConvertPage() {
 
   const lockRate = async () => {
     setError(null)
-    if (!landId) {
-      setError('Select the land deal this payment is for.')
+    if (!projectId) {
+      setError('Select the project this purchase is for.')
+      return
+    }
+    if (disbursementReason.trim().length < 3) {
+      setError('Enter a disbursement reason (at least 3 characters).')
       return
     }
     const ugx = Number(ugxAmount)
@@ -182,7 +188,8 @@ export function AdminWalletConvertPage() {
       const result = await settleCryptoConversion({
         provider,
         userId: user.id,
-        landId,
+        projectId,
+        disbursementReason,
         asset,
         cryptoAmount: locked.cryptoNeeded,
         amountUsd: locked.usdNeeded,
@@ -201,7 +208,7 @@ export function AdminWalletConvertPage() {
       notifySuccess(
         `Payment confirmed. Receipt ${result.receiptNumber}. Tx ${shortenAddress(result.txHash)}.`,
       )
-      navigate(`/admin/payments?land=${landId}`)
+      navigate(`/admin/payments?project=${projectId}`)
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Could not complete conversion.',
@@ -218,7 +225,7 @@ export function AdminWalletConvertPage() {
         backLabel="Wallet"
         eyebrow="Conversion kit"
         title="Convert and Pay"
-        description="Fresh rate → approve in wallet → payment + seller receipt."
+        description="Fresh rate → approve in wallet → project purchase + receipt."
       />
 
       {!treasuryAddress ? (
@@ -249,27 +256,46 @@ export function AdminWalletConvertPage() {
       <Card>
         <CardHeader
           title="Payment amount"
-          description="Choose the deal, asset, and UGX to settle. Rate is fetched fresh and locked for 60 seconds."
+          description="Choose the project, reason, asset, and UGX to settle. Rate is fetched fresh and locked for 60 seconds."
         />
         <div className="space-y-4">
           <label className="block space-y-1.5">
-            <span className="ui-label">Land deal</span>
+            <span className="ui-label">Project</span>
             <select
               className="ui-input"
-              value={landId}
-              disabled={busy || Boolean(locked) || landsQuery.isLoading}
-              onChange={(event) => setLandId(event.target.value)}
+              value={projectId}
+              disabled={busy || Boolean(locked) || projectsQuery.isLoading}
+              onChange={(event) => setProjectId(event.target.value)}
               required
             >
               <option value="">
-                {landsQuery.isLoading ? 'Loading deals…' : 'Select a deal…'}
+                {projectsQuery.isLoading
+                  ? 'Loading projects…'
+                  : 'Select a project…'}
               </option>
-              {(landsQuery.data ?? []).map((land) => (
-                <option key={land.id} value={land.id}>
-                  {land.title} · {formatUsd(land.total_value_usd)}
+              {(projectsQuery.data ?? []).map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                  {project.funding_goal_usd != null
+                    ? ` · ${formatUsd(project.funding_goal_usd)}`
+                    : ''}
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="ui-label">Disbursement reason</span>
+            <textarea
+              className="ui-input min-h-[4.5rem] resize-y"
+              value={disbursementReason}
+              disabled={busy || Boolean(locked)}
+              minLength={3}
+              maxLength={500}
+              required
+              onChange={(event) => setDisbursementReason(event.target.value)}
+              placeholder="Why this crypto purchase is charged to the project"
+            />
           </label>
 
           <label className="block space-y-1.5">

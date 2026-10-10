@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/cn'
 
 const links = [
+  { to: '/projects', label: 'Projects', end: false },
   { to: '/community', label: 'Board', end: true },
   { to: '/community/schedule', label: 'Schedule', end: false },
 ]

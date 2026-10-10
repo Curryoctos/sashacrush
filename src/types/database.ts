@@ -35,6 +35,44 @@ export type ChatChannel = 'seller_channel' | 'executive_channel'
 
 export type LandRecordStatus = 'active' | 'archived'
 
+export type ProjectType =
+  | 'land_acquisition'
+  | 'infrastructure'
+  | 'community_cause'
+  | 'cargo_import'
+  | 'investment'
+  | 'agriculture'
+  | 'education'
+  | 'sports'
+  | 'other'
+
+export type ProjectStatus =
+  | 'draft'
+  | 'active'
+  | 'funded'
+  | 'in_progress'
+  | 'completed'
+  | 'on_hold'
+  | 'cancelled'
+
+export type ParticipantRole =
+  | 'investor'
+  | 'contributor'
+  | 'counterpart'
+  | 'follower'
+  | 'collaborator'
+
+export type ProjectUpdateType =
+  | 'general'
+  | 'milestone'
+  | 'funding'
+  | 'photo'
+  | 'document'
+  | 'shipment'
+  | 'completion'
+
+export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'blocked'
+
 export interface LandRecordFormValues {
   title: string
   description: string
@@ -121,10 +159,201 @@ export interface Database {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          description: string
+          cause: string | null
+          type: ProjectType
+          created_by: string | null
+          owner_id: string | null
+          visibility: 'public' | 'private'
+          funding_goal_usd: number | null
+          funding_raised_usd: number
+          min_contribution_usd: number
+          location_name: string | null
+          country: string
+          latitude: number | null
+          longitude: number | null
+          boundary_geojson: Json | null
+          start_date: string | null
+          target_date: string | null
+          completed_date: string | null
+          status: ProjectStatus
+          cover_image_path: string | null
+          tags: string[]
+          external_links: Json
+          land_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          description: string
+          cause?: string | null
+          type: ProjectType
+          created_by?: string | null
+          owner_id?: string | null
+          visibility?: 'public' | 'private'
+          funding_goal_usd?: number | null
+          funding_raised_usd?: number
+          min_contribution_usd?: number
+          location_name?: string | null
+          country?: string
+          latitude?: number | null
+          longitude?: number | null
+          boundary_geojson?: Json | null
+          start_date?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: ProjectStatus
+          cover_image_path?: string | null
+          tags?: string[]
+          external_links?: Json
+          land_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          description?: string
+          cause?: string | null
+          type?: ProjectType
+          created_by?: string | null
+          owner_id?: string | null
+          visibility?: 'public' | 'private'
+          funding_goal_usd?: number | null
+          funding_raised_usd?: number
+          min_contribution_usd?: number
+          location_name?: string | null
+          country?: string
+          latitude?: number | null
+          longitude?: number | null
+          boundary_geojson?: Json | null
+          start_date?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: ProjectStatus
+          cover_image_path?: string | null
+          tags?: string[]
+          land_id?: string | null
+          external_links?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_participants: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          role: ParticipantRole
+          invited_by: string | null
+          joined_at: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id: string
+          role: ParticipantRole
+          invited_by?: string | null
+          joined_at?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string
+          role?: ParticipantRole
+          invited_by?: string | null
+          joined_at?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      project_updates: {
+        Row: {
+          id: string
+          project_id: string
+          author_id: string
+          title: string
+          body: string
+          update_type: ProjectUpdateType
+          is_public: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          author_id: string
+          title: string
+          body: string
+          update_type?: ProjectUpdateType
+          is_public?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          author_id?: string
+          title?: string
+          body?: string
+          update_type?: ProjectUpdateType
+          is_public?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      project_milestones: {
+        Row: {
+          id: string
+          project_id: string
+          title: string
+          description: string | null
+          target_date: string | null
+          completed_date: string | null
+          status: MilestoneStatus
+          order_index: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          title: string
+          description?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: MilestoneStatus
+          order_index?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          title?: string
+          description?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: MilestoneStatus
+          order_index?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           id: string
-          land_id: string
+          land_id: string | null
+          project_id: string
+          disbursement_reason: string
           amount_usd: number
           amount_ugx: number | null
           method: PaymentMethod | null
@@ -140,7 +369,9 @@ export interface Database {
         }
         Insert: {
           id?: string
-          land_id: string
+          land_id?: string | null
+          project_id: string
+          disbursement_reason: string
           amount_usd: number
           amount_ugx?: number | null
           method?: PaymentMethod | null
@@ -156,7 +387,9 @@ export interface Database {
         }
         Update: {
           id?: string
-          land_id?: string
+          land_id?: string | null
+          project_id?: string
+          disbursement_reason?: string
           amount_usd?: number
           amount_ugx?: number | null
           method?: PaymentMethod | null
@@ -177,6 +410,7 @@ export interface Database {
           id: string
           agent_id: string
           land_id: string
+          project_id: string | null
           amount_usd: number
           amount_ugx: number | null
           rate_used: number | null
@@ -196,6 +430,7 @@ export interface Database {
           id?: string
           agent_id: string
           land_id: string
+          project_id?: string | null
           amount_usd: number
           amount_ugx?: number | null
           rate_used?: number | null
@@ -215,6 +450,7 @@ export interface Database {
           id?: string
           agent_id?: string
           land_id?: string
+          project_id?: string | null
           amount_usd?: number
           amount_ugx?: number | null
           rate_used?: number | null
@@ -281,6 +517,7 @@ export interface Database {
         Row: {
           id: string
           payment_id: string
+          project_id: string | null
           seller_id: string
           receipt_number: string
           pdf_path: string | null
@@ -294,6 +531,7 @@ export interface Database {
         Insert: {
           id?: string
           payment_id: string
+          project_id?: string | null
           seller_id: string
           receipt_number: string
           pdf_path?: string | null
@@ -307,6 +545,7 @@ export interface Database {
         Update: {
           id?: string
           payment_id?: string
+          project_id?: string | null
           seller_id?: string
           receipt_number?: string
           pdf_path?: string | null
@@ -356,6 +595,7 @@ export interface Database {
         Row: {
           id: string
           land_id: string | null
+          project_id: string | null
           investor_id: string | null
           investment_id: string | null
           uploader_id: string
@@ -371,6 +611,7 @@ export interface Database {
         Insert: {
           id?: string
           land_id?: string | null
+          project_id?: string | null
           investor_id?: string | null
           investment_id?: string | null
           uploader_id: string
@@ -386,6 +627,7 @@ export interface Database {
         Update: {
           id?: string
           land_id?: string | null
+          project_id?: string | null
           investor_id?: string | null
           investment_id?: string | null
           uploader_id?: string
@@ -403,7 +645,8 @@ export interface Database {
       photos: {
         Row: {
           id: string
-          land_id: string
+          land_id: string | null
+          project_id: string | null
           uploader_id: string
           file_path: string | null
           latitude: number | null
@@ -413,7 +656,8 @@ export interface Database {
         }
         Insert: {
           id?: string
-          land_id: string
+          land_id?: string | null
+          project_id?: string | null
           uploader_id: string
           file_path?: string | null
           latitude?: number | null
@@ -423,7 +667,8 @@ export interface Database {
         }
         Update: {
           id?: string
-          land_id?: string
+          land_id?: string | null
+          project_id?: string | null
           uploader_id?: string
           file_path?: string | null
           latitude?: number | null
@@ -519,6 +764,7 @@ export interface Database {
           id: string
           channel: ChatChannel
           land_id: string | null
+          project_id: string | null
           sender_id: string
           body: string
           created_at: string
@@ -527,6 +773,7 @@ export interface Database {
           id?: string
           channel: ChatChannel
           land_id?: string | null
+          project_id?: string | null
           sender_id: string
           body: string
           created_at?: string
@@ -535,6 +782,7 @@ export interface Database {
           id?: string
           channel?: ChatChannel
           land_id?: string | null
+          project_id?: string | null
           sender_id?: string
           body?: string
           created_at?: string
@@ -545,6 +793,7 @@ export interface Database {
         Row: {
           id: string
           land_id: string
+          project_id: string | null
           submitter_id: string
           title: string
           body: string
@@ -555,6 +804,7 @@ export interface Database {
         Insert: {
           id?: string
           land_id: string
+          project_id?: string | null
           submitter_id: string
           title: string
           body: string
@@ -565,6 +815,7 @@ export interface Database {
         Update: {
           id?: string
           land_id?: string
+          project_id?: string | null
           submitter_id?: string
           title?: string
           body?: string
@@ -607,7 +858,8 @@ export interface Database {
       media_videos: {
         Row: {
           id: string
-          land_id: string
+          land_id: string | null
+          project_id: string | null
           uploader_id: string
           title: string
           land_title: string
@@ -619,7 +871,8 @@ export interface Database {
         }
         Insert: {
           id?: string
-          land_id: string
+          land_id?: string | null
+          project_id?: string | null
           uploader_id: string
           title: string
           land_title: string
@@ -631,7 +884,8 @@ export interface Database {
         }
         Update: {
           id?: string
-          land_id?: string
+          land_id?: string | null
+          project_id?: string | null
           uploader_id?: string
           title?: string
           land_title?: string

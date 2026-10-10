@@ -23,7 +23,7 @@ export const LAND_FOLDER_LABELS: Record<LandFolderId, string> = {
   overview: 'Overview',
   documents: 'Documents',
   messages: 'Messages',
-  payments: 'Payments',
+  payments: 'Purchases',
   photos: 'Field photos',
   investments: 'Investments',
   suggestions: 'Suggestions',
@@ -34,10 +34,10 @@ export const LAND_FOLDER_DESCRIPTIONS: Record<LandFolderId, string> = {
   overview: 'Deal value, seller, and activity summary',
   documents: 'Upload, send, and track signing',
   messages: 'Seller channel conversation',
-  payments: 'Confirm and track deal payments',
+  payments: 'Purchases on the linked funding project',
   photos: 'Camera GPS within 10m; library uploads use the land site',
   investments: 'Invest toward this deal — funds capital pool',
-  suggestions: 'Propose ideas for this project',
+  suggestions: 'Propose ideas for this land deal',
   edit: 'Title, location, seller, and status',
 }
 

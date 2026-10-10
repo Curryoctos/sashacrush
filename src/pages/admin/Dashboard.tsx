@@ -86,12 +86,12 @@ export function AdminDashboard() {
                   onSelect: () => navigate('/admin/users'),
                 },
                 {
-                  id: 'deals',
-                  title: 'Land records',
-                  description: 'Deal workspaces and site maps',
+                  id: 'projects',
+                  title: 'Projects',
+                  description: 'Funding catalog and land deal workspaces',
                   icon: <FolderKanban strokeWidth={1.75} />,
                   count: stats.activeLands,
-                  onSelect: () => navigate('/admin/land-records'),
+                  onSelect: () => navigate('/admin/projects'),
                 },
                 {
                   id: 'analytics',

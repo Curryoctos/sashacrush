@@ -40,7 +40,17 @@ export const ADMIN_NAV: PortalNavSection[] = [
     items: [
       { label: 'Overview', to: '/admin/dashboard', icon: LayoutDashboard },
       { label: 'Users', to: '/admin/users', icon: Users },
-      { label: 'Land Records', to: '/admin/land-records', icon: FolderKanban },
+      {
+        label: 'Projects',
+        to: '/admin/projects',
+        icon: FolderKanban,
+        activeFor: [
+          '/admin/projects',
+          '/admin/funding',
+          '/admin/land-records',
+          '/admin/deals',
+        ],
+      },
       { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
     ],
   },
@@ -134,7 +144,12 @@ export const AGENT_NAV: PortalNavSection[] = [
         label: 'Capital',
         to: '/agent/capital',
         icon: PiggyBank,
-        activeFor: ['/agent/capital', '/agent/investments', '/agent/agreements'],
+        activeFor: [
+          '/agent/capital',
+          '/agent/projects',
+          '/agent/investments',
+          '/agent/agreements',
+        ],
       },
       { label: 'Field Photos', to: '/agent/photos', icon: Camera },
       { label: 'Suggestions', to: '/agent/suggestions', icon: Lightbulb },
@@ -150,7 +165,16 @@ export const EXECUTIVE_NAV: PortalNavSection[] = [
   {
     items: [
       { label: 'Overview', to: '/executive/dashboard', icon: LayoutDashboard },
-      { label: 'Portfolio', to: '/executive/deals', icon: FolderKanban },
+      {
+        label: 'Portfolio',
+        to: '/executive/portfolio',
+        icon: FolderKanban,
+        activeFor: [
+          '/executive/portfolio',
+          '/executive/deals',
+          '/executive/funding',
+        ],
+      },
       { label: 'Analytics', to: '/executive/analytics', icon: BarChart3 },
       { label: 'Communications', to: '/executive/communications', icon: MessageSquare },
       { label: 'Media', to: '/executive/media', icon: Video },

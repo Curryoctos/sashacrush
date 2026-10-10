@@ -1,4 +1,4 @@
-import { Banknote, Landmark, Wallet } from 'lucide-react'
+import { FolderKanban, Landmark, Wallet } from 'lucide-react'
 import { PortalHubPage } from '@/components/hierarchy/PortalHubPage'
 
 export function AdminFinanceHubPage() {
@@ -6,16 +6,17 @@ export function AdminFinanceHubPage() {
     <PortalHubPage
       eyebrow="Money"
       title="Finance"
-      description="Seller payouts, agent capital confirmations, and the owner wallet."
+      description="Project purchases and disbursements, capital confirmations, and the owner wallet."
       backTo="/admin/dashboard"
       backLabel="Dashboard"
       folders={[
         {
           id: 'payments',
-          title: 'Payments',
-          description: 'Pay out and confirm seller disbursements',
+          title: 'Purchases',
+          description:
+            'Record project purchases and disbursements with a reason, then clear pending payouts',
           to: '/admin/payments',
-          icon: <Banknote className="h-5 w-5" />,
+          icon: <FolderKanban className="h-5 w-5" />,
         },
         {
           id: 'capital',

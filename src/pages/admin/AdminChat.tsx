@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Building2, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { BackArrow } from '@/components/ui/BackArrow'
@@ -12,6 +13,8 @@ import {
 import { ChatWindow } from '@/features/chat/components/ChatWindow'
 import { UnreadBadge } from '@/features/chat/components/UnreadBadge'
 import { countUnreadMessages, readLastReadAt } from '@/features/chat/chat-utils'
+import { ProjectChatPanel } from '@/features/projects/components/ProjectChatPanel'
+import { ProjectLibraryShell } from '@/features/projects/components/ProjectLibraryShell'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
@@ -45,8 +48,12 @@ async function fetchMessagesSnapshot(
 
 export function AdminChatPage() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const projectId = searchParams.get('project')
+
   const landsQuery = useQuery({
     queryKey: ['admin-land-records-options'],
+    enabled: !projectId,
     queryFn: async (): Promise<LandRecord[]> => {
       const { data, error } = await supabase
         .from('land_records')
@@ -108,13 +115,21 @@ export function AdminChatPage() {
     [lands],
   )
 
+  if (projectId) {
+    return (
+      <ProjectLibraryShell projectId={projectId} folder="messages">
+        <ProjectChatPanel projectId={projectId} />
+      </ProjectLibraryShell>
+    )
+  }
+
   return (
     <div className="ui-page">
       <PageHeader
         backTo="/admin/dashboard"
         backLabel="Dashboard"
         title="Messages"
-        description="Open a channel, then a deal when needed."
+        description="Open a channel, then a deal when needed. Project workspaces open project-scoped chat."
       />
 
       {!channel && (

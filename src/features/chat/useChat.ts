@@ -26,16 +26,22 @@ function sortMessages(messages: ChatMessage[]): ChatMessage[] {
   )
 }
 
-function buildHistoryQuery(channel: ChatChannel, landId: string | null) {
+function buildHistoryQuery(
+  channel: ChatChannel,
+  landId: string | null,
+  projectId: string | null = null,
+) {
   let query = supabase
     .from('chat_messages')
-    .select('id, channel, land_id, sender_id, body, created_at')
+    .select('id, channel, land_id, project_id, sender_id, body, created_at')
     .eq('channel', channel)
     .order('created_at', { ascending: true })
     .limit(HISTORY_LIMIT)
 
-  if (channel === 'executive_channel' && !landId) {
-    query = query.is('land_id', null)
+  if (projectId) {
+    query = query.eq('project_id', projectId)
+  } else if (channel === 'executive_channel' && !landId) {
+    query = query.is('land_id', null).is('project_id', null)
   } else if (landId) {
     query = query.eq('land_id', landId)
   }
@@ -84,7 +90,11 @@ async function enrichMessages(
   })
 }
 
-export function useChat(landId: string | null, channel: ChatChannel) {
+export function useChat(
+  landId: string | null,
+  channel: ChatChannel,
+  projectId: string | null = null,
+) {
   const { user } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -94,6 +104,7 @@ export function useChat(landId: string | null, channel: ChatChannel) {
   const realtimeRef = useRef<RealtimeChannel | null>(null)
 
   const normalizedLandId = landId || null
+  const normalizedProjectId = projectId || null
 
   const loadMessages = useCallback(async () => {
     setIsLoading(true)
@@ -107,6 +118,7 @@ export function useChat(landId: string | null, channel: ChatChannel) {
       const { data, error: queryError } = await buildHistoryQuery(
         channel,
         normalizedLandId,
+        normalizedProjectId,
       )
 
       if (queryError) {
@@ -132,16 +144,17 @@ export function useChat(landId: string | null, channel: ChatChannel) {
     } finally {
       setIsLoading(false)
     }
-  }, [channel, normalizedLandId, user?.id, user?.role])
+  }, [channel, normalizedLandId, normalizedProjectId, user?.id, user?.role])
 
   useEffect(() => {
     void loadMessages()
   }, [loadMessages])
 
   useEffect(() => {
-    const topic = `chat:${channel}:${normalizedLandId ?? 'global'}`
-    const filter =
-      channel === 'executive_channel' && !normalizedLandId
+    const topic = `chat:${channel}:${normalizedProjectId ?? normalizedLandId ?? 'global'}`
+    const filter = normalizedProjectId
+      ? `channel=eq.${channel},project_id=eq.${normalizedProjectId}`
+      : channel === 'executive_channel' && !normalizedLandId
         ? `channel=eq.${channel}`
         : `channel=eq.${channel},land_id=eq.${normalizedLandId}`
 
@@ -158,7 +171,12 @@ export function useChat(landId: string | null, channel: ChatChannel) {
         (payload) => {
           const incoming = payload.new as ChatMessage
           if (
-            !messageMatchesContext(incoming, channel, normalizedLandId)
+            !messageMatchesContext(
+              incoming,
+              channel,
+              normalizedLandId,
+              normalizedProjectId,
+            )
           ) {
             return
           }
@@ -195,7 +213,7 @@ export function useChat(landId: string | null, channel: ChatChannel) {
         realtimeRef.current = null
       }
     }
-  }, [channel, normalizedLandId, user?.id, user?.role])
+  }, [channel, normalizedLandId, normalizedProjectId, user?.id, user?.role])
 
   const sendMessage = useCallback(
     async (body: string) => {
@@ -212,7 +230,8 @@ export function useChat(landId: string | null, channel: ChatChannel) {
           .from('chat_messages')
           .insert({
             channel,
-            land_id: normalizedLandId,
+            land_id: normalizedProjectId ? null : normalizedLandId,
+            project_id: normalizedProjectId,
             sender_id: user.id,
             body: trimmed,
           })
@@ -271,7 +290,7 @@ export function useChat(landId: string | null, channel: ChatChannel) {
         setIsSending(false)
       }
     },
-    [channel, normalizedLandId, user],
+    [channel, normalizedLandId, normalizedProjectId, user],
   )
 
   return {

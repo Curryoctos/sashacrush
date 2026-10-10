@@ -40,16 +40,21 @@ export function formatMessageTime(iso: string): string {
 }
 
 export function messageMatchesContext(
-  message: Pick<ChatMessage, 'channel' | 'land_id'>,
+  message: Pick<ChatMessage, 'channel' | 'land_id' | 'project_id'>,
   channel: ChatMessage['channel'],
   landId: string | null,
+  projectId: string | null = null,
 ): boolean {
   if (message.channel !== channel) {
     return false
   }
 
+  if (projectId) {
+    return message.project_id === projectId
+  }
+
   if (channel === 'executive_channel' && !landId) {
-    return message.land_id == null
+    return message.land_id == null && !message.project_id
   }
 
   return message.land_id === landId

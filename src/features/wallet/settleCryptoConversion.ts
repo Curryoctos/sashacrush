@@ -7,7 +7,10 @@ import type { BrowserProvider } from 'ethers'
 export interface SettleCryptoConversionInput {
   provider: BrowserProvider
   userId: string
-  landId: string
+  projectId: string
+  /** Optional land linkage for land_acquisition projects. */
+  landId?: string | null
+  disbursementReason: string
   asset: CryptoAsset
   cryptoAmount: number
   amountUsd: number
@@ -33,6 +36,11 @@ export interface SettleCryptoConversionResult {
 export async function settleCryptoConversion(
   input: SettleCryptoConversionInput,
 ): Promise<SettleCryptoConversionResult> {
+  const reason = input.disbursementReason.replace(/\s+/g, ' ').trim()
+  if (reason.length < 3) {
+    throw new Error('Enter a disbursement reason (at least 3 characters).')
+  }
+
   const { txHash, fromAddress } = await sendTreasuryTransfer({
     provider: input.provider,
     asset: input.asset,
@@ -44,7 +52,9 @@ export async function settleCryptoConversion(
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
     .insert({
-      land_id: input.landId,
+      project_id: input.projectId,
+      land_id: input.landId?.trim() || null,
+      disbursement_reason: reason,
       amount_usd: input.amountUsd,
       amount_ugx: input.amountUgx,
       rate_used: input.usdToUgxRate,
@@ -78,7 +88,7 @@ export async function settleCryptoConversion(
   if (cryptoError) {
     throw new Error(
       cryptoError.message ||
-        `Payment ${payment.id} created but crypto ledger insert failed. Tx: ${txHash}`,
+        `Payment ${payment.id} created but crypto ledger insert failed. Contact admin.`,
     )
   }
 

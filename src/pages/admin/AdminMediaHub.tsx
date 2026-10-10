@@ -6,14 +6,14 @@ export function AdminMediaHubPage() {
     <PortalHubPage
       eyebrow="Library"
       title="Media"
-      description="Field photos from site visits and the private video vault."
+      description="Field photos and private video — scoped to land deals or funding projects from each project workspace."
       backTo="/admin/dashboard"
       backLabel="Dashboard"
       folders={[
         {
           id: 'photos',
           title: 'Field photos',
-          description: 'GPS camera captures tied to land deals',
+          description: 'GPS camera captures for land deals and projects',
           to: '/admin/photos',
           icon: <Camera className="h-5 w-5" />,
         },

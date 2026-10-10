@@ -46,7 +46,7 @@ export function MediaVaultView({
   const grouped = useMemo(() => {
     const map = new Map<string, typeof videos>()
     for (const video of videos) {
-      const key = video.land_id
+      const key = video.land_id ?? video.project_id ?? 'unscoped'
       const list = map.get(key) ?? []
       list.push(video)
       map.set(key, list)

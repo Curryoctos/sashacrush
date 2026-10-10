@@ -34,3 +34,27 @@ export {
   FILE_TYPE_ERROR,
   UPLOAD_FAILED_ERROR,
 } from './documents'
+export type {
+  MilestoneStatus,
+  ParticipantRole,
+  Payment,
+  Project,
+  ProjectMilestone,
+  ProjectParticipant,
+  ProjectStatus,
+  ProjectType,
+  ProjectUpdate,
+  ProjectVisibility,
+  Receipt,
+  Saving,
+  UpdateType,
+  UserProfile,
+} from './projects'
+export {
+  PARTICIPANT_ROLES,
+  PROJECT_STATUSES,
+  PROJECT_TYPES,
+  UPDATE_TYPES,
+  isProjectStatus,
+  isProjectType,
+} from './projects'

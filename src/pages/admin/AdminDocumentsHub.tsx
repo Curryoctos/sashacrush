@@ -6,7 +6,7 @@ export function AdminDocumentsHubPage() {
     <PortalHubPage
       eyebrow="Files"
       title="Documents"
-      description="Deal signing packs and agent capital agreements."
+      description="Deal signing packs, project documents, and agent capital agreements."
       backTo="/admin/dashboard"
       backLabel="Dashboard"
       folders={[

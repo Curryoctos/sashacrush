@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { LandRecordsBrowser } from '@/features/land-records/components/LandRecordsBrowser'
+import { ensureLandFundingProject } from '@/features/projects/projectLandLink'
+import { useAuth } from '@/hooks/useAuth'
 import {
   emptyLandRecordForm,
   formToLandRecordPayload,
@@ -31,6 +33,7 @@ const ADMIN_FOLDERS = [
 ] as const
 
 export function AdminLandRecordsPage() {
+  const { user } = useAuth()
   const queryClient = useQueryClient()
   const [, setSearchParams] = useSearchParams()
   const [mode, setMode] = useState<'create' | 'edit'>('create')
@@ -130,7 +133,9 @@ export function AdminLandRecordsPage() {
         const { data, error } = await supabase
           .from('land_records')
           .insert(payload)
-          .select('id')
+          .select(
+            'id, title, description, location, total_value_usd, latitude, longitude, boundary_geojson, status',
+          )
           .single()
 
         if (error) {
@@ -139,6 +144,18 @@ export function AdminLandRecordsPage() {
 
         if (payload.seller_id && data?.id) {
           void notifySellerAssigned(data.id, payload.seller_id)
+        }
+
+        if (data && user) {
+          try {
+            await ensureLandFundingProject(supabase, data, user.id)
+            await queryClient.invalidateQueries({
+              queryKey: ['project-for-land'],
+            })
+            await queryClient.invalidateQueries({ queryKey: ['projects'] })
+          } catch {
+            // Land record still succeeds; admin can link/create project from the deal.
+          }
         }
 
         return data?.id as string | undefined
@@ -219,10 +236,10 @@ export function AdminLandRecordsPage() {
   return (
     <div className="ui-page">
       <PageHeader
-        backTo="/admin/dashboard"
-        backLabel="Dashboard"
+        backTo="/admin/projects"
+        backLabel="Projects"
         title="Land Records"
-        description="Open a deal, then a folder."
+        description="Deal site, seller workspace, and maps. Each new deal gets a linked funding project for purchases."
       />
 
       <LandRecordsBrowser

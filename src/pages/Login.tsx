@@ -66,11 +66,16 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
-      <header className="flex items-center justify-between px-5 py-4 sm:px-8">
+      <header className="flex items-center justify-between gap-4 px-5 py-4 sm:px-8">
         <BrandMark />
-        <a href="/community" className="text-[13px] text-muted hover:text-ink">
-          Community
-        </a>
+        <nav className="flex items-center gap-3 text-[13px]">
+          <a href="/projects" className="text-muted hover:text-ink">
+            Projects
+          </a>
+          <a href="/community" className="text-muted hover:text-ink">
+            Community
+          </a>
+        </nav>
       </header>
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16 pt-10 sm:pt-16">

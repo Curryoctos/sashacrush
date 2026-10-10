@@ -15,7 +15,8 @@ import { supabase } from '@/lib/supabase'
 export type { PaymentRow }
 
 interface BalanceTrackerProps {
-  landId: string
+  landId?: string | null
+  projectId?: string | null
   landTitle: string
   landReference: string
   totalValueUsd: number
@@ -36,7 +37,8 @@ interface BalanceSummary {
 }
 
 export function BalanceTracker({
-  landId,
+  landId = null,
+  projectId = null,
   landTitle,
   landReference,
   totalValueUsd,
@@ -49,12 +51,21 @@ export function BalanceTracker({
   const load = useCallback(async () => {
     setError(null)
     try {
+      let paymentsQuery = supabase
+        .from('payments')
+        .select(
+          'id, land_id, project_id, disbursement_reason, amount_usd, amount_ugx, rate_used, method, status, created_at',
+        )
+        .order('created_at', { ascending: false })
+
+      if (projectId) {
+        paymentsQuery = paymentsQuery.eq('project_id', projectId)
+      } else if (landId) {
+        paymentsQuery = paymentsQuery.eq('land_id', landId)
+      }
+
       const [{ data: payments, error: paymentsError }, ugxRate] = await Promise.all([
-        supabase
-          .from('payments')
-          .select('id, land_id, amount_usd, amount_ugx, rate_used, method, status, created_at')
-          .eq('land_id', landId)
-          .order('created_at', { ascending: false }),
+        paymentsQuery,
         fetchUsdToUgxRate(),
       ])
 
@@ -139,22 +150,29 @@ export function BalanceTracker({
     } finally {
       setIsLoading(false)
     }
-  }, [landId, totalValueUsd])
+  }, [landId, projectId, totalValueUsd])
 
   useEffect(() => {
     void load()
   }, [load])
 
   useEffect(() => {
+    const filter = projectId
+      ? `project_id=eq.${projectId}`
+      : landId
+        ? `land_id=eq.${landId}`
+        : null
+    if (!filter) return
+
     const channel = supabase
-      .channel(`balance-tracker:${landId}`)
+      .channel(`balance-tracker:${projectId ?? landId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'payments',
-          filter: `land_id=eq.${landId}`,
+          filter,
         },
         () => {
           void load()
@@ -165,7 +183,7 @@ export function BalanceTracker({
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [landId, load])
+  }, [landId, projectId, load])
 
   if (user?.role === 'seller') {
     return null

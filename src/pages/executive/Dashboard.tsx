@@ -73,12 +73,12 @@ export function ExecutiveDashboard() {
             <FolderCards
               folders={[
                 {
-                  id: 'deals',
-                  title: 'Deal portfolio',
-                  description: 'High-level land deal status',
+                  id: 'portfolio',
+                  title: 'Portfolio',
+                  description: 'Land deals and funding projects',
                   icon: <FolderKanban strokeWidth={1.75} />,
                   count: deals.length,
-                  onSelect: () => navigate('/executive/deals'),
+                  onSelect: () => navigate('/executive/portfolio'),
                 },
                 {
                   id: 'analytics',

@@ -6,6 +6,7 @@ import { AdminPortalLayout } from '@/components/layout/AdminPortalLayout'
 import { AgentPortalLayout } from '@/components/layout/AgentPortalLayout'
 import { CommunityLayout } from '@/components/layout/CommunityLayout'
 import { ExecutivePortalLayout } from '@/components/layout/ExecutivePortalLayout'
+import { PublicLayout } from '@/components/layout/PublicLayout'
 import { SellerPortalLayout } from '@/components/layout/SellerPortalLayout'
 import { page } from '@/routes/lazyPage'
 import { LoginPage } from '@/pages/Login'
@@ -96,6 +97,27 @@ const AdminPipelineHubPage = lazyPage(
   () => import('@/pages/admin/AdminPipelineHub'),
   'AdminPipelineHubPage',
 )
+const AdminProjectsHubPage = lazyPage(
+  () => import('@/pages/admin/AdminProjectsHub'),
+  'AdminProjectsHubPage',
+)
+const AdminProjectsPage = lazyPage(
+  () => import('@/pages/admin/AdminProjects'),
+  'AdminProjectsPage',
+)
+const AdminProjectDetailPage = lazyPage(
+  () => import('@/pages/admin/AdminProjectDetail'),
+  'AdminProjectDetailPage',
+)
+const ProjectBrowsePage = lazyPage(
+  () => import('@/pages/public/ProjectBrowse'),
+  'ProjectBrowsePage',
+)
+const ProjectDetailPage = lazyPage(
+  () => import('@/pages/public/ProjectDetail'),
+  'ProjectDetailPage',
+)
+const AboutPage = lazyPage(() => import('@/pages/public/About'), 'AboutPage')
 const AdminSuggestionsPage = lazyPage(
   () => import('@/pages/admin/AdminSuggestions'),
   'AdminSuggestionsPage',
@@ -194,9 +216,29 @@ const ExecutiveDealsPage = lazyPage(
   () => import('@/pages/executive/ExecutiveDeals'),
   'ExecutiveDealsPage',
 )
+const ExecutivePortfolioHubPage = lazyPage(
+  () => import('@/pages/executive/ExecutivePortfolioHub'),
+  'ExecutivePortfolioHubPage',
+)
+const ExecutiveFundingPage = lazyPage(
+  () => import('@/pages/executive/ExecutiveFunding'),
+  'ExecutiveFundingPage',
+)
+const ExecutiveFundingDetailPage = lazyPage(
+  () => import('@/pages/executive/ExecutiveFundingDetail'),
+  'ExecutiveFundingDetailPage',
+)
 const ExecutiveMediaPage = lazyPage(
   () => import('@/pages/executive/ExecutiveMedia'),
   'ExecutiveMediaPage',
+)
+const AgentProjectsPage = lazyPage(
+  () => import('@/pages/agent/AgentProjects'),
+  'AgentProjectsPage',
+)
+const AgentProjectDetailPage = lazyPage(
+  () => import('@/pages/agent/AgentProjectDetail'),
+  'AgentProjectDetailPage',
 )
 
 const CommunityBoardPage = lazyPage(
@@ -241,6 +283,14 @@ export const router = createBrowserRouter([
   { path: '/', element: <RoleRedirect /> },
   { path: '/login', element: <LoginPage /> },
   {
+    element: <PublicLayout />,
+    children: [
+      { path: 'projects', element: page(<ProjectBrowsePage />) },
+      { path: 'projects/:slug', element: page(<ProjectDetailPage />) },
+      { path: 'about', element: page(<AboutPage />) },
+    ],
+  },
+  {
     path: '/community',
     element: <CommunityLayout />,
     children: [
@@ -269,6 +319,9 @@ export const router = createBrowserRouter([
           { path: 'cargo', element: page(<AdminCargoPage />) },
           { path: 'media', element: page(<AdminMediaPage />) },
           { path: 'users', element: page(<AdminUsersPage />) },
+          { path: 'projects', element: page(<AdminProjectsHubPage />) },
+          { path: 'funding', element: page(<AdminProjectsPage />) },
+          { path: 'funding/:slug', element: page(<AdminProjectDetailPage />) },
           { path: 'land-records', element: page(<AdminLandRecordsPage />) },
           { path: 'deals/:landId', element: page(<AdminDealPage />) },
           { path: 'documents', element: page(<AdminDocumentsPage />) },
@@ -278,6 +331,10 @@ export const router = createBrowserRouter([
           },
           { path: 'photos', element: page(<AdminPhotosPage />) },
           { path: 'payments', element: page(<AdminPaymentsPage />) },
+          {
+            path: 'project-purchases',
+            element: <Navigate to="/admin/payments" replace />,
+          },
           { path: 'capital', element: page(<AdminCapitalPage />) },
           {
             element: page(<WalletLayout />),
@@ -308,6 +365,12 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="dashboard" replace /> },
           { path: 'dashboard', element: page(<ExecutiveDashboard />) },
           { path: 'analytics', element: page(<ExecutiveAnalyticsPage />) },
+          { path: 'portfolio', element: page(<ExecutivePortfolioHubPage />) },
+          { path: 'funding', element: page(<ExecutiveFundingPage />) },
+          {
+            path: 'funding/:slug',
+            element: page(<ExecutiveFundingDetailPage />),
+          },
           { path: 'deals', element: page(<ExecutiveDealsPage />) },
           { path: 'deals/:landId', element: page(<ExecutiveDealPage />) },
           { path: 'communications', element: page(<ExecutiveChatPage />) },
@@ -339,6 +402,8 @@ export const router = createBrowserRouter([
           { path: 'analytics', element: page(<AgentAnalyticsPage />) },
           { path: 'paperwork', element: page(<AgentPaperworkHubPage />) },
           { path: 'capital', element: page(<AgentCapitalHubPage />) },
+          { path: 'projects', element: page(<AgentProjectsPage />) },
+          { path: 'projects/:slug', element: page(<AgentProjectDetailPage />) },
           { path: 'suggestions', element: page(<AgentSuggestionsPage />) },
           { path: 'cargo', element: page(<AgentCargoPage />) },
           { path: 'land-records', element: page(<AgentLandRecordsPage />) },

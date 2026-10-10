@@ -15,7 +15,8 @@ export function photoAccuracyMeters(value: unknown): number | null {
 
 export interface LandPhoto {
   id: string
-  land_id: string
+  land_id: string | null
+  project_id?: string | null
   uploader_id: string
   file_path: string | null
   latitude: number | null
@@ -24,3 +25,6 @@ export interface LandPhoto {
   accuracy_m: number | null
   captured_at: string
 }
+
+/** Alias used by project detail photos tab. */
+export type Photo = LandPhoto

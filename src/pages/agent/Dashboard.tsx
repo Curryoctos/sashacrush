@@ -103,7 +103,7 @@ export function AgentDashboard() {
                 {
                   id: 'capital',
                   title: 'Capital',
-                  description: 'Investments and agreements',
+                  description: 'Funding projects, land investments, agreements',
                   icon: <PiggyBank strokeWidth={1.75} />,
                   onSelect: () => navigate('/agent/capital'),
                 },
