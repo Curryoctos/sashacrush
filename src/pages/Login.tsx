@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { AppShell } from '@/components/layout/AppShell'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { useAuth } from '@/hooks/useAuth'
@@ -32,7 +32,10 @@ export function LoginPage() {
       navigate(ROLE_DASHBOARD_PATH[profile.role], { replace: true })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign-in failed.'
-      if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
+      if (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError')
+      ) {
         setError(
           'Cannot reach Supabase. Run `npx supabase start` and confirm .env.local is set.',
         )
@@ -53,149 +56,170 @@ export function LoginPage() {
       await signInWithMagicLink(email.trim())
       setMagicLinkSent(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send magic link.')
+      setError(
+        err instanceof Error ? err.message : 'Could not send magic link.',
+      )
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <AppShell centered>
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
-            Transaction workspace
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink">
-            Sign in to SashaCrush
+    <div className="flex min-h-screen flex-col bg-canvas">
+      <header className="flex items-center justify-between gap-4 px-5 py-4 sm:px-8">
+        <BrandMark />
+        <nav className="flex items-center gap-3 text-[13px]">
+          <a href="/projects" className="text-muted hover:text-ink">
+            Projects
+          </a>
+          <a href="/community" className="text-muted hover:text-ink">
+            Community
+          </a>
+        </nav>
+      </header>
+
+      <main className="flex flex-1 items-start justify-center px-4 pb-16 pt-10 sm:pt-16">
+        <Card className="w-full max-w-sm" padding="lg">
+          <h1 className="text-[28px] font-semibold tracking-tight text-ink">
+            Sign in
           </h1>
-          <p className="mt-2 text-sm text-muted">
-            Cross-border land deals, payments, documents, and deal-room collaboration.
+          <p className="mt-2 text-[13px] text-muted">
+            Access your SashaCrush workspace.
           </p>
-        </div>
 
-        <Card padding="lg">
-          <div className="flex rounded-lg border border-border bg-surface p-1">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('staff')
-                setError(null)
-                setMagicLinkSent(false)
-              }}
-              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
-                mode === 'staff'
-                  ? 'border border-border bg-white text-ink'
-                  : 'text-muted hover:text-ink'
-              }`}
+          <div className="mt-6">
+            <div
+              className="ui-segment"
+              role="tablist"
+              aria-label="Sign-in mode"
             >
-              Staff
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('seller')
-                setError(null)
-                setMagicLinkSent(false)
-                setPassword('')
-              }}
-              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
-                mode === 'seller'
-                  ? 'border border-border bg-white text-ink'
-                  : 'text-muted hover:text-ink'
-              }`}
-            >
-              Seller
-            </button>
-          </div>
-
-          {mode === 'staff' ? (
-            <form onSubmit={handleStaffSubmit} className="mt-6 space-y-4">
-              <p className="text-sm text-muted">
-                Admin, executive, and agent accounts use email and password.
-              </p>
-              <div>
-                <label htmlFor="email" className="ui-label">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="ui-input mt-1.5"
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="ui-label">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="ui-input mt-1.5"
-                />
-              </div>
-              <Button type="submit" disabled={submitting} className="w-full" size="lg">
-                {submitting ? 'Signing in…' : 'Continue'}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleSellerSubmit} className="mt-6 space-y-4">
-              <p className="text-sm text-muted">
-                Sellers receive a one-time secure link. No password required.
-              </p>
-              <div>
-                <label htmlFor="seller-email" className="ui-label">
-                  Email
-                </label>
-                <input
-                  id="seller-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="ui-input mt-1.5"
-                />
-              </div>
-              <Button
-                type="submit"
-                disabled={submitting || magicLinkSent}
-                className="w-full"
-                size="lg"
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'staff'}
+                onClick={() => {
+                  setMode('staff')
+                  setError(null)
+                  setMagicLinkSent(false)
+                }}
+                className={`ui-segment-item ${
+                  mode === 'staff'
+                    ? 'ui-segment-item-active'
+                    : 'ui-segment-item-idle'
+                }`}
               >
-                {magicLinkSent
-                  ? 'Link sent — check your email'
-                  : submitting
-                    ? 'Sending…'
-                    : 'Send magic link'}
-              </Button>
-              {magicLinkSent && (
-                <p className="ui-alert-success">
-                  If this email is registered as a seller, a sign-in link is on the way.
+                Staff
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'seller'}
+                onClick={() => {
+                  setMode('seller')
+                  setError(null)
+                  setMagicLinkSent(false)
+                  setPassword('')
+                }}
+                className={`ui-segment-item ${
+                  mode === 'seller'
+                    ? 'ui-segment-item-active'
+                    : 'ui-segment-item-idle'
+                }`}
+              >
+                Seller
+              </button>
+            </div>
+
+            {mode === 'staff' ? (
+              <form onSubmit={handleStaffSubmit} className="mt-5 space-y-4">
+                <div className="ui-field">
+                  <label htmlFor="email" className="ui-label">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="ui-input"
+                    placeholder="you@company.com"
+                  />
+                </div>
+                <div className="ui-field">
+                  <label htmlFor="password" className="ui-label">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="ui-input"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full"
+                  size="lg"
+                >
+                  {submitting ? 'Signing in…' : 'Continue'}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleSellerSubmit} className="mt-5 space-y-4">
+                <p className="ui-hint">
+                  We’ll email you a one-time sign-in link.
                 </p>
-              )}
-            </form>
-          )}
+                <div className="ui-field">
+                  <label htmlFor="seller-email" className="ui-label">
+                    Email
+                  </label>
+                  <input
+                    id="seller-email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="ui-input"
+                    placeholder="seller@example.com"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={submitting || magicLinkSent}
+                  className="w-full"
+                  size="lg"
+                >
+                  {magicLinkSent
+                    ? 'Link sent — check your email'
+                    : submitting
+                      ? 'Sending…'
+                      : 'Send magic link'}
+                </Button>
+                {magicLinkSent && (
+                  <p className="ui-alert-success">
+                    If this email is registered as a seller, a sign-in link is
+                    on the way.
+                  </p>
+                )}
+              </form>
+            )}
 
-          {error && (
-            <p className="ui-alert-danger mt-4" role="alert">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="ui-alert-danger mt-4" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
         </Card>
-
-        <p className="mt-6 text-center text-xs text-muted">
-          Protected workspace · CurryOctos · sashacrush.com
-        </p>
-      </div>
-    </AppShell>
+      </main>
+    </div>
   )
 }

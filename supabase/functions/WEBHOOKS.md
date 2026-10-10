@@ -17,6 +17,7 @@ This guide explains how to connect database events to Edge Functions that send e
    supabase functions deploy admin-manage-users
    supabase functions deploy confirm-payment
    supabase functions deploy initiate-gateway-payment
+   supabase functions deploy initiate-investment-checkout
    supabase functions deploy stripe-webhook
    supabase functions deploy flutterwave-webhook
    ```
@@ -237,23 +238,49 @@ https://<project-ref>.supabase.co/functions/v1/notify-admin-message
 
 ## Payment gateways — Stripe & Flutterwave
 
-### Confirm payment (staff)
+### Confirm payment (admin)
 
-**Not a DB webhook.** Admin/agent confirms a payment and issues the receipt PDF server-side.
+**Not a DB webhook.** Admin confirms an **offline** payout (manual / crypto) and issues the receipt PDF server-side.
+
+- Requires **admin** JWT (agents cannot invoke this function).
+- Flutterwave and Stripe payments **cannot** be staff-confirmed — they confirm only via provider webhook after verified success.
+- Crypto confirms require a matching `transactions_crypto` row (tx hash) for the payment.
 
 ```
 POST /functions/v1/confirm-payment
 { "paymentId": "uuid" }
 ```
 
-### Initiate gateway checkout (staff)
+### Initiate gateway payout (admin)
 
 ```
 POST /functions/v1/initiate-gateway-payment
 { "paymentId": "uuid" }
 ```
 
-Creates a Stripe Checkout session or Flutterwave payment link for a pending `stripe` / `flutterwave` payment and returns `{ checkoutUrl }`.
+Creates a **Flutterwave Transfer** (company → seller MoMo) for a pending `flutterwave`
+payment and returns `{ reference, transferId, status, mode: "payout" }`.
+No hosted checkout URL — funds leave the Flutterwave balance.
+
+Requires **admin** JWT.
+
+Idempotency:
+- Reserves a deterministic `flutterwave_tx_ref` (`sc-payout-{paymentId}`) **before** calling Flutterwave
+- Retries reuse the same reference (looks up existing transfer; never creates a second payout)
+
+Seller Stripe Checkout collect-in is retired (seller payouts use Flutterwave).
+
+### Initiate investment Checkout (agent)
+
+```
+POST /functions/v1/initiate-investment-checkout
+{ "amountUsd": 1000, "notes": "optional" }
+```
+
+Creates a pending `investments` row (`method=stripe`) and a Stripe Checkout Session to **fund company capital**.
+Returns `{ checkoutUrl, investmentId, reference, sessionId }`.
+
+Requires: agent JWT, `STRIPE_SECRET_KEY`, `APP_URL`.
 
 ### Stripe webhook
 
@@ -261,9 +288,10 @@ Creates a Stripe Checkout session or Flutterwave payment link for a pending `str
 POST /functions/v1/stripe-webhook
 ```
 
+- **Investments:** `metadata.investment_id` → confirm capital contribution (no seller receipt). Paid events win over a premature agent cancel.
+- **Legacy payments:** `metadata.payment_id` → confirm payment + receipt
+- Releases the webhook claim on processing errors so Stripe can safely retry
 - `verify_jwt = false` (authenticated via `Stripe-Signature` + `STRIPE_WEBHOOK_SECRET`)
-- Handles `checkout.session.completed` and `payment_intent.succeeded`
-- Confirms payment + issues receipt (same path as `confirm-payment`)
 
 Local forward:
 
@@ -278,8 +306,11 @@ POST /functions/v1/flutterwave-webhook
 ```
 
 - `verify_jwt = false` (authenticated via `verif-hash` + `FLUTTERWAVE_WEBHOOK_HASH`)
-- On successful charge, confirms payment + issues receipt
-
+- Verifies via `GET /v3/transfers/:id` (authoritative status)
+- **SUCCESSFUL** → confirm payment + issue seller receipt
+- **FAILED** / cancelled → mark payment `status=failed` (frees available-to-pay-out)
+- Releases the webhook claim on processing errors so Flutterwave can safely retry
+- Ensure the Flutterwave dashboard webhook includes transfer events (success and failure)
 ---
 
 ## Dashboard setup steps

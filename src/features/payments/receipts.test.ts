@@ -36,7 +36,7 @@ describe('generateReceiptPdf', () => {
   const params = {
     receiptNumber: 'SC-2026-000001',
     landTitle: 'Mubende Land',
-    landReference: 'SC-MBD-001',
+    landReference: 'SC-E4EEBC99',
     sellerName: 'Mubende Seller',
     amountUsd: 50_000,
     amountUgx: 185_000_000,
@@ -46,7 +46,10 @@ describe('generateReceiptPdf', () => {
   }
 
   it('returns bytes longer than 500', async () => {
-    const bytes = await generateReceiptPdf(params)
+    const bytes = await generateReceiptPdf({
+      ...params,
+      disbursementReason: 'Seller installment 2 of 4',
+    })
     expect(bytes).toBeInstanceOf(Uint8Array)
     expect(bytes.length).toBeGreaterThan(500)
   })
@@ -151,6 +154,21 @@ describe('createReceipt', () => {
             }),
           }
         }
+        if (table === 'payments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    manual_reference: null,
+                    disbursement_reason: 'Test reason',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
@@ -207,6 +225,21 @@ describe('createReceipt', () => {
             }),
           }
         }
+        if (table === 'payments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    manual_reference: null,
+                    disbursement_reason: 'Test reason',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
@@ -232,7 +265,7 @@ describe('createReceipt', () => {
         transactionId: 'pay-1',
         confirmedAt: '2026-07-18T12:00:00.000Z',
       }),
-    ).rejects.toThrow(/Seller profile not found/)
+    ).rejects.toThrow(/Payee profile not found/)
   })
 
   it('rolls back PDF on receipt insert failure', async () => {
@@ -287,6 +320,21 @@ describe('createReceipt', () => {
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: { full_name: 'Seller', email: 's@x.com' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'payments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    manual_reference: null,
+                    disbursement_reason: 'Materials for site fencing',
+                  },
                   error: null,
                 }),
               }),

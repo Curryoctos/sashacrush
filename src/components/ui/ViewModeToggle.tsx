@@ -14,7 +14,7 @@ export function ViewModeToggle({ value, onChange, className }: ViewModeTogglePro
     <div
       role="group"
       aria-label="View mode"
-      className={cn('inline-flex rounded-md border border-border bg-white p-0.5', className)}
+      className={cn('inline-flex rounded-lg border border-border bg-surface p-0.5', className)}
     >
       <button
         type="button"
@@ -22,11 +22,11 @@ export function ViewModeToggle({ value, onChange, className }: ViewModeTogglePro
         aria-pressed={value === 'list'}
         onClick={() => onChange('list')}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition',
-          'focus-visible:ring-2 focus-visible:ring-brand-600',
+          'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition',
+          'focus-visible:ring-2 focus-visible:ring-ink/20',
           value === 'list'
-            ? 'bg-brand-700 text-white'
-            : 'text-muted hover:bg-surface hover:text-ink',
+            ? 'bg-surface-elevated text-ink'
+            : 'text-muted hover:text-ink',
         )}
       >
         <List className="h-3.5 w-3.5" aria-hidden />
@@ -38,11 +38,11 @@ export function ViewModeToggle({ value, onChange, className }: ViewModeTogglePro
         aria-pressed={value === 'board'}
         onClick={() => onChange('board')}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition',
-          'focus-visible:ring-2 focus-visible:ring-brand-600',
+          'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition',
+          'focus-visible:ring-2 focus-visible:ring-ink/20',
           value === 'board'
-            ? 'bg-brand-700 text-white'
-            : 'text-muted hover:bg-surface hover:text-ink',
+            ? 'bg-surface-elevated text-ink'
+            : 'text-muted hover:text-ink',
         )}
       >
         <LayoutGrid className="h-3.5 w-3.5" aria-hidden />

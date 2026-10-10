@@ -1,44 +1,26 @@
 import { useMemo } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, FolderKanban, MessageSquare } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { BarChart3, FolderKanban, MessageSquare, Video } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
-import {
-  DealCards,
-  FolderCards,
-  HierarchyNav,
-} from '@/components/hierarchy/Hierarchy'
+import { DealCards, FolderCards } from '@/components/hierarchy/Hierarchy'
 import { useExecutiveDeals } from '@/features/deals/useDealSummary'
-import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
 
-type ExecDashFolder = 'deals' | 'messages'
-
-function isExecDashFolder(value: string | null): value is ExecDashFolder {
-  return value === 'deals' || value === 'messages'
+function Metric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div>
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-2 text-[28px] font-semibold tracking-tight text-ink tabular-nums">
+        {value}
+      </p>
+    </div>
+  )
 }
 
 export function ExecutiveDashboard() {
-  const { user } = useAuth()
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
   const { data: deals, isLoading, error } = useExecutiveDeals()
-
-  const selectedFolder = isExecDashFolder(searchParams.get('folder'))
-    ? (searchParams.get('folder') as ExecDashFolder)
-    : null
-
-  const setFolder = (folder: ExecDashFolder | null) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (folder) {
-        next.set('folder', folder)
-      } else {
-        next.delete('folder')
-      }
-      return next
-    })
-  }
 
   const totals = useMemo(() => {
     return (deals ?? []).reduce(
@@ -61,18 +43,10 @@ export function ExecutiveDashboard() {
   )
 
   return (
-    <div className="ui-page max-w-4xl">
-      <PageHeader
-        eyebrow="Portfolio"
-        title="Executive workspace"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Open a folder to continue.`
-            : 'Open a folder to continue.'
-        }
-      />
+    <div className="ui-page">
+      <PageHeader title="Overview" />
 
-      {isLoading && <p className="text-sm text-muted">Loading workspace…</p>}
+      {isLoading && <p className="text-[13px] text-muted">Loading…</p>}
 
       {error && (
         <p className="ui-alert-danger" role="alert">
@@ -80,48 +54,60 @@ export function ExecutiveDashboard() {
         </p>
       )}
 
-      {deals && !selectedFolder && (
-        <FolderCards
-          folders={[
-            {
-              id: 'deals',
-              title: 'Deal portfolio',
-              description: 'Review active land transactions',
-              icon: <FolderKanban className="h-5 w-5" />,
-              count: deals.length,
-              onSelect: () => setFolder('deals'),
-            },
-            {
-              id: 'messages',
-              title: 'Communications',
-              description: 'Executive staff channel',
-              icon: <MessageSquare className="h-5 w-5" />,
-              onSelect: () => setFolder('messages'),
-            },
-          ]}
-        />
-      )}
-
-      {deals && selectedFolder === 'deals' && (
-        <div className="space-y-5">
-          <HierarchyNav
-            crumbs={[
-              { label: 'Workspace', onClick: () => setFolder(null) },
-              { label: 'Deal portfolio' },
-            ]}
-          />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="ui-section-title">Deal portfolio</h2>
-              <p className="ui-section-desc">
-                {totals.pendingDocs} docs pending · {totals.pendingPayments} payments pending
-              </p>
+      {deals && (
+        <>
+          <section className="ui-panel p-5 sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h2 className="ui-section-title">Portfolio</h2>
+              <p className="text-[12px] text-muted">Live counts</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setFolder(null)}>
-                <ArrowLeft className="h-4 w-4" />
-                Workspace
-              </Button>
+            <div className="grid gap-6 sm:grid-cols-3">
+              <Metric label="Active deals" value={deals.length} />
+              <Metric label="Docs pending" value={totals.pendingDocs} />
+              <Metric label="Payments pending" value={totals.pendingPayments} />
+            </div>
+          </section>
+
+          <section>
+            <h2 className="ui-section-title mb-4">Areas</h2>
+            <FolderCards
+              folders={[
+                {
+                  id: 'portfolio',
+                  title: 'Portfolio',
+                  description: 'Land deals and funding projects',
+                  icon: <FolderKanban strokeWidth={1.75} />,
+                  count: deals.length,
+                  onSelect: () => navigate('/executive/portfolio'),
+                },
+                {
+                  id: 'analytics',
+                  title: 'Analytics',
+                  description: 'Portfolio charts and progress',
+                  icon: <BarChart3 strokeWidth={1.75} />,
+                  onSelect: () => navigate('/executive/analytics'),
+                },
+                {
+                  id: 'messages',
+                  title: 'Communications',
+                  description: 'Executive staff channel',
+                  icon: <MessageSquare strokeWidth={1.75} />,
+                  onSelect: () => navigate('/executive/communications'),
+                },
+                {
+                  id: 'media',
+                  title: 'Media vault',
+                  description: 'Watch private project videos',
+                  icon: <Video strokeWidth={1.75} />,
+                  onSelect: () => navigate('/executive/media'),
+                },
+              ]}
+            />
+          </section>
+
+          <section>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="ui-section-title">Recent deals</h2>
               <Button
                 variant="secondary"
                 size="sm"
@@ -130,43 +116,13 @@ export function ExecutiveDashboard() {
                 View all
               </Button>
             </div>
-          </div>
-          <DealCards
-            deals={dealCards}
-            onSelect={(id) => navigate(`/executive/deals?land=${id}`)}
-            emptyTitle="No active deals to display."
-            prompt="Select a deal for a high-level overview."
-          />
-        </div>
-      )}
-
-      {deals && selectedFolder === 'messages' && (
-        <div className="space-y-5">
-          <HierarchyNav
-            crumbs={[
-              { label: 'Workspace', onClick: () => setFolder(null) },
-              { label: 'Communications' },
-            ]}
-          />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="ui-section-title">Communications</h2>
-              <p className="ui-section-desc">Executive staff channel</p>
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => setFolder(null)}>
-              <ArrowLeft className="h-4 w-4" />
-              Workspace
-            </Button>
-          </div>
-          <div className="ui-panel p-5">
-            <p className="text-sm text-muted">
-              Open the executive chat channel to continue the conversation.
-            </p>
-            <div className="mt-4">
-              <Button onClick={() => navigate('/executive/chat')}>Open communications</Button>
-            </div>
-          </div>
-        </div>
+            <DealCards
+              deals={dealCards}
+              onSelect={(id) => navigate(`/executive/deals?land=${id}`)}
+              emptyTitle="No active deals to display."
+            />
+          </section>
+        </>
       )}
     </div>
   )

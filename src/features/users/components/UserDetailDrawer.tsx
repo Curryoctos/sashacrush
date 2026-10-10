@@ -82,8 +82,8 @@ export function UserDetailDrawer({
                   key={role}
                   className={
                     active
-                      ? 'rounded-md bg-brand-700 px-2.5 py-1 text-xs font-medium text-white'
-                      : 'rounded-md border border-border bg-white px-2.5 py-1 text-xs text-muted'
+                      ? 'rounded-lg bg-ink px-2.5 py-1 text-xs font-medium text-ink-inverse'
+                      : 'rounded-md border border-border bg-surface-elevated px-2.5 py-1 text-xs text-muted'
                   }
                 >
                   {USER_ROLE_LABELS[role]}

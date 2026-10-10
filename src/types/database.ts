@@ -14,15 +14,64 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type UserRole = 'admin' | 'executive' | 'agent' | 'seller'
+export type UserRole = 'admin' | 'executive' | 'agent' | 'seller' | 'community'
 
 export type PaymentMethod = 'stripe' | 'flutterwave' | 'crypto' | 'manual'
 
+export type InvestmentMethod = 'bank_transfer' | 'mobile_money' | 'other' | 'stripe'
+
+export type InvestmentStatus = 'pending' | 'confirmed' | 'rejected'
+
 export type DocumentStatus = 'draft' | 'sent' | 'signed' | 'archived'
+
+export type SuggestionStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
+  | 'rejected'
 
 export type ChatChannel = 'seller_channel' | 'executive_channel'
 
 export type LandRecordStatus = 'active' | 'archived'
+
+export type ProjectType =
+  | 'land_acquisition'
+  | 'infrastructure'
+  | 'community_cause'
+  | 'cargo_import'
+  | 'investment'
+  | 'agriculture'
+  | 'education'
+  | 'sports'
+  | 'other'
+
+export type ProjectStatus =
+  | 'draft'
+  | 'active'
+  | 'funded'
+  | 'in_progress'
+  | 'completed'
+  | 'on_hold'
+  | 'cancelled'
+
+export type ParticipantRole =
+  | 'investor'
+  | 'contributor'
+  | 'counterpart'
+  | 'follower'
+  | 'collaborator'
+
+export type ProjectUpdateType =
+  | 'general'
+  | 'milestone'
+  | 'funding'
+  | 'photo'
+  | 'document'
+  | 'shipment'
+  | 'completion'
+
+export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'blocked'
 
 export interface LandRecordFormValues {
   title: string
@@ -110,10 +159,201 @@ export interface Database {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          description: string
+          cause: string | null
+          type: ProjectType
+          created_by: string | null
+          owner_id: string | null
+          visibility: 'public' | 'private'
+          funding_goal_usd: number | null
+          funding_raised_usd: number
+          min_contribution_usd: number
+          location_name: string | null
+          country: string
+          latitude: number | null
+          longitude: number | null
+          boundary_geojson: Json | null
+          start_date: string | null
+          target_date: string | null
+          completed_date: string | null
+          status: ProjectStatus
+          cover_image_path: string | null
+          tags: string[]
+          external_links: Json
+          land_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          description: string
+          cause?: string | null
+          type: ProjectType
+          created_by?: string | null
+          owner_id?: string | null
+          visibility?: 'public' | 'private'
+          funding_goal_usd?: number | null
+          funding_raised_usd?: number
+          min_contribution_usd?: number
+          location_name?: string | null
+          country?: string
+          latitude?: number | null
+          longitude?: number | null
+          boundary_geojson?: Json | null
+          start_date?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: ProjectStatus
+          cover_image_path?: string | null
+          tags?: string[]
+          external_links?: Json
+          land_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          description?: string
+          cause?: string | null
+          type?: ProjectType
+          created_by?: string | null
+          owner_id?: string | null
+          visibility?: 'public' | 'private'
+          funding_goal_usd?: number | null
+          funding_raised_usd?: number
+          min_contribution_usd?: number
+          location_name?: string | null
+          country?: string
+          latitude?: number | null
+          longitude?: number | null
+          boundary_geojson?: Json | null
+          start_date?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: ProjectStatus
+          cover_image_path?: string | null
+          tags?: string[]
+          land_id?: string | null
+          external_links?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_participants: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          role: ParticipantRole
+          invited_by: string | null
+          joined_at: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id: string
+          role: ParticipantRole
+          invited_by?: string | null
+          joined_at?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string
+          role?: ParticipantRole
+          invited_by?: string | null
+          joined_at?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      project_updates: {
+        Row: {
+          id: string
+          project_id: string
+          author_id: string
+          title: string
+          body: string
+          update_type: ProjectUpdateType
+          is_public: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          author_id: string
+          title: string
+          body: string
+          update_type?: ProjectUpdateType
+          is_public?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          author_id?: string
+          title?: string
+          body?: string
+          update_type?: ProjectUpdateType
+          is_public?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      project_milestones: {
+        Row: {
+          id: string
+          project_id: string
+          title: string
+          description: string | null
+          target_date: string | null
+          completed_date: string | null
+          status: MilestoneStatus
+          order_index: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          title: string
+          description?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: MilestoneStatus
+          order_index?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          title?: string
+          description?: string | null
+          target_date?: string | null
+          completed_date?: string | null
+          status?: MilestoneStatus
+          order_index?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           id: string
-          land_id: string
+          land_id: string | null
+          project_id: string
+          disbursement_reason: string
           amount_usd: number
           amount_ugx: number | null
           method: PaymentMethod | null
@@ -122,12 +362,16 @@ export interface Database {
           flutterwave_tx_ref: string | null
           gateway_checkout_url: string | null
           mobile_money_network: 'mtn' | 'airtel' | null
+          manual_reference: string | null
+          payer_phone: string | null
           status: string
           created_at: string
         }
         Insert: {
           id?: string
-          land_id: string
+          land_id?: string | null
+          project_id: string
+          disbursement_reason: string
           amount_usd: number
           amount_ugx?: number | null
           method?: PaymentMethod | null
@@ -136,12 +380,16 @@ export interface Database {
           flutterwave_tx_ref?: string | null
           gateway_checkout_url?: string | null
           mobile_money_network?: 'mtn' | 'airtel' | null
+          manual_reference?: string | null
+          payer_phone?: string | null
           status?: string
           created_at?: string
         }
         Update: {
           id?: string
-          land_id?: string
+          land_id?: string | null
+          project_id?: string
+          disbursement_reason?: string
           amount_usd?: number
           amount_ugx?: number | null
           method?: PaymentMethod | null
@@ -150,7 +398,117 @@ export interface Database {
           flutterwave_tx_ref?: string | null
           gateway_checkout_url?: string | null
           mobile_money_network?: 'mtn' | 'airtel' | null
+          manual_reference?: string | null
+          payer_phone?: string | null
           status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      investments: {
+        Row: {
+          id: string
+          agent_id: string
+          land_id: string
+          project_id: string | null
+          amount_usd: number
+          amount_ugx: number | null
+          rate_used: number | null
+          method: InvestmentMethod
+          reference: string
+          notes: string | null
+          status: InvestmentStatus
+          confirmed_by: string | null
+          confirmed_at: string | null
+          rejection_reason: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          land_id: string
+          project_id?: string | null
+          amount_usd: number
+          amount_ugx?: number | null
+          rate_used?: number | null
+          method: InvestmentMethod
+          reference: string
+          notes?: string | null
+          status?: InvestmentStatus
+          confirmed_by?: string | null
+          confirmed_at?: string | null
+          rejection_reason?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          land_id?: string
+          project_id?: string | null
+          amount_usd?: number
+          amount_ugx?: number | null
+          rate_used?: number | null
+          method?: InvestmentMethod
+          reference?: string
+          notes?: string | null
+          status?: InvestmentStatus
+          confirmed_by?: string | null
+          confirmed_at?: string | null
+          rejection_reason?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions_crypto: {
+        Row: {
+          id: string
+          payment_id: string | null
+          wallet_address: string
+          crypto_type: 'ETH' | 'USDT' | 'BTC' | 'WBTC' | 'other'
+          crypto_amount: number
+          usd_rate: number | null
+          ugx_rate: number | null
+          tx_hash: string
+          chain_id: number
+          status: 'submitted' | 'confirmed' | 'failed'
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          payment_id?: string | null
+          wallet_address: string
+          crypto_type: 'ETH' | 'USDT' | 'BTC' | 'WBTC' | 'other'
+          crypto_amount: number
+          usd_rate?: number | null
+          ugx_rate?: number | null
+          tx_hash: string
+          chain_id?: number
+          status?: 'submitted' | 'confirmed' | 'failed'
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          payment_id?: string | null
+          wallet_address?: string
+          crypto_type?: 'ETH' | 'USDT' | 'BTC' | 'WBTC' | 'other'
+          crypto_amount?: number
+          usd_rate?: number | null
+          ugx_rate?: number | null
+          tx_hash?: string
+          chain_id?: number
+          status?: 'submitted' | 'confirmed' | 'failed'
+          created_by?: string
           created_at?: string
         }
         Relationships: []
@@ -159,6 +517,7 @@ export interface Database {
         Row: {
           id: string
           payment_id: string
+          project_id: string | null
           seller_id: string
           receipt_number: string
           pdf_path: string | null
@@ -172,6 +531,7 @@ export interface Database {
         Insert: {
           id?: string
           payment_id: string
+          project_id?: string | null
           seller_id: string
           receipt_number: string
           pdf_path?: string | null
@@ -185,6 +545,7 @@ export interface Database {
         Update: {
           id?: string
           payment_id?: string
+          project_id?: string | null
           seller_id?: string
           receipt_number?: string
           pdf_path?: string | null
@@ -204,6 +565,7 @@ export interface Database {
           event_key: string
           function_name: string
           payment_id: string | null
+          investment_id: string | null
           metadata: Json | null
           created_at: string
         }
@@ -213,6 +575,7 @@ export interface Database {
           event_key: string
           function_name: string
           payment_id?: string | null
+          investment_id?: string | null
           metadata?: Json | null
           created_at?: string
         }
@@ -222,6 +585,7 @@ export interface Database {
           event_key?: string
           function_name?: string
           payment_id?: string | null
+          investment_id?: string | null
           metadata?: Json | null
           created_at?: string
         }
@@ -230,7 +594,10 @@ export interface Database {
       documents: {
         Row: {
           id: string
-          land_id: string
+          land_id: string | null
+          project_id: string | null
+          investor_id: string | null
+          investment_id: string | null
           uploader_id: string
           assigned_to: string | null
           signed_by: string | null
@@ -243,7 +610,10 @@ export interface Database {
         }
         Insert: {
           id?: string
-          land_id: string
+          land_id?: string | null
+          project_id?: string | null
+          investor_id?: string | null
+          investment_id?: string | null
           uploader_id: string
           assigned_to?: string | null
           signed_by?: string | null
@@ -256,7 +626,10 @@ export interface Database {
         }
         Update: {
           id?: string
-          land_id?: string
+          land_id?: string | null
+          project_id?: string | null
+          investor_id?: string | null
+          investment_id?: string | null
           uploader_id?: string
           assigned_to?: string | null
           signed_by?: string | null
@@ -272,29 +645,35 @@ export interface Database {
       photos: {
         Row: {
           id: string
-          land_id: string
+          land_id: string | null
+          project_id: string | null
           uploader_id: string
           file_path: string | null
           latitude: number | null
           longitude: number | null
+          accuracy_m: number | null
           captured_at: string
         }
         Insert: {
           id?: string
-          land_id: string
+          land_id?: string | null
+          project_id?: string | null
           uploader_id: string
           file_path?: string | null
           latitude?: number | null
           longitude?: number | null
+          accuracy_m?: number | null
           captured_at?: string
         }
         Update: {
           id?: string
-          land_id?: string
+          land_id?: string | null
+          project_id?: string | null
           uploader_id?: string
           file_path?: string | null
           latitude?: number | null
           longitude?: number | null
+          accuracy_m?: number | null
           captured_at?: string
         }
         Relationships: []
@@ -359,11 +738,33 @@ export interface Database {
         }
         Relationships: []
       }
+      investor_consents: {
+        Row: {
+          id: string
+          agent_id: string
+          terms_version: string
+          accepted_at: string
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          terms_version: string
+          accepted_at?: string
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          terms_version?: string
+          accepted_at?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           id: string
           channel: ChatChannel
           land_id: string | null
+          project_id: string | null
           sender_id: string
           body: string
           created_at: string
@@ -372,6 +773,7 @@ export interface Database {
           id?: string
           channel: ChatChannel
           land_id?: string | null
+          project_id?: string | null
           sender_id: string
           body: string
           created_at?: string
@@ -380,8 +782,306 @@ export interface Database {
           id?: string
           channel?: ChatChannel
           land_id?: string | null
+          project_id?: string | null
           sender_id?: string
           body?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      suggestions: {
+        Row: {
+          id: string
+          land_id: string
+          project_id: string | null
+          submitter_id: string
+          title: string
+          body: string
+          status: SuggestionStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          land_id: string
+          project_id?: string | null
+          submitter_id: string
+          title: string
+          body: string
+          status?: SuggestionStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          land_id?: string
+          project_id?: string | null
+          submitter_id?: string
+          title?: string
+          body?: string
+          status?: SuggestionStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suggestion_comments: {
+        Row: {
+          id: string
+          suggestion_id: string
+          author_id: string
+          body: string
+          status_from: SuggestionStatus | null
+          status_to: SuggestionStatus | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          suggestion_id: string
+          author_id: string
+          body: string
+          status_from?: SuggestionStatus | null
+          status_to?: SuggestionStatus | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          suggestion_id?: string
+          author_id?: string
+          body?: string
+          status_from?: SuggestionStatus | null
+          status_to?: SuggestionStatus | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      media_videos: {
+        Row: {
+          id: string
+          land_id: string | null
+          project_id: string | null
+          uploader_id: string
+          title: string
+          land_title: string
+          file_path: string
+          mime_type: 'video/mp4' | 'video/quicktime'
+          size_bytes: number
+          captured_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          land_id?: string | null
+          project_id?: string | null
+          uploader_id: string
+          title: string
+          land_title: string
+          file_path: string
+          mime_type: 'video/mp4' | 'video/quicktime'
+          size_bytes: number
+          captured_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          land_id?: string | null
+          project_id?: string | null
+          uploader_id?: string
+          title?: string
+          land_title?: string
+          file_path?: string
+          mime_type?: 'video/mp4' | 'video/quicktime'
+          size_bytes?: number
+          captured_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_members: {
+        Row: {
+          id: string
+          user_id: string
+          display_name: string
+          location: string | null
+          bio: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          display_name: string
+          location?: string | null
+          bio?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          display_name?: string
+          location?: string | null
+          bio?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_posts: {
+        Row: {
+          id: string
+          author_user_id: string
+          parent_id: string | null
+          body: string
+          is_pinned: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          author_user_id: string
+          parent_id?: string | null
+          body: string
+          is_pinned?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          author_user_id?: string
+          parent_id?: string | null
+          body?: string
+          is_pinned?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      incubation_events: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          starts_at: string
+          ends_at: string | null
+          location: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          starts_at: string
+          ends_at?: string | null
+          location?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          starts_at?: string
+          ends_at?: string | null
+          location?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      cargo_shipments: {
+        Row: {
+          id: string
+          origin: string
+          destination: string
+          description: string
+          expected_at: string
+          status: 'ordered' | 'in_transit' | 'at_port' | 'cleared' | 'delivered'
+          assignee_id: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          origin: string
+          destination: string
+          description: string
+          expected_at: string
+          status?: 'ordered' | 'in_transit' | 'at_port' | 'cleared' | 'delivered'
+          assignee_id?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          origin?: string
+          destination?: string
+          description?: string
+          expected_at?: string
+          status?: 'ordered' | 'in_transit' | 'at_port' | 'cleared' | 'delivered'
+          assignee_id?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cargo_documents: {
+        Row: {
+          id: string
+          shipment_id: string
+          uploader_id: string
+          title: string
+          file_path: string
+          mime_type: string
+          size_bytes: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shipment_id: string
+          uploader_id: string
+          title: string
+          file_path: string
+          mime_type: string
+          size_bytes: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shipment_id?: string
+          uploader_id?: string
+          title?: string
+          file_path?: string
+          mime_type?: string
+          size_bytes?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      cargo_approvals: {
+        Row: {
+          id: string
+          shipment_id: string
+          stage: 'ordered' | 'in_transit' | 'at_port' | 'cleared' | 'delivered'
+          approver_id: string
+          note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shipment_id: string
+          stage: 'ordered' | 'in_transit' | 'at_port' | 'cleared' | 'delivered'
+          approver_id: string
+          note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shipment_id?: string
+          stage?: 'ordered' | 'in_transit' | 'at_port' | 'cleared' | 'delivered'
+          approver_id?: string
+          note?: string | null
           created_at?: string
         }
         Relationships: []
@@ -410,6 +1110,10 @@ export interface Database {
       send_chat_auto_reply: {
         Args: { p_land_id: string; p_body: string }
         Returns: undefined
+      }
+      analytics_portfolio_snapshot: {
+        Args: Record<string, never>
+        Returns: Json
       }
       executive_deal_summaries: {
         Args: Record<string, never>
@@ -441,6 +1145,43 @@ export interface Database {
           pending_payments: number
         }[]
       }
+
+      executive_land_map: {
+        Args: Record<string, never>
+        Returns: {
+          land_id: string
+          title: string
+          location: string | null
+          status: string
+          latitude: number | null
+          longitude: number | null
+          boundary_geojson: Json | null
+        }[]
+      }
+      executive_land_site: {
+        Args: { p_land_id: string }
+        Returns: {
+          land_id: string
+          title: string
+          location: string | null
+          status: string
+          latitude: number | null
+          longitude: number | null
+          boundary_geojson: Json | null
+        }[]
+      }
+      current_investment_terms_version: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      agent_contribution_block_reason: {
+        Args: { p_agent_id: string }
+        Returns: string | null
+      }
+      executive_contribution_block_reason: {
+        Args: { p_executive_id: string }
+        Returns: string | null
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
@@ -457,3 +1198,11 @@ export type SellerOption = Pick<
   Database['public']['Tables']['users']['Row'],
   'id' | 'email' | 'full_name'
 >
+
+export type Investment = Database['public']['Tables']['investments']['Row']
+
+export type InvestmentInsert = Database['public']['Tables']['investments']['Insert']
+
+export type InvestmentUpdate = Database['public']['Tables']['investments']['Update']
+
+export type TransactionCrypto = Database['public']['Tables']['transactions_crypto']['Row']

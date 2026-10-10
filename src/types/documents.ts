@@ -2,7 +2,10 @@ export type DocumentStatus = 'draft' | 'sent' | 'signed' | 'archived'
 
 export interface Document {
   id: string
-  land_id: string
+  land_id: string | null
+  project_id?: string | null
+  investor_id: string | null
+  investment_id: string | null
   uploader_id: string
   assigned_to: string | null
   signed_by: string | null
@@ -13,6 +16,8 @@ export interface Document {
   signed_at: string | null
   created_at: string
 }
+
+export type DocumentScope = 'land' | 'investor' | 'project'
 
 export const DOCUMENT_BUCKET = 'documents'
 

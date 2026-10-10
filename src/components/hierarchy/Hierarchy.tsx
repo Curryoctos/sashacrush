@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { FolderOpen } from 'lucide-react'
+import { ArrowUpRight, FolderOpen } from 'lucide-react'
 import { EmptyState } from '@/components/ui/PageHeader'
 import { cn } from '@/lib/cn'
 
@@ -28,7 +28,7 @@ export function DealCards({
   emptyTitle = 'No deals yet',
   emptyDescription,
   emptyAction,
-  prompt = 'Select a deal to continue.',
+  prompt,
   actions,
 }: DealCardsProps) {
   if (deals.length === 0) {
@@ -38,30 +38,31 @@ export function DealCards({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">{prompt}</p>
-        {actions}
-      </div>
+    <div className="space-y-3">
+      {(prompt || actions) && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {prompt ? <p className="text-[13px] text-muted">{prompt}</p> : <span />}
+          {actions}
+        </div>
+      )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="ui-panel divide-y divide-border overflow-hidden">
         {deals.map((deal) => (
           <button
             key={deal.id}
             type="button"
             onClick={() => onSelect(deal.id)}
-            className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-surface"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-50 text-brand-800">
-                <FolderOpen className="h-5 w-5" aria-hidden />
-              </div>
-              {deal.badge}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface text-ink">
+              <FolderOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             </div>
-            <h3 className="mt-4 truncate text-sm font-semibold text-ink group-hover:text-brand-900">
-              {deal.title}
-            </h3>
-            {deal.hint ? <p className="mt-1 text-xs text-muted">{deal.hint}</p> : null}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium text-ink">{deal.title}</p>
+              {deal.hint ? <p className="mt-0.5 text-[12px] text-muted">{deal.hint}</p> : null}
+            </div>
+            {deal.badge}
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} aria-hidden />
           </button>
         ))}
       </div>
@@ -83,7 +84,7 @@ interface FolderCardsProps {
   className?: string
 }
 
-/** Level-2 folders: area name + one-line description. */
+/** Level-2 folders — plan-card style tiles. */
 export function FolderCards({ folders, className }: FolderCardsProps) {
   return (
     <div className={cn('grid gap-3 sm:grid-cols-2', className)}>
@@ -92,18 +93,26 @@ export function FolderCards({ folders, className }: FolderCardsProps) {
           key={folder.id}
           type="button"
           onClick={folder.onSelect}
-          className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+          className="group rounded-xl border border-border bg-surface-elevated p-5 text-left transition hover:border-muted/40 hover:bg-surface/60"
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface text-brand-800 transition group-hover:bg-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface text-ink [&_svg]:h-4 [&_svg]:w-4">
               {folder.icon}
             </div>
             {folder.count != null ? (
-              <span className="font-display text-xl font-semibold text-ink">{folder.count}</span>
-            ) : null}
+              <span className="text-[20px] font-semibold tracking-tight text-ink tabular-nums">
+                {folder.count}
+              </span>
+            ) : (
+              <ArrowUpRight
+                className="h-4 w-4 text-muted opacity-0 transition group-hover:opacity-100"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+            )}
           </div>
-          <p className="mt-4 text-sm font-semibold text-ink">{folder.title}</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted">{folder.description}</p>
+          <p className="mt-4 text-[15px] font-medium tracking-tight text-ink">{folder.title}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted">{folder.description}</p>
         </button>
       ))}
     </div>
@@ -116,20 +125,20 @@ interface HierarchyNavProps {
 
 export function HierarchyNav({ crumbs }: HierarchyNavProps) {
   return (
-    <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
+    <nav className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
       {crumbs.map((crumb, index) => (
         <span key={`${crumb.label}-${index}`} className="inline-flex items-center gap-2">
-          {index > 0 ? <span aria-hidden>/</span> : null}
+          {index > 0 ? (
+            <span aria-hidden className="text-border">
+              /
+            </span>
+          ) : null}
           {crumb.onClick ? (
-            <button
-              type="button"
-              className="font-medium text-brand-700 hover:text-brand-800"
-              onClick={crumb.onClick}
-            >
+            <button type="button" className="hover:text-ink" onClick={crumb.onClick}>
               {crumb.label}
             </button>
           ) : (
-            <span className="text-ink">{crumb.label}</span>
+            <span className="font-medium text-ink">{crumb.label}</span>
           )}
         </span>
       ))}

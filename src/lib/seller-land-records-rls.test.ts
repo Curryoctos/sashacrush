@@ -43,6 +43,9 @@ describe('Seller land_records RLS (integration)', () => {
 
   it('assigned seller sees their own Mubende land record', async () => {
     if (!supabaseAvailable) {
+      if (process.env.CI === 'true') {
+        throw new Error('Supabase must be reachable for integration tests in CI')
+      }
       console.warn('Skipping integration test: Supabase not reachable')
       return
     }
@@ -66,6 +69,9 @@ describe('Seller land_records RLS (integration)', () => {
 
   it('seller cannot read Mubende land by spoofing another seller_id in the query', async () => {
     if (!supabaseAvailable) {
+      if (process.env.CI === 'true') {
+        throw new Error('Supabase must be reachable for integration tests in CI')
+      }
       console.warn('Skipping integration test: Supabase not reachable')
       return
     }
@@ -89,6 +95,9 @@ describe('Seller land_records RLS (integration)', () => {
 
   it('unassigned seller cannot fetch Mubende land by land ID (network tampering scenario)', async () => {
     if (!supabaseAvailable) {
+      if (process.env.CI === 'true') {
+        throw new Error('Supabase must be reachable for integration tests in CI')
+      }
       console.warn('Skipping integration test: Supabase not reachable')
       return
     }

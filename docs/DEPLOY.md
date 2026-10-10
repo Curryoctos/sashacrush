@@ -49,8 +49,10 @@ Point provider dashboards at your edge functions (JWT verification disabled for 
 
 | Provider | Event | URL |
 |----------|-------|-----|
-| Stripe | `checkout.session.completed`, `payment_intent.succeeded` | `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` |
-| Flutterwave | Successful charge | `https://<project-ref>.supabase.co/functions/v1/flutterwave-webhook` |
+| Stripe | `checkout.session.completed`, `payment_intent.succeeded` | `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` (capital funding + legacy) |
+| Flutterwave | Transfer terminal status (**SUCCESSFUL** / **FAILED**) | `https://<project-ref>.supabase.co/functions/v1/flutterwave-webhook` |
+
+Stripe is used for **agent capital funding** (`initiate-investment-checkout` — deal-scoped investments into the company pool). Seller MoMo payouts use Flutterwave.
 
 Local Stripe testing: `stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook`
 
@@ -66,17 +68,25 @@ Deploy `dist/` to your static host (Vercel, Netlify, etc.).
 
 ## 5. Post-deploy smoke test
 
-1. Staff login → dashboard (MFA temporarily disabled)
+1. Staff login → MFA setup/challenge (TOTP) → dashboard
 2. Admin Users → create a seller (or staff) and confirm access email / Mailpit link
 3. Seller magic link (provisioned active email only)
 3. Send document for signing → seller `?sign=` link
-4. Record payment → confirm → receipt PDF + emails
+4. Pay out seller (MoMo or manual) → Flutterwave transfer webhook / Confirm paid → receipt PDF + emails
+   - Fund Flutterwave UGX balance before MoMo tests
+   - Failed transfers mark the payout `failed` and free available-to-pay-out
 5. Chat message → email alert + in-app notification bell
 
 ## 6. CI
 
 GitHub Actions runs on push/PR to `main`, `features`, `develop`:
 
-- **quality** — typecheck, lint, unit tests, build
-- **integration** — Supabase local + RLS tests
+- **secret-scan** — gitleaks (C-30)
+- **quality** — typecheck, lint, unit tests, `npm audit --omit=dev --audit-level=critical`, build
+- **integration** — Supabase local + seller RLS / isolation / GPS immutability
 - **e2e** — preview server + Puppeteer smoke tests
+- **lighthouse** — C-29 mobile performance gates
+
+## 7. Security (C-30)
+
+See [`docs/SECURITY.md`](./SECURITY.md) for OWASP checklist, RLS matrix, MIME gates, and go-live MFA / secret-scanning requirements.

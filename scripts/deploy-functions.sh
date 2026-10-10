@@ -6,6 +6,8 @@ FUNCTIONS=(
   notify-payment-confirmed
   notify-document-sent
   notify-document-signed
+  notify-suggestion-status
+  register-community-member
   notify-seller-assigned
   notify-seller-message
   notify-admin-message
@@ -13,6 +15,7 @@ FUNCTIONS=(
   admin-manage-users
   confirm-payment
   initiate-gateway-payment
+  initiate-investment-checkout
   stripe-webhook
   flutterwave-webhook
 )

@@ -2,8 +2,9 @@ import { notifySellerAssigned } from '@/features/land-records/notify'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { LandRecordsBrowser } from '@/features/land-records/components/LandRecordsBrowser'
+import { ensureLandFundingProject } from '@/features/projects/projectLandLink'
 import { useAuth } from '@/hooks/useAuth'
 import {
   emptyLandRecordForm,
@@ -20,13 +21,14 @@ import type {
 } from '@/types/database'
 
 const LAND_RECORD_COLUMNS =
-  'id, title, description, location, total_value_usd, seller_id, latitude, longitude, status, created_at'
+  'id, title, description, location, total_value_usd, seller_id, latitude, longitude, boundary_geojson, status, created_at'
 
 const ADMIN_FOLDERS = [
   'overview',
   'documents',
   'messages',
   'payments',
+  'photos',
   'edit',
 ] as const
 
@@ -131,7 +133,9 @@ export function AdminLandRecordsPage() {
         const { data, error } = await supabase
           .from('land_records')
           .insert(payload)
-          .select('id')
+          .select(
+            'id, title, description, location, total_value_usd, latitude, longitude, boundary_geojson, status',
+          )
           .single()
 
         if (error) {
@@ -140,6 +144,18 @@ export function AdminLandRecordsPage() {
 
         if (payload.seller_id && data?.id) {
           void notifySellerAssigned(data.id, payload.seller_id)
+        }
+
+        if (data && user) {
+          try {
+            await ensureLandFundingProject(supabase, data, user.id)
+            await queryClient.invalidateQueries({
+              queryKey: ['project-for-land'],
+            })
+            await queryClient.invalidateQueries({ queryKey: ['projects'] })
+          } catch {
+            // Land record still succeeds; admin can link/create project from the deal.
+          }
         }
 
         return data?.id as string | undefined
@@ -218,19 +234,13 @@ export function AdminLandRecordsPage() {
   }
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/admin/dashboard" label="Admin Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Land Records"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Open a deal, then a folder.`
-              : 'Open a deal, then a folder.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/projects"
+        backLabel="Projects"
+        title="Land Records"
+        description="Deal site, seller workspace, and maps. Each new deal gets a linked funding project for purchases."
+      />
 
       <LandRecordsBrowser
         lands={landRecordsQuery.data ?? []}

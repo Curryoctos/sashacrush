@@ -22,7 +22,7 @@ export function ChatBubble({
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[85%] rounded-lg px-4 py-3 ${
-          isOwn ? 'bg-brand-700 text-white' : 'bg-surface text-ink'
+          isOwn ? 'bg-ink text-ink-inverse' : 'bg-surface text-ink'
         }`}
       >
         <p className="text-xs font-semibold opacity-80">{senderLabel}</p>
@@ -30,7 +30,7 @@ export function ChatBubble({
           <p className="text-[10px] uppercase tracking-wide opacity-60">Bot</p>
         )}
         <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{message.body}</p>
-        <p className={`mt-2 text-[11px] ${isOwn ? 'text-white/70' : 'text-muted'}`}>
+        <p className={`mt-2 text-[11px] ${isOwn ? 'text-ink-inverse/70' : 'text-muted'}`}>
           {formatMessageTime(message.created_at)}
         </p>
       </div>

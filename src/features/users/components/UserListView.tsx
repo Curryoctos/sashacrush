@@ -67,7 +67,7 @@ export function UserListView({
       <tr
         key={user.id}
         className={cn(
-          'cursor-pointer transition hover:bg-brand-50/50',
+          'cursor-pointer transition hover:bg-surface',
           selectedIds.has(user.id) && 'bg-surface',
         )}
         onClick={() => onRowOpen(user)}
@@ -75,7 +75,7 @@ export function UserListView({
         <td className="w-10" onClick={(event) => event.stopPropagation()}>
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-border text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="h-4 w-4 rounded border-border text-ink focus-visible:ring-2 focus-visible:ring-ink/20"
             checked={selectedIds.has(user.id)}
             disabled={isSelf}
             aria-label={`Select ${user.email}`}
@@ -111,21 +111,22 @@ export function UserListView({
             {user.is_active ? 'Active' : 'Deactivated'}
           </Badge>
         </td>
-        <td className="text-muted">{formatWhen(user.created_at)}</td>
+        <td className="whitespace-nowrap text-muted">{formatWhen(user.created_at)}</td>
+        <td className="w-12" aria-hidden />
       </tr>
     )
   }
 
   return (
     <div className="space-y-3">
-      <div className="ui-table-wrap rounded-lg border border-border bg-surface-elevated">
+      <div className="ui-table-wrap">
         <table className="ui-table">
           <thead>
             <tr>
               <th className="w-10">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-border text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-600"
+                  className="h-4 w-4 rounded border-border text-ink focus-visible:ring-2 focus-visible:ring-ink/20"
                   checked={allSelected}
                   ref={(el) => {
                     if (el) {
@@ -136,11 +137,12 @@ export function UserListView({
                   onChange={(event) => onSelectAll(event.target.checked)}
                 />
               </th>
-              <th className="uppercase tracking-[0.08em]">Name</th>
-              <th className="uppercase tracking-[0.08em]">Email</th>
-              <th className="uppercase tracking-[0.08em]">Role</th>
-              <th className="uppercase tracking-[0.08em]">Status</th>
-              <th className="uppercase tracking-[0.08em]">Created</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th className="w-12 text-right">#</th>
             </tr>
           </thead>
           <tbody>
@@ -210,24 +212,38 @@ function RoleGroupRows({
 }) {
   return (
     <>
-      <tr className="bg-surface">
-        <td colSpan={6} className="!py-2">
-          <button
-            type="button"
-            onClick={onToggle}
-            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted focus-visible:ring-2 focus-visible:ring-brand-600"
-            aria-expanded={open}
-          >
+      <tr
+        className="group cursor-pointer bg-surface transition hover:bg-hover"
+        onClick={onToggle}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            onToggle()
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-expanded={open}
+        aria-label={`${open ? 'Collapse' : 'Expand'} ${USER_ROLE_LABELS[role]}`}
+      >
+        <td colSpan={6} className="!py-2.5">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
             {open ? (
-              <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+              <ChevronDown
+                className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover:translate-y-0.5"
+                aria-hidden
+              />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+              <ChevronRight
+                className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5"
+                aria-hidden
+              />
             )}
             {USER_ROLE_LABELS[role]}
-            <span className="rounded bg-white px-1.5 py-0.5 text-[10px] text-ink">
-              {count}
-            </span>
-          </button>
+          </span>
+        </td>
+        <td className="!py-2.5 text-right text-[12px] text-muted tabular-nums">
+          {count}
         </td>
       </tr>
       {children}

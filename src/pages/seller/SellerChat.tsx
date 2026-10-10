@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+
 import { Button } from '@/components/ui/Button'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { BackArrow } from '@/components/ui/BackArrow'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { DealCards, HierarchyNav } from '@/components/hierarchy/Hierarchy'
 import { ChatWindow } from '@/features/chat/components/ChatWindow'
 import { useSellerLands } from '@/features/seller/useSellerLands'
@@ -39,15 +40,13 @@ export function SellerChatPage() {
   )
 
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/seller/dashboard" label="Seller Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Messages"
-          description="Select a deal to open the conversation."
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/seller/dashboard"
+        backLabel="Dashboard"
+        title="Messages"
+        description="Select a deal to open the conversation."
+      />
 
       {isLoading && <p className="text-sm text-muted">Loading deals…</p>}
 
@@ -72,7 +71,10 @@ export function SellerChatPage() {
           {lands.length > 1 && (
             <HierarchyNav
               crumbs={[
-                { label: 'All deals', onClick: () => setNavigation(null, null) },
+                {
+                  label: 'All deals',
+                  onClick: () => setNavigation(null, null),
+                },
                 { label: selectedLand.title },
               ]}
             />
@@ -80,8 +82,12 @@ export function SellerChatPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="ui-section-title">{selectedLand.title}</h2>
             {lands.length > 1 && (
-              <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-                <ArrowLeft className="h-4 w-4" />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setNavigation(null, null)}
+              >
+                <BackArrow />
                 All deals
               </Button>
             )}

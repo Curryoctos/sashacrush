@@ -40,19 +40,40 @@ export function formatMessageTime(iso: string): string {
 }
 
 export function messageMatchesContext(
-  message: Pick<ChatMessage, 'channel' | 'land_id'>,
+  message: Pick<ChatMessage, 'channel' | 'land_id' | 'project_id'>,
   channel: ChatMessage['channel'],
   landId: string | null,
+  projectId: string | null = null,
 ): boolean {
   if (message.channel !== channel) {
     return false
   }
 
+  if (projectId) {
+    return message.project_id === projectId
+  }
+
   if (channel === 'executive_channel' && !landId) {
-    return message.land_id == null
+    return message.land_id == null && !message.project_id
   }
 
   return message.land_id === landId
+}
+
+/** Case-insensitive body search for retained chat history (C-21). */
+export function filterMessagesByQuery(
+  messages: ChatMessage[],
+  query: string,
+): ChatMessage[] {
+  const needle = query.trim().toLowerCase()
+  if (!needle) {
+    return messages
+  }
+  return messages.filter((message) => {
+    const body = message.body.toLowerCase()
+    const sender = (message.sender_name ?? '').toLowerCase()
+    return body.includes(needle) || sender.includes(needle)
+  })
 }
 
 export function countUnreadMessages(

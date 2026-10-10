@@ -123,7 +123,7 @@ export function DocumentList({
       <div
         key={document.id}
         ref={isHighlighted ? highlightRef : undefined}
-        className={isHighlighted ? 'rounded-lg ring-2 ring-brand-500 ring-offset-2' : undefined}
+        className={isHighlighted ? 'rounded-lg ring-2 ring-ink/20 ring-offset-2' : undefined}
       >
         <DocumentCard
           document={document}
@@ -219,7 +219,7 @@ export function DocumentList({
               <button
                 type="button"
                 onClick={() => setPendingSignDocument(null)}
-                className="rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface"
+                className="rounded-md border border-border bg-surface-elevated px-4 py-2 text-sm font-medium text-ink hover:bg-surface"
               >
                 Cancel
               </button>
@@ -227,7 +227,7 @@ export function DocumentList({
                 type="button"
                 onClick={() => void handleSign(pendingSignDocument)}
                 disabled={signingId === pendingSignDocument.id}
-                className="rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+                className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-ink-inverse hover:opacity-90 disabled:opacity-60"
               >
                 {signingId === pendingSignDocument.id ? 'Signing…' : 'Confirm & Sign'}
               </button>

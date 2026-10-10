@@ -31,26 +31,26 @@ export function NotificationCenter() {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-ink transition hover:bg-surface"
+        className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-ink"
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-md bg-brand-600 px-1 py-0.5 text-[10px] font-semibold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-md bg-ink px-1 py-0.5 text-[10px] font-semibold text-ink-inverse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-surface-elevated">
+        <div className="absolute left-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-surface-elevated shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold text-ink">Notifications</h2>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={() => void markAllRead()}
-                className="text-xs font-medium text-brand-700 hover:underline"
+                className="text-xs font-medium text-ink hover:underline"
               >
                 Mark all read
               </button>
@@ -76,7 +76,7 @@ export function NotificationCenter() {
               <article
                 key={notification.id}
                 className={`border-b border-border px-4 py-3 last:border-0 ${
-                  notification.read_at ? 'bg-white' : 'bg-brand-50/50'
+                  notification.read_at ? 'bg-canvas' : 'bg-surface'
                 }`}
               >
                 <p className="text-sm font-medium text-ink">{notification.title}</p>
@@ -85,7 +85,7 @@ export function NotificationCenter() {
                   {notification.href && (
                     <Link
                       to={notification.href}
-                      className="text-xs font-medium text-brand-700 hover:underline"
+                      className="text-xs font-medium text-ink hover:underline"
                       onClick={() => {
                         void markRead(notification.id)
                         setOpen(false)

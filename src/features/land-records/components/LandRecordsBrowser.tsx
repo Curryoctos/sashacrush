@@ -1,19 +1,21 @@
-import { useMemo } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Camera,
   FileText,
   FolderOpen,
   LayoutDashboard,
+  Lightbulb,
   MapPin,
   MessageSquare,
   Pencil,
+  PiggyBank,
   Plus,
   Wallet,
 } from 'lucide-react'
 import { Badge, statusTone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { BackArrow } from '@/components/ui/BackArrow'
 import { Card, Stat, StatGrid } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/PageHeader'
 import { IconActionButton } from '@/components/ui/IconActionButton'
@@ -26,8 +28,19 @@ import {
   type LandFolderId,
 } from '@/features/land-records/landFolders'
 import { computeDealBalance } from '@/features/payments/balance'
+import { LinkedProjectCard } from '@/features/projects/components/LandProjectBridge'
+import {
+  ensureLandFundingProject,
+  landPurchasesPath,
+  projectPurchasesPath,
+} from '@/features/projects/projectLandLink'
+import { useLandLinkedProject } from '@/features/projects/useLandLinkedProject'
+import { DealsMap } from '@/features/maps/components/DealsMap'
+import { LandMapPanel } from '@/features/maps/components/LandMapPanel'
+import { useAuth } from '@/hooks/useAuth'
 import { formatUsd } from '@/lib/land-records'
 import { formatSupabaseError } from '@/lib/supabase-errors'
+import { supabase } from '@/lib/supabase'
 import type { LandRecord, LandRecordFormValues, SellerOption } from '@/types'
 
 type LandListItem = LandRecord & { seller_label?: string }
@@ -38,6 +51,8 @@ const FOLDER_ICONS: Record<LandFolderId, typeof FileText> = {
   messages: MessageSquare,
   payments: Wallet,
   photos: Camera,
+  investments: PiggyBank,
+  suggestions: Lightbulb,
   edit: Pencil,
 }
 
@@ -143,7 +158,7 @@ export function LandRecordsBrowser({
         <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <button
             type="button"
-            className="font-medium text-brand-700 hover:text-brand-800"
+            className="font-medium text-ink hover:text-neutral-700"
             onClick={() => setNavigation(null, null)}
           >
             All deals
@@ -158,7 +173,7 @@ export function LandRecordsBrowser({
             <p className="ui-section-desc">Add a deal workspace for documents, payments, and chat.</p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-            <ArrowLeft className="h-4 w-4" />
+            <BackArrow />
             All deals
           </Button>
         </div>
@@ -202,7 +217,7 @@ export function LandRecordsBrowser({
         <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <button
             type="button"
-            className="font-medium text-brand-700 hover:text-brand-800"
+            className="font-medium text-ink hover:text-neutral-700"
             onClick={() => setNavigation(null, null)}
           >
             All deals
@@ -231,7 +246,7 @@ export function LandRecordsBrowser({
 
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+              <BackArrow />
               All deals
             </Button>
             {editForm && folders.includes('edit') && (
@@ -247,6 +262,10 @@ export function LandRecordsBrowser({
           </div>
         </div>
 
+        {roleBasePath === '/admin' && (
+          <LandLinkedProjectBanner land={selectedLand} />
+        )}
+
         <div className="grid gap-3 sm:grid-cols-2">
           {folders.map((folder) => {
             const FolderIcon = FOLDER_ICONS[folder]
@@ -260,9 +279,9 @@ export function LandRecordsBrowser({
                   }
                   setNavigation(selectedLand.id, folder)
                 }}
-                className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+                className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-muted/40 hover:bg-surface/60"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface text-brand-800 transition group-hover:bg-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface text-ink transition group-hover:bg-surface-elevated">
                   <FolderIcon className="h-5 w-5" aria-hidden />
                 </div>
                 <p className="mt-4 text-sm font-semibold text-ink">{LAND_FOLDER_LABELS[folder]}</p>
@@ -317,18 +336,20 @@ export function LandRecordsBrowser({
           }
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-4">
+          <DealsMap parcels={lands} onSelect={(id) => setNavigation(id, null)} />
+          <div className="grid gap-3 sm:grid-cols-2">
           {lands.map((land) => (
             <button
               key={land.id}
               type="button"
               onClick={() => setNavigation(land.id, null)}
-              className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
+              className="group rounded-lg border border-border bg-surface-elevated p-5 text-left transition hover:border-muted/40 hover:bg-surface/60"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-50 text-brand-800">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface text-ink">
                 <FolderOpen className="h-5 w-5" aria-hidden />
               </div>
-              <h3 className="mt-4 truncate text-sm font-semibold text-ink group-hover:text-brand-900">
+              <h3 className="mt-4 truncate text-sm font-semibold text-ink group-hover:text-ink">
                 {land.title}
               </h3>
               <p className="mt-1 text-xs text-muted">
@@ -336,6 +357,7 @@ export function LandRecordsBrowser({
               </p>
             </button>
           ))}
+          </div>
         </div>
       )}
     </div>
@@ -362,14 +384,22 @@ function FolderDetail({
   onBackToDeals: () => void
 }) {
   const FolderIcon = FOLDER_ICONS[folder]
-  const destination = folderDestination(roleBasePath, land.id, folder)
+  const { project: linkedProject, isLoading: linkLoading } = useLandLinkedProject(
+    roleBasePath === '/admin' && folder === 'payments' ? land.id : null,
+  )
+  const destination =
+    folder === 'payments' && roleBasePath === '/admin'
+      ? linkedProject
+        ? projectPurchasesPath(linkedProject.id, 'collect')
+        : landPurchasesPath(land.id, 'collect')
+      : folderDestination(roleBasePath, land.id, folder)
 
   return (
     <div className="space-y-5">
       <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
         <button
           type="button"
-          className="font-medium text-brand-700 hover:text-brand-800"
+          className="font-medium text-ink hover:text-neutral-700"
           onClick={onBackToDeals}
         >
           All deals
@@ -377,7 +407,7 @@ function FolderDetail({
         <span aria-hidden>/</span>
         <button
           type="button"
-          className="font-medium text-brand-700 hover:text-brand-800"
+          className="font-medium text-ink hover:text-neutral-700"
           onClick={onBackToFolders}
         >
           {land.title}
@@ -388,7 +418,7 @@ function FolderDetail({
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-800">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-surface text-ink">
             <FolderIcon className="h-5 w-5" aria-hidden />
           </div>
           <div>
@@ -400,13 +430,17 @@ function FolderDetail({
         </div>
 
         <Button variant="secondary" size="sm" onClick={onBackToFolders}>
-          <ArrowLeft className="h-4 w-4" />
+          <BackArrow />
           Folders
         </Button>
       </div>
 
       {folder === 'overview' && (
-        <OverviewPanel landId={land.id} includeUnread={includeUnread} />
+        <OverviewPanel
+          landId={land.id}
+          includeUnread={includeUnread}
+          canEditBoundary={roleBasePath === '/admin'}
+        />
       )}
 
       {folder === 'edit' && editForm && (
@@ -426,7 +460,16 @@ function FolderDetail({
         </Card>
       )}
 
-      {destination && (
+      {folder === 'payments' && roleBasePath === '/admin' && (
+        <PurchasesFolderCard
+          land={land}
+          linkedProject={linkedProject}
+          linkLoading={linkLoading}
+          destination={destination}
+        />
+      )}
+
+      {destination && folder !== 'payments' && (
         <Card>
           <p className="text-sm text-muted">
             Open the full {LAND_FOLDER_LABELS[folder].toLowerCase()} workspace for this deal.
@@ -444,12 +487,152 @@ function FolderDetail({
   )
 }
 
+function LandLinkedProjectBanner({ land }: { land: LandListItem }) {
+  const { user } = useAuth()
+  const { project, isLoading, refresh } = useLandLinkedProject(land.id)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (isLoading) {
+    return <p className="text-xs text-muted">Checking linked funding project…</p>
+  }
+
+  if (project) {
+    return (
+      <LinkedProjectCard
+        projectId={project.id}
+        projectTitle={project.title}
+        projectSlug={project.slug}
+        showPurchases={false}
+      />
+    )
+  }
+
+  return (
+    <aside className="rounded-lg border border-dashed border-border bg-surface-elevated px-4 py-3">
+      <p className="text-sm font-medium text-ink">No funding project linked</p>
+      <p className="mt-1 text-xs text-muted">
+        Create a private land-acquisition project so purchases and the deal stay connected.
+      </p>
+      {error ? (
+        <p className="ui-alert-danger mt-2" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-3">
+        <Button
+          size="sm"
+          disabled={busy || !user}
+          onClick={() => {
+            if (!user) return
+            setBusy(true)
+            setError(null)
+            void ensureLandFundingProject(supabase, land, user.id)
+              .then(() => refresh())
+              .catch((err: unknown) => {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : 'Could not create linked project.',
+                )
+              })
+              .finally(() => setBusy(false))
+          }}
+        >
+          {busy ? 'Linking…' : 'Create linked funding project'}
+        </Button>
+      </div>
+    </aside>
+  )
+}
+
+function PurchasesFolderCard({
+  land,
+  linkedProject,
+  linkLoading,
+  destination,
+}: {
+  land: LandListItem
+  linkedProject: { id: string; title: string; slug: string } | null
+  linkLoading: boolean
+  destination: string | null
+}) {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (linkLoading) {
+    return <p className="text-sm text-muted">Loading linked project…</p>
+  }
+
+  if (linkedProject && destination) {
+    return (
+      <Card>
+        <p className="text-sm text-muted">
+          Purchases for this deal are recorded on{' '}
+          <span className="font-medium text-ink">{linkedProject.title}</span> with
+          a disbursement reason. Land context is kept on each payout when linked.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link to={destination}>
+            <Button>Open purchases</Button>
+          </Link>
+          <Link to={`/admin/funding/${encodeURIComponent(linkedProject.slug)}`}>
+            <Button variant="secondary">Open funding project</Button>
+          </Link>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <p className="text-sm text-muted">
+        This land deal needs a linked funding project before purchases can be
+        recorded in context.
+      </p>
+      {error ? (
+        <p className="ui-alert-danger mt-3" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button
+          disabled={busy || !user}
+          onClick={() => {
+            if (!user) return
+            setBusy(true)
+            setError(null)
+            void ensureLandFundingProject(supabase, land, user.id)
+              .then((project) => {
+                navigate(projectPurchasesPath(project.id, 'collect'))
+              })
+              .catch((err: unknown) => {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : 'Could not create linked project.',
+                )
+              })
+              .finally(() => setBusy(false))
+          }}
+        >
+          {busy ? 'Creating…' : 'Create linked project & open purchases'}
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
 function OverviewPanel({
   landId,
   includeUnread,
+  canEditBoundary,
 }: {
   landId: string
   includeUnread: boolean
+  canEditBoundary: boolean
 }) {
   const dealQuery = useDealSummary(landId, includeUnread)
 
@@ -481,7 +664,7 @@ function OverviewPanel({
           <Metric label="Seller" value={deal.land.seller_name ?? 'Unassigned'} />
           <Metric label="Total value" value={formatUsd(deal.land.total_value_usd)} />
           <div>
-            <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">Status</dt>
+            <dt className="text-[13px] text-muted">Status</dt>
             <dd className="mt-1">
               <Badge tone={statusTone(deal.land.status)}>{deal.land.status}</Badge>
             </dd>
@@ -501,6 +684,8 @@ function OverviewPanel({
           value={`${confirmedPayments} confirmed / ${pendingPayments} pending`}
         />
       </StatGrid>
+
+      <LandMapPanel landId={landId} canEditBoundary={canEditBoundary} />
     </div>
   )
 }
@@ -508,7 +693,7 @@ function OverviewPanel({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{label}</dt>
+      <dt className="text-[13px] text-muted">{label}</dt>
       <dd className="mt-1 text-sm font-medium text-ink">{value}</dd>
     </div>
   )
@@ -525,9 +710,13 @@ function folderDestination(
     case 'messages':
       return `${roleBasePath}/chat?land=${landId}`
     case 'payments':
-      return roleBasePath === '/admin' ? `/admin/payments?land=${landId}` : null
+      return roleBasePath === '/admin' ? landPurchasesPath(landId, 'collect') : null
     case 'photos':
-      return roleBasePath === '/agent' ? `/agent/photos?land=${landId}` : null
+      return `${roleBasePath}/photos?land=${landId}`
+    case 'investments':
+      return roleBasePath === '/agent' ? `/agent/investments?land=${landId}` : null
+    case 'suggestions':
+      return roleBasePath === '/agent' ? `/agent/suggestions?land=${landId}` : null
     default:
       return null
   }

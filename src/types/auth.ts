@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'executive' | 'agent' | 'seller'
+export type UserRole = 'admin' | 'executive' | 'agent' | 'seller' | 'community'
 
 export interface AuthUser {
   id: string
@@ -11,6 +11,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   executive: 'Executive',
   agent: 'Agent',
   seller: 'Seller / Land Owner',
+  community: 'Community member',
 }
 
 export const ROLE_HOME_PATH: Record<UserRole, string> = {
@@ -18,6 +19,7 @@ export const ROLE_HOME_PATH: Record<UserRole, string> = {
   executive: '/executive',
   agent: '/agent',
   seller: '/seller',
+  community: '/community',
 }
 
 export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
@@ -25,4 +27,5 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
   executive: '/executive/dashboard',
   agent: '/agent/dashboard',
   seller: '/seller/dashboard',
+  community: '/community',
 }

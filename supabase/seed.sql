@@ -122,15 +122,30 @@ VALUES (
 INSERT INTO public.users (id, email, role, full_name)
 VALUES ('f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66', 'seller2@sashacrush.com', 'seller', 'Unassigned Seller');
 
--- Mubende land deal
-INSERT INTO public.land_records (id, title, location, total_value_usd, seller_id, status)
+-- Mubende land deal (coords + sample boundary for C-12 map)
+INSERT INTO public.land_records (
+  id, title, location, total_value_usd, seller_id, status,
+  latitude, longitude, boundary_geojson
+)
 VALUES (
   'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
   'Mubende Land',
   'Mubende District, Uganda',
   300000,
   'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
-  'active'
+  'active',
+  0.5605,
+  31.3950,
+  '{
+    "type": "Polygon",
+    "coordinates": [[
+      [31.3900, 0.5570],
+      [31.4000, 0.5570],
+      [31.4000, 0.5640],
+      [31.3900, 0.5640],
+      [31.3900, 0.5570]
+    ]]
+  }'::jsonb
 );
 
 -- Payment record — sellers must NEVER see this via RLS

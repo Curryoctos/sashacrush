@@ -5,7 +5,10 @@ import { generateReceiptNumber } from './receiptNumber.ts'
 export interface CreateReceiptParams {
   supabase: SupabaseClient // must be service_role client
   paymentId: string
-  landId: string
+  /** Land deal target. Optional when projectId is set (project purchases). */
+  landId?: string | null
+  /** Funding-project purchase target. */
+  projectId?: string | null
   sellerId: string
   amountUsd: number
   amountUgx: number
@@ -62,56 +65,87 @@ export async function createReceipt(
     }
   }
 
-  // ── 2. Fetch supporting data ──────────────────────────────
-  const [landResult, sellerResult] = await Promise.all([
-    params.supabase
-      .from('land_records')
-      .select('title, location')
-      .eq('id', params.landId)
-      .single(),
-    params.supabase
-      .from('users')
-      .select('full_name, email')
-      .eq('id', params.sellerId)
-      .single(),
-  ])
+  if (!params.landId && !params.projectId) {
+    throw new Error('Receipt requires landId or projectId.')
+  }
 
-  if (landResult.error || !landResult.data) {
+  // ── 2. Fetch supporting data ──────────────────────────────
+  const [landResult, projectResult, sellerResult, paymentResult] =
+    await Promise.all([
+      params.landId
+        ? params.supabase
+            .from('land_records')
+            .select('title, location')
+            .eq('id', params.landId)
+            .single()
+        : Promise.resolve({ data: null, error: null }),
+      params.projectId
+        ? params.supabase
+            .from('projects')
+            .select('title, location_name')
+            .eq('id', params.projectId)
+            .single()
+        : Promise.resolve({ data: null, error: null }),
+      params.supabase
+        .from('users')
+        .select('full_name, email')
+        .eq('id', params.sellerId)
+        .single(),
+      params.supabase
+        .from('payments')
+        .select('manual_reference, disbursement_reason')
+        .eq('id', params.paymentId)
+        .maybeSingle(),
+    ])
+
+  if (params.landId && (landResult.error || !landResult.data)) {
     throw new Error(
       `Land record not found for id ${params.landId}: ` +
         (landResult.error?.message ?? 'no data'),
     )
   }
 
+  if (params.projectId && (projectResult.error || !projectResult.data)) {
+    throw new Error(
+      `Project not found for id ${params.projectId}: ` +
+        (projectResult.error?.message ?? 'no data'),
+    )
+  }
+
   if (sellerResult.error || !sellerResult.data) {
     throw new Error(
-      `Seller profile not found for id ${params.sellerId}: ` +
+      `Payee profile not found for id ${params.sellerId}: ` +
         (sellerResult.error?.message ?? 'no data'),
     )
   }
 
-  const land = landResult.data
+  const subjectTitle =
+    landResult.data?.title ??
+    projectResult.data?.title ??
+    'Purchase'
+  const subjectRefId = params.landId ?? params.projectId ?? params.paymentId
   const seller = sellerResult.data
+  const manualReference = paymentResult.data?.manual_reference ?? null
+  const disbursementReason = paymentResult.data?.disbursement_reason ?? null
 
   // ── 3. Generate receipt number (advisory lock inside) ─────
   const receiptNumber = await generateReceiptNumber(params.supabase)
 
   // ── 4. Generate PDF bytes ─────────────────────────────────
-  const landReference =
-    land.location?.toLowerCase().includes('mubende') || land.title.toLowerCase().includes('mubende')
-      ? 'SC-MBD-001'
-      : `SC-${params.landId.slice(0, 8).toUpperCase()}`
+  const landReference = `SC-${subjectRefId.replace(/-/g, '').slice(0, 8).toUpperCase()}`
 
   const pdfBytes = await generateReceiptPdf({
     receiptNumber,
-    landTitle: land.title,
+    landTitle: subjectTitle,
     landReference,
-    sellerName: seller.full_name ?? seller.email ?? 'Seller',
+    sellerName: seller.full_name ?? seller.email ?? 'Payee',
     amountUsd: params.amountUsd,
     amountUgx: params.amountUgx,
     rateUsed: params.rateUsed,
     transactionId: params.transactionId,
     confirmedAt: params.confirmedAt,
+    manualReference,
+    disbursementReason,
   })
 
   // ── 5. Upload PDF to Storage ──────────────────────────────
@@ -139,11 +173,12 @@ export async function createReceipt(
       amount_usd: params.amountUsd,
       amount_ugx: params.amountUgx,
       rate_used: params.rateUsed,
-      land_id: params.landId,
-      land_title: land.title,
+      land_id: params.landId ?? null,
+      project_id: params.projectId ?? null,
+      land_title: subjectTitle,
     })
     .select(
-      'id, payment_id, seller_id, receipt_number, pdf_path, amount_usd, amount_ugx, land_id, land_title',
+      'id, payment_id, seller_id, receipt_number, pdf_path, amount_usd, amount_ugx, land_id, land_title, project_id',
     )
     .single()
 

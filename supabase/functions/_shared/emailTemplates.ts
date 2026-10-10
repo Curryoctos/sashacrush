@@ -304,3 +304,24 @@ export function sellerWelcomeEmail(params: {
 
   return emailLayout({ bodyHtml })
 }
+
+export function suggestionStatusEmail(params: {
+  recipientName: string
+  suggestionTitle: string
+  landTitle: string
+  statusLabel: string
+  comment: string | null
+  portalUrl: string
+}): string {
+  const commentBlock = params.comment
+    ? `<p style="margin:16px 0 0;padding:12px 16px;background-color:#f9fafb;border-radius:6px;"><strong>Admin note:</strong> ${params.comment}</p>`
+    : ''
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hello ${params.recipientName},</p>
+    <p style="margin:0 0 16px;">Your suggestion <strong>${params.suggestionTitle}</strong> for <strong>${params.landTitle}</strong> is now <strong>${params.statusLabel}</strong>.</p>
+    ${commentBlock}
+    ${ctaButton('Open Suggestions', params.portalUrl)}
+  `
+
+  return emailLayout({ bodyHtml })
+}

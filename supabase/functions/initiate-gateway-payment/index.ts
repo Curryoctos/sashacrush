@@ -1,10 +1,16 @@
 /// <reference path="../_shared/deno.d.ts" />
-import { requireAuthenticatedStaff } from '../_shared/auth.ts'
-import { createFlutterwavePaymentLink, getFlutterwaveSecretKey } from '../_shared/flutterwave.ts'
+import { requireAuthenticatedAdmin } from '../_shared/auth.ts'
+import {
+  buildFlutterwavePayoutReference,
+  createFlutterwaveMobileMoneyTransfer,
+  getFlutterwaveSecretKey,
+  getFlutterwaveTransferByReference,
+  isFailedTransferStatus,
+  isSuccessfulTransferStatus,
+} from '../_shared/flutterwave.ts'
 import { errorResponse, jsonResponse } from '../_shared/http.ts'
 import { assertRateLimit, RateLimitError } from '../_shared/rateLimit.ts'
-import { createStripeCheckoutSession, getStripeSecretKey } from '../_shared/stripe.ts'
-import { createServiceClient, getAppUrl } from '../_shared/supabaseAdmin.ts'
+import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
 interface InitiatePayload {
   paymentId?: string
@@ -16,7 +22,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const staff = await requireAuthenticatedStaff(req)
+    const admin = await requireAuthenticatedAdmin(req)
     const payload = (await req.json()) as InitiatePayload
     const paymentId = payload.paymentId?.trim()
 
@@ -29,7 +35,7 @@ Deno.serve(async (req) => {
     try {
       await assertRateLimit(
         supabase,
-        `initiate-gateway-payment:${staff.userId}`,
+        `initiate-gateway-payment:${admin.userId}`,
         40,
         3_600,
       )
@@ -43,7 +49,7 @@ Deno.serve(async (req) => {
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select(
-        'id, land_id, amount_usd, amount_ugx, method, status, stripe_payment_intent_id, flutterwave_tx_ref, gateway_checkout_url, mobile_money_network',
+        'id, land_id, project_id, disbursement_reason, amount_usd, amount_ugx, method, status, flutterwave_tx_ref, mobile_money_network, payer_phone',
       )
       .eq('id', paymentId)
       .single()
@@ -56,76 +62,22 @@ Deno.serve(async (req) => {
       return errorResponse('Payment is already confirmed', 400)
     }
 
-    if (payment.method !== 'stripe' && payment.method !== 'flutterwave') {
-      return errorResponse('Payment method must be stripe or flutterwave', 400)
+    if (payment.status === 'failed') {
+      return errorResponse(
+        'This payout already failed. Create a new payout to try again.',
+        400,
+      )
     }
-
-    if (payment.gateway_checkout_url) {
-      return jsonResponse({
-        success: true,
-        checkoutUrl: payment.gateway_checkout_url,
-        reused: true,
-      })
-    }
-
-    const { data: land, error: landError } = await supabase
-      .from('land_records')
-      .select('title, seller_id')
-      .eq('id', payment.land_id)
-      .single()
-
-    if (landError || !land) {
-      return errorResponse('Land record not found', 404)
-    }
-
-    const { data: staffProfile } = await supabase
-      .from('users')
-      .select('email, full_name')
-      .eq('id', staff.userId)
-      .single()
-
-    const appUrl = getAppUrl().replace(/\/$/, '')
-    const successUrl = `${appUrl}/admin/payments?land=${payment.land_id}&gateway=success`
-    const cancelUrl = `${appUrl}/admin/payments?land=${payment.land_id}&gateway=cancelled`
 
     if (payment.method === 'stripe') {
-      if (!getStripeSecretKey()) {
-        return errorResponse(
-          'STRIPE_SECRET_KEY is not configured. Set it in Supabase Edge Function secrets.',
-          503,
-        )
-      }
+      return errorResponse(
+        'Card payouts are not enabled. Use MTN/Airtel MoMo or manual transfer.',
+        400,
+      )
+    }
 
-      const session = await createStripeCheckoutSession({
-        amountUsd: Number(payment.amount_usd),
-        paymentId: payment.id,
-        landTitle: land.title,
-        successUrl,
-        cancelUrl,
-        customerEmail: staffProfile?.email,
-      })
-
-      if (!session.url) {
-        return errorResponse('Stripe did not return a checkout URL')
-      }
-
-      const { error: updateError } = await supabase
-        .from('payments')
-        .update({
-          stripe_payment_intent_id: session.payment_intent ?? session.id,
-          gateway_checkout_url: session.url,
-        })
-        .eq('id', payment.id)
-
-      if (updateError) {
-        return errorResponse(`Could not store Stripe session: ${updateError.message}`)
-      }
-
-      return jsonResponse({
-        success: true,
-        checkoutUrl: session.url,
-        provider: 'stripe',
-      })
+    if (payment.method !== 'flutterwave') {
+      return errorResponse('Payment method must be flutterwave for gateway payouts', 400)
     }
 
     if (!getFlutterwaveSecretKey()) {
@@ -135,34 +87,186 @@ Deno.serve(async (req) => {
       )
     }
 
-    const flutterwave = await createFlutterwavePaymentLink({
-      amountUsd: Number(payment.amount_usd),
-      amountUgx: payment.amount_ugx != null ? Number(payment.amount_ugx) : null,
-      paymentId: payment.id,
-      landTitle: land.title,
-      redirectUrl: successUrl,
-      customerEmail: staffProfile?.email ?? 'payments@sashacrush.com',
-      customerName: staffProfile?.full_name,
-      mobileMoneyNetwork: payment.mobile_money_network,
-    })
-
-    const { error: updateError } = await supabase
-      .from('payments')
-      .update({
-        flutterwave_tx_ref: flutterwave.txRef,
-        gateway_checkout_url: flutterwave.link,
-      })
-      .eq('id', payment.id)
-
-    if (updateError) {
-      return errorResponse(`Could not store Flutterwave reference: ${updateError.message}`)
+    if (payment.amount_ugx == null || Number(payment.amount_ugx) <= 0) {
+      return errorResponse('UGX amount is required for mobile-money payouts', 400)
     }
 
-    return jsonResponse({
-      success: true,
-      checkoutUrl: flutterwave.link,
-      provider: 'flutterwave',
-    })
+    if (!payment.payer_phone?.trim()) {
+      return errorResponse('Payee mobile-money phone is required for payouts', 400)
+    }
+
+    if (!payment.project_id) {
+      return errorResponse('Payment is missing project_id', 400)
+    }
+
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, title, owner_id, created_by')
+      .eq('id', payment.project_id)
+      .single()
+
+    if (projectError || !project) {
+      return errorResponse('Project not found for payment', 404)
+    }
+
+    let payeeId: string | null = null
+
+    if (payment.land_id) {
+      const { data: land } = await supabase
+        .from('land_records')
+        .select('seller_id')
+        .eq('id', payment.land_id)
+        .maybeSingle()
+      payeeId = land?.seller_id ?? null
+    }
+
+    if (!payeeId) {
+      const { data: counterpart } = await supabase
+        .from('project_participants')
+        .select('user_id')
+        .eq('project_id', payment.project_id)
+        .eq('role', 'counterpart')
+        .order('joined_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      payeeId = counterpart?.user_id ?? null
+    }
+
+    if (!payeeId) {
+      payeeId = project.owner_id ?? project.created_by ?? null
+    }
+
+    if (!payeeId) {
+      return errorResponse(
+        'Assign a project payee (counterpart, owner, or linked land seller) before paying out',
+        400,
+      )
+    }
+
+    const { data: payee } = await supabase
+      .from('users')
+      .select('full_name, email')
+      .eq('id', payeeId)
+      .single()
+
+    const subjectTitle = project.title
+    const reference =
+      payment.flutterwave_tx_ref?.trim() || buildFlutterwavePayoutReference(payment.id)
+
+    // Idempotent path: reference already reserved — reuse existing FW transfer if any.
+    if (payment.flutterwave_tx_ref) {
+      const existing = await getFlutterwaveTransferByReference(payment.flutterwave_tx_ref)
+      if (existing) {
+        if (isFailedTransferStatus(existing.status)) {
+          await supabase
+            .from('payments')
+            .update({ status: 'failed' })
+            .eq('id', payment.id)
+            .eq('status', 'pending')
+          return errorResponse(
+            'Flutterwave marked this payout as failed. Create a new payout to retry.',
+            409,
+          )
+        }
+
+        return jsonResponse({
+          success: true,
+          provider: 'flutterwave',
+          mode: 'payout',
+          reused: true,
+          transferId: existing.transferId,
+          reference: existing.reference,
+          status: existing.status,
+        })
+      }
+      // Claimed locally but no FW transfer yet (prior create failed) — recreate with same ref.
+    } else {
+      // Claim the deterministic reference before calling Flutterwave to prevent double payout.
+      const { data: claimed, error: claimError } = await supabase
+        .from('payments')
+        .update({
+          flutterwave_tx_ref: reference,
+          gateway_checkout_url: null,
+        })
+        .eq('id', payment.id)
+        .is('flutterwave_tx_ref', null)
+        .eq('status', 'pending')
+        .select('id')
+        .maybeSingle()
+
+      if (claimError) {
+        return errorResponse(`Could not reserve payout reference: ${claimError.message}`)
+      }
+
+      if (!claimed) {
+        const { data: current } = await supabase
+          .from('payments')
+          .select('status, flutterwave_tx_ref')
+          .eq('id', payment.id)
+          .single()
+
+        if (current?.flutterwave_tx_ref) {
+          return jsonResponse({
+            success: true,
+            provider: 'flutterwave',
+            mode: 'payout',
+            reused: true,
+            reference: current.flutterwave_tx_ref,
+            status: 'queued',
+          })
+        }
+
+        if (current?.status === 'confirmed') {
+          return errorResponse('Payment is already confirmed', 400)
+        }
+
+        return errorResponse('Could not claim payout for initiation', 409)
+      }
+    }
+
+    try {
+      const transfer = await createFlutterwaveMobileMoneyTransfer({
+        amountUgx: Number(payment.amount_ugx),
+        paymentId: payment.id,
+        landTitle: subjectTitle,
+        recipientPhone: payment.payer_phone,
+        recipientName: payee?.full_name ?? payee?.email ?? null,
+        mobileMoneyNetwork: payment.mobile_money_network,
+        reference,
+      })
+
+      if (isSuccessfulTransferStatus(transfer.status)) {
+        // Rare: FW may report SUCCESSFUL immediately; webhook still confirms + receipts.
+      }
+
+      return jsonResponse({
+        success: true,
+        provider: 'flutterwave',
+        mode: 'payout',
+        reused: Boolean(payment.flutterwave_tx_ref),
+        transferId: transfer.transferId,
+        reference: transfer.reference,
+        status: transfer.status,
+      })
+    } catch (transferError) {
+      const message =
+        transferError instanceof Error
+          ? transferError.message
+          : 'Flutterwave transfer creation failed'
+
+      // Only release the claim when FW clearly rejected before creating a transfer.
+      // Ambiguous/network errors keep the claim so a retry reuses the same reference.
+      if (isSafeToReleasePayoutClaim(message) && !payment.flutterwave_tx_ref) {
+        await supabase
+          .from('payments')
+          .update({ flutterwave_tx_ref: null })
+          .eq('id', payment.id)
+          .eq('flutterwave_tx_ref', reference)
+          .eq('status', 'pending')
+      }
+
+      throw transferError instanceof Error ? transferError : new Error(message)
+    }
   } catch (error) {
     if (error instanceof RateLimitError) {
       return errorResponse(error.message, 429)
@@ -172,3 +276,12 @@ Deno.serve(async (req) => {
     return errorResponse(message, status)
   }
 })
+
+function isSafeToReleasePayoutClaim(message: string): boolean {
+  if (/already exists|duplicate/i.test(message)) {
+    return false
+  }
+  return /insufficient|invalid|validation|beneficiary|account number|currency|phone/i.test(
+    message,
+  )
+}

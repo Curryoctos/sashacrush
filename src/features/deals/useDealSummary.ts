@@ -24,7 +24,7 @@ export function useDealSummary(landId: string, includeUnread = false) {
       const { data: land, error: landError } = await supabase
         .from('land_records')
         .select(
-          'id, title, description, location, total_value_usd, seller_id, latitude, longitude, status, created_at',
+          'id, title, description, location, total_value_usd, seller_id, latitude, longitude, boundary_geojson, status, created_at',
         )
         .eq('id', landId)
         .single()
@@ -44,11 +44,36 @@ export function useDealSummary(landId: string, includeUnread = false) {
         sellerName = seller?.full_name ?? seller?.email ?? null
       }
 
-      const { data: payments } = await supabase
+      const { data: linkedProject } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('land_id', landId)
+        .maybeSingle()
+
+      const byLand = await supabase
         .from('payments')
         .select('id, amount_usd, status')
         .eq('land_id', landId)
         .order('created_at', { ascending: false })
+
+      let byProject: typeof byLand.data = []
+      if (linkedProject?.id) {
+        const projectPayments = await supabase
+          .from('payments')
+          .select('id, amount_usd, status')
+          .eq('project_id', linkedProject.id)
+          .order('created_at', { ascending: false })
+        byProject = projectPayments.data ?? []
+      }
+
+      const paymentMap = new Map<
+        string,
+        { id: string; amount_usd: number; status: string }
+      >()
+      for (const row of [...(byLand.data ?? []), ...byProject]) {
+        paymentMap.set(row.id, row)
+      }
+      const payments = [...paymentMap.values()]
 
       const { data: documents } = await supabase
         .from('documents')
@@ -74,7 +99,7 @@ export function useDealSummary(landId: string, includeUnread = false) {
 
       return {
         land: { ...(land as LandRecord), seller_name: sellerName },
-        payments: payments ?? [],
+        payments,
         documents: documents ?? [],
         unreadCount,
       }
