@@ -76,19 +76,19 @@ Deno.serve(async (req) => {
     const sellerName = seller.full_name ?? seller.email
     const magicLink = linkData.properties.action_link
 
+    // Local without RESEND logs via sendEmail skip; production fails closed.
     if (!getEnv('RESEND_API_KEY')) {
       console.log(`[dev] Seller magic link for ${seller.email}: ${magicLink}`)
-    } else {
-      await sendEmail({
-        to: seller.email,
-        subject: 'Your SashaCrush seller sign-in link',
-        html: sellerMagicLinkEmail({
-          sellerName,
-          magicLink,
-          portalUrl: redirectTo,
-        }),
-      })
     }
+    await sendEmail({
+      to: seller.email,
+      subject: 'Your SashaCrush seller sign-in link',
+      html: sellerMagicLinkEmail({
+        sellerName,
+        magicLink,
+        portalUrl: redirectTo,
+      }),
+    })
 
     return jsonResponse({ success: true, message: GENERIC_SUCCESS })
   } catch (error) {

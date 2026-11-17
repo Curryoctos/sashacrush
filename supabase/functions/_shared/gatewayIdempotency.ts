@@ -12,6 +12,7 @@ export async function claimGatewayWebhookEvent(
     functionName: string
     paymentId?: string | null
     investmentId?: string | null
+    contributionId?: string | null
     metadata?: Record<string, unknown> | null
   },
 ): Promise<boolean> {
@@ -21,6 +22,7 @@ export async function claimGatewayWebhookEvent(
     function_name: params.functionName,
     payment_id: params.paymentId ?? null,
     investment_id: params.investmentId ?? null,
+    contribution_id: params.contributionId ?? null,
     metadata: params.metadata ?? null,
   })
 

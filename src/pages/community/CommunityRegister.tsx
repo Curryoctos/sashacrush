@@ -12,6 +12,7 @@ export function CommunityRegisterPage() {
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [location, setLocation] = useState('')
+  const [joinReason, setJoinReason] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -24,7 +25,13 @@ export function CommunityRegisterPage() {
     setError(null)
     setBusy(true)
     try {
-      await registerCommunityMember({ email, password, displayName, location })
+      await registerCommunityMember({
+        email,
+        password,
+        displayName,
+        location,
+        joinReason,
+      })
       await signIn(email.trim(), password)
       navigate('/community', { replace: true })
     } catch (err) {
@@ -101,6 +108,20 @@ export function CommunityRegisterPage() {
             disabled={busy}
             onChange={(event) => setLocation(event.target.value)}
             placeholder="City, country (optional)"
+          />
+        </div>
+        <div className="ui-field">
+          <label htmlFor="community-join-reason" className="ui-label">
+            Why are you joining?
+          </label>
+          <textarea
+            id="community-join-reason"
+            className="ui-input min-h-20"
+            value={joinReason}
+            disabled={busy}
+            onChange={(event) => setJoinReason(event.target.value)}
+            placeholder="Investing, learning, partnership, diaspora support… (optional)"
+            maxLength={500}
           />
         </div>
         {error ? (

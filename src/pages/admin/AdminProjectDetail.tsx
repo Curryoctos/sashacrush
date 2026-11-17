@@ -92,6 +92,47 @@ export function AdminProjectDetailPage() {
     },
   })
 
+  const contributionsQuery = useQuery({
+    queryKey: ['project-contributions', project?.id],
+    enabled: Boolean(project?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_contributions')
+        .select(
+          'id, contributor_name, contributor_email, amount_usd, method, reference, status, created_at',
+        )
+        .eq('project_id', project!.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+  const confirmContribution = async (contributionId: string) => {
+    setBusy(true)
+    setMsg(null)
+    const { error: err } = await supabase
+      .from('project_contributions')
+      .update({
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', contributionId)
+      .eq('status', 'pending')
+    setBusy(false)
+    if (err) {
+      setMsg(err.message)
+      return
+    }
+    setMsg('Contribution confirmed. Raised total updated.')
+    await refresh()
+    await queryClient.invalidateQueries({
+      queryKey: ['project-contributions', project?.id],
+    })
+  }
+
   const linkLand = async () => {
     if (!project || !linkLandId) return
     setBusy(true)
@@ -447,33 +488,83 @@ export function AdminProjectDetailPage() {
       )}
 
       {tab === 'payments' && (
-        <section className="ui-panel space-y-3 p-5 sm:p-6">
-          <h2 className="ui-section-title">Purchases</h2>
-          <p className="ui-section-desc">
-            Goal {formatUsd(Number(project.funding_goal_usd ?? 0))} · Raised{' '}
-            {formatUsd(Number(project.funding_raised_usd ?? 0))}. Record
-            purchases with a disbursement reason, then clear pending payouts.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to={`${projectLibraryPath(project.id, 'payments')}&folder=collect`}
-            >
-              <Button size="sm">Record purchase</Button>
-            </Link>
-            <Link
-              to={`${projectLibraryPath(project.id, 'payments')}&folder=needs-action`}
-            >
-              <Button variant="secondary" size="sm">
-                Clear pending
-              </Button>
-            </Link>
-            <Link to={projectLibraryPath(project.id, 'payments')}>
-              <Button variant="ghost" size="sm">
-                Open purchase folders
-              </Button>
-            </Link>
-          </div>
-        </section>
+        <div className="space-y-5">
+          <section className="ui-panel space-y-3 p-5 sm:p-6">
+            <h2 className="ui-section-title">Purchases</h2>
+            <p className="ui-section-desc">
+              Goal {formatUsd(Number(project.funding_goal_usd ?? 0))} · Raised{' '}
+              {formatUsd(Number(project.funding_raised_usd ?? 0))}. Record
+              purchases with a disbursement reason, then clear pending payouts.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to={`${projectLibraryPath(project.id, 'payments')}&folder=collect`}
+              >
+                <Button size="sm">Record purchase</Button>
+              </Link>
+              <Link
+                to={`${projectLibraryPath(project.id, 'payments')}&folder=needs-action`}
+              >
+                <Button variant="secondary" size="sm">
+                  Clear pending
+                </Button>
+              </Link>
+              <Link to={projectLibraryPath(project.id, 'payments')}>
+                <Button variant="ghost" size="sm">
+                  Open purchase folders
+                </Button>
+              </Link>
+            </div>
+          </section>
+
+          <section className="ui-panel space-y-3 p-5 sm:p-6">
+            <h2 className="ui-section-title">Inbound contributions</h2>
+            <p className="ui-section-desc">
+              Card (Stripe) confirms via webhook. Wire / MoMo / crypto stay
+              pending until you confirm below — that updates raised funding.
+            </p>
+            {contributionsQuery.isLoading ? (
+              <p className="text-[13px] text-muted">Loading…</p>
+            ) : (contributionsQuery.data ?? []).length === 0 ? (
+              <EmptyState
+                title="No contributions yet"
+                description="Public contribute flow writes rows here."
+              />
+            ) : (
+              <ul className="divide-y divide-border">
+                {(contributionsQuery.data ?? []).map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-center justify-between gap-3 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-medium text-ink">
+                        {formatUsd(Number(row.amount_usd))} · {row.method}
+                      </p>
+                      <p className="text-[12px] text-muted">
+                        {row.contributor_name} · {row.reference} ·{' '}
+                        {formatDate(row.created_at)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+                      {row.status === 'pending' && row.method !== 'stripe' ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={busy}
+                          onClick={() => void confirmContribution(row.id)}
+                        >
+                          Confirm
+                        </Button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       )}
 
       {tab === 'notes' && (

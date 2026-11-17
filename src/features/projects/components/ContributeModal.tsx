@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Copy, Download, UserPlus, X } from 'lucide-react'
+import { CheckCircle2, Copy, UserPlus, X } from 'lucide-react'
 import {
   anonymousDisplayName,
   contributionGoalPercent,
   validateContributeAmount,
 } from '@/features/projects/contributeHelpers'
+import {
+  initiateProjectContribution,
+  type ProjectContributionMethod,
+} from '@/features/projects/initiateProjectContribution'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchUsdToUgxRate } from '@/features/payments/usdUgxRate'
 import { formatUgx, formatUsd } from '@/lib/formatters'
@@ -24,6 +28,10 @@ interface ContributeModalProps {
   onClose: () => void
 }
 
+function toApiMethod(method: PayMethod): ProjectContributionMethod {
+  return method === 'card' ? 'stripe' : method
+}
+
 export function ContributeModal({ open, project, onClose }: ContributeModalProps) {
   const { user } = useAuth()
   const [step, setStep] = useState<Step>(1)
@@ -39,8 +47,11 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
   const [network, setNetwork] = useState<'mtn' | 'airtel'>('mtn')
   const [rate, setRate] = useState(3700)
   const [busy, setBusy] = useState(false)
-  const [receiptNumber, setReceiptNumber] = useState<string | null>(null)
-  const [wireRef, setWireRef] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [reference, setReference] = useState<string | null>(null)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [followError, setFollowError] = useState<string | null>(null)
+  const [followDone, setFollowDone] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
 
   useEffect(() => {
@@ -50,18 +61,26 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
     setAmount(Math.max(50, Number(project.min_contribution_usd ?? 10)))
     setAmountError(null)
     setMethod(null)
-    setReceiptNumber(null)
-    setWireRef(null)
+    setReference(null)
+    setStatusMessage(null)
+    setSubmitError(null)
+    setFollowError(null)
+    setFollowDone(false)
+    setShareCopied(false)
     setBusy(false)
+    if (user?.email) {
+      setEmail(user.email)
+      setFullName(user.email.split('@')[0] ?? '')
+    }
     void fetchUsdToUgxRate().then(setRate)
-  }, [open, project.min_contribution_usd])
+  }, [open, project.min_contribution_usd, user?.email])
 
   const ugxAmount = useMemo(() => amount * rate, [amount, rate])
   const pct = contributionGoalPercent(
     amount,
     Number(project.funding_goal_usd ?? 0),
   )
-  const receiptEmail = user?.email ?? email
+  const contactEmail = user?.email ?? email
 
   if (!open) return null
 
@@ -78,30 +97,63 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
 
   const confirmPayment = async () => {
     if (!method) return
+    if (method === 'mobile_money' && !phone.trim()) {
+      setSubmitError('Enter a mobile money phone number.')
+      return
+    }
+
+    const contributorName = anonymousDisplayName(
+      anonymous,
+      fullName.trim() || user?.email || 'Contributor',
+    )
+    const contributorEmail = contactEmail.trim()
+    if (!contributorEmail || !contributorEmail.includes('@')) {
+      setSubmitError('A valid email is required for the contribution receipt.')
+      return
+    }
+
     setBusy(true)
+    setSubmitError(null)
     try {
-      const year = new Date().getFullYear()
-      const stub = `SC-${year}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`
-      setReceiptNumber(stub)
-      if (method === 'wire') {
-        setWireRef(`WIRE-${project.slug.slice(0, 12).toUpperCase()}-${Date.now().toString(36)}`)
+      const result = await initiateProjectContribution({
+        projectId: project.id,
+        amountUsd: amount,
+        method: toApiMethod(method),
+        contributorName,
+        contributorEmail,
+        contributorCountry: country,
+        isAnonymous: anonymous,
+        payerPhone: method === 'mobile_money' ? phone.trim() : undefined,
+        mobileMoneyNetwork: method === 'mobile_money' ? network : undefined,
+      })
+
+      if (result.checkoutUrl) {
+        window.location.assign(result.checkoutUrl)
+        return
       }
 
-      if (user && anonymous === false) {
-        // Logged-in non-anonymous path can record follower/contributor later via admin.
-      }
-      // Anonymous flag stores display name for participant records when wired to API.
-      void anonymousDisplayName(anonymous, fullName || user?.email || 'Contributor')
-
+      setReference(result.reference)
+      setStatusMessage(
+        result.message ??
+          'Contribution recorded as pending. Funding updates after confirmation.',
+      )
       setStep(4)
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'Could not start contribution.',
+      )
     } finally {
       setBusy(false)
     }
   }
 
   const followProject = async () => {
-    if (!user) return
-    await supabase.from('project_participants').upsert(
+    if (!user) {
+      setFollowError('Sign in to follow this project.')
+      return
+    }
+    setFollowError(null)
+    const { error } = await supabase.from('project_participants').upsert(
       {
         project_id: project.id,
         user_id: user.id,
@@ -110,6 +162,11 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
       },
       { onConflict: 'project_id,user_id' },
     )
+    if (error) {
+      setFollowError(error.message)
+      return
+    }
+    setFollowDone(true)
   }
 
   const shareProject = async () => {
@@ -134,7 +191,7 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 id="contribute-title" className="text-[15px] font-semibold text-ink">
-            {step === 4 ? 'Contribution received' : `Contribute · ${project.title}`}
+            {step === 4 ? 'Contribution submitted' : `Contribute · ${project.title}`}
           </h2>
           <button
             type="button"
@@ -269,16 +326,19 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
             <div className="space-y-3">
               {(
                 [
-                  ['card', 'Card or Apple Pay', 'via Stripe'],
-                  ['mobile_money', 'Mobile Money', 'MTN or Airtel Uganda'],
-                  ['wire', 'Wire Transfer', 'Western Union, Venmo, or SendUp'],
-                  ['crypto', 'Crypto', 'MetaMask or WalletConnect'],
+                  ['card', 'Card or Apple Pay', 'via Stripe Checkout'],
+                  ['mobile_money', 'Mobile Money', 'MTN or Airtel Uganda — pending admin confirm'],
+                  ['wire', 'Wire Transfer', 'Recorded with a unique reference'],
+                  ['crypto', 'Crypto', 'Recorded for admin reconciliation'],
                 ] as const
               ).map(([id, title, subtitle]) => (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => setMethod(id)}
+                  onClick={() => {
+                    setMethod(id)
+                    setSubmitError(null)
+                  }}
                   className={cn(
                     'w-full rounded-xl border px-4 py-3 text-left transition',
                     method === id
@@ -293,8 +353,8 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
 
               {method === 'card' ? (
                 <p className="rounded-lg bg-surface px-3 py-2 text-[12px] text-muted">
-                  Card payments use Stripe Checkout. Confirm to continue with a
-                  secure payment session.
+                  You will be redirected to Stripe Checkout. Funding updates after
+                  the payment webhook confirms.
                 </p>
               ) : null}
               {method === 'mobile_money' ? (
@@ -315,13 +375,16 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
                   </select>
                 </div>
               ) : null}
-              {method === 'wire' && wireRef ? (
-                <p className="text-[13px] text-ink">Reference: {wireRef}</p>
-              ) : null}
               {method === 'crypto' ? (
                 <p className="rounded-lg bg-surface px-3 py-2 text-[12px] text-muted">
-                  Connect MetaMask or WalletConnect on the next confirmation step.
-                  Approx. {formatUgx(ugxAmount)} at current rate.
+                  Submit to receive a reference for reconciliation. Approx.{' '}
+                  {formatUgx(ugxAmount)} at current rate.
+                </p>
+              ) : null}
+
+              {submitError ? (
+                <p className="text-[13px] text-danger" role="alert">
+                  {submitError}
                 </p>
               ) : null}
 
@@ -331,10 +394,18 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
                 </Button>
                 <Button
                   className="flex-1"
-                  disabled={!method || busy}
+                  disabled={
+                    !method ||
+                    busy ||
+                    (method === 'mobile_money' && !phone.trim())
+                  }
                   onClick={() => void confirmPayment()}
                 >
-                  Confirm Payment
+                  {busy
+                    ? 'Working…'
+                    : method === 'card'
+                      ? 'Continue to Stripe'
+                      : 'Submit contribution'}
                 </Button>
               </div>
             </div>
@@ -346,25 +417,35 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
               <p className="text-[15px] font-medium text-ink">
                 Thank you for supporting {project.title}
               </p>
-              <p className="text-2xl font-semibold tracking-tight text-ink">
-                {receiptNumber}
-              </p>
+              {reference ? (
+                <p className="text-2xl font-semibold tracking-tight text-ink">
+                  {reference}
+                </p>
+              ) : null}
               <p className="text-[13px] text-muted">
-                A receipt has been sent to {receiptEmail || 'your email'}
+                {statusMessage ??
+                  'Contribution is pending confirmation. Raised totals update when confirmed.'}
               </p>
+              <p className="text-[12px] text-muted">
+                We will use {contactEmail || 'your email'} for follow-up if needed.
+              </p>
+              {followError ? (
+                <p className="text-[13px] text-danger" role="alert">
+                  {followError}
+                </p>
+              ) : null}
               <div className="flex w-full flex-col gap-2 pt-2">
-                <Button variant="secondary" className="w-full">
-                  <Download className="h-4 w-4" />
-                  Download Receipt
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => void followProject()}
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Follow Project
-                </Button>
+                {user ? (
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => void followProject()}
+                    disabled={followDone}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    {followDone ? 'Following' : 'Follow Project'}
+                  </Button>
+                ) : null}
                 <Button
                   variant="secondary"
                   className="w-full"

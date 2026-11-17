@@ -37,7 +37,7 @@ Open [http://localhost:5173](http://localhost:5173).
 | Seller | `seller@sashacrush.com` | Magic link (check Mailpit at http://127.0.0.1:54324) |
 
 Staff accounts (admin / agent / executive) sign in with email + password.
-MFA (TOTP enroll + challenge) is temporarily disabled; restore via `StaffMfaGate` and the commented MFA routes in `src/routes/router.tsx`.
+Staff MFA (TOTP enroll + challenge) is required on admin / agent / executive portals.
 
 Local Supabase: TOTP is enabled in `supabase/config.toml` (`auth.mfa.totp.enroll_enabled`). After changing it, restart with `npx supabase stop && npx supabase start`.
 
@@ -98,7 +98,8 @@ Protected routes require Supabase Auth with role-based RLS.
 - **Users** — Admin provisions staff and sellers (`/admin/users`); deactivate, role changes, password reset / magic-link resend
 - **Land records** — Admin CRUD with seller assignment and deal cockpit (`/admin/deals/:landId`)
 - **Documents** — Upload, send for signing, seller e-sign with PDF append, in-browser preview; agent investment agreements
-- **Payments** — Manual confirm or Stripe/Flutterwave checkout; webhooks issue server-side PDF receipts + email notifications
+- **Payments** — Seller MoMo payouts via Flutterwave transfers (or manual/crypto confirm); webhooks issue server-side PDF receipts + email notifications
+- **Project contributions** — Public/inbound funding via Stripe Checkout (card) or pending wire/MoMo/crypto intents; raised totals update on confirmation
 - **Capital & wallet** — Agent deal-scoped investments (Stripe/offline) into company pool; Admin MetaMask/WalletConnect convert-and-pay
 - **Analytics** — Recharts dashboards for admin / executive / agent with CSV export
 - **Suggestions** — Project proposal lifecycle (agent/admin submit; admin review)
@@ -107,7 +108,7 @@ Protected routes require Supabase Auth with role-based RLS.
 - **Media vault** — Private video upload (admin) and playback (executive)
 - **Chat** — Realtime seller/admin messaging and executive staff channel
 - **Notifications** — Resend emails via Edge Functions; see `supabase/functions/WEBHOOKS.md`
-- **MFA** — Temporarily disabled (TOTP pages/helpers kept; gate + routes commented for later restore)
+- **MFA** — Staff portals require TOTP enrollment + AAL2 challenge (`StaffMfaGate`)
 - **Audit log** — Automatic trail for land, payment, document, and user lifecycle changes
 
 ## Environment variables

@@ -11,9 +11,8 @@ import { SellerPortalLayout } from '@/components/layout/SellerPortalLayout'
 import { page } from '@/routes/lazyPage'
 import { LoginPage } from '@/pages/Login'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-// MFA temporarily disabled — restore when re-enabling TOTP:
-// import { StaffMfaChallengePage } from '@/pages/staff/MfaChallenge'
-// import { StaffMfaSetupPage } from '@/pages/staff/MfaSetup'
+import { StaffMfaChallengePage } from '@/pages/staff/MfaChallenge'
+import { StaffMfaSetupPage } from '@/pages/staff/MfaSetup'
 
 function lazyPage<T extends Record<string, ComponentType>>(
   loader: () => Promise<T>,
@@ -348,9 +347,11 @@ export const router = createBrowserRouter([
           },
           { path: 'chat', element: page(<AdminChatPage />) },
           { path: 'audit-log', element: page(<AdminAuditLogPage />) },
-          // MFA temporarily disabled — restore when re-enabling TOTP:
-          // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/admin/dashboard" /> },
-          // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/admin/dashboard" /> },
+          { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/admin/dashboard" /> },
+          {
+            path: 'mfa-challenge',
+            element: <StaffMfaChallengePage backPath="/admin/dashboard" />,
+          },
         ],
       },
     ],
@@ -383,9 +384,14 @@ export const router = createBrowserRouter([
             path: 'documents',
             element: <Navigate to="/executive/dashboard" replace />,
           },
-          // MFA temporarily disabled — restore when re-enabling TOTP:
-          // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/executive/dashboard" /> },
-          // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/executive/dashboard" /> },
+          {
+            path: 'mfa-setup',
+            element: <StaffMfaSetupPage backPath="/executive/dashboard" />,
+          },
+          {
+            path: 'mfa-challenge',
+            element: <StaffMfaChallengePage backPath="/executive/dashboard" />,
+          },
         ],
       },
     ],
@@ -414,9 +420,11 @@ export const router = createBrowserRouter([
           { path: 'agreements', element: page(<AgentAgreementsPage />) },
           { path: 'chat', element: page(<AgentChatPage />) },
           { path: 'photos', element: page(<AgentPhotosPage />) },
-          // MFA temporarily disabled — restore when re-enabling TOTP:
-          // { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/agent/dashboard" /> },
-          // { path: 'mfa-challenge', element: <StaffMfaChallengePage backPath="/agent/dashboard" /> },
+          { path: 'mfa-setup', element: <StaffMfaSetupPage backPath="/agent/dashboard" /> },
+          {
+            path: 'mfa-challenge',
+            element: <StaffMfaChallengePage backPath="/agent/dashboard" />,
+          },
         ],
       },
     ],

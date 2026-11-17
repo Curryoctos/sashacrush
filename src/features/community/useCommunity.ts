@@ -241,6 +241,7 @@ export async function registerCommunityMember(input: {
   displayName: string
   location?: string
   bio?: string
+  joinReason?: string
 }): Promise<void> {
   const validationError = validateCommunityRegister(input)
   if (validationError) {
@@ -254,6 +255,7 @@ export async function registerCommunityMember(input: {
       displayName: input.displayName.trim(),
       location: input.location?.trim() || undefined,
       bio: input.bio?.trim() || undefined,
+      joinReason: input.joinReason?.trim() || undefined,
     },
   })
 

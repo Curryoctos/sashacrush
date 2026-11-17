@@ -24,7 +24,7 @@ export function AboutPage() {
           },
           {
             title: 'Contribute securely',
-            body: 'Support with card, mobile money, wire, or crypto. You receive a receipt for every confirmed payment.',
+            body: 'Support with card (Stripe Checkout), mobile money, wire, or crypto. Card charges confirm automatically; other methods are recorded with a reference until staff confirm funding.',
           },
           {
             title: 'Follow the work',

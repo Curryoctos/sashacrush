@@ -52,7 +52,7 @@ This guide explains how to connect database events to Edge Functions that send e
 
 4. **Webhook authentication:** DB webhook functions (`notify-receipt-created`, `notify-payment-confirmed`) require `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`. When configuring webhooks in the Supabase Dashboard, use the **service role** key or the built-in Edge Function trigger (recommended).
 
-5. **Client-invoked functions:** `notify-document-sent`, `notify-seller-assigned`, and `notify-admin-message` require admin/agent JWT. `notify-document-signed` and `notify-seller-message` require an authenticated user JWT (seller for message alerts). `admin-manage-users` requires an **admin** JWT (create / update / deactivate / send access). `request-seller-magic-link` is public (no JWT) but rate-limited and only sends links for active provisioned seller emails.
+5. **Client-invoked functions:** `notify-document-sent`, `notify-seller-assigned`, and `notify-admin-message` require admin/agent JWT. `notify-document-signed` and `notify-seller-message` require an authenticated user JWT (seller for message alerts). `admin-manage-users` requires an **admin** JWT (create / update / deactivate / send access). `request-seller-magic-link`, `register-community-member`, and `initiate-project-contribution` are public (`verify_jwt = false`) but rate-limited inside the function. Stripe confirms card contributions via `stripe-webhook` metadata `contribution_id`.
 
 6. **Idempotency:** Webhook and several invoke functions record events in `notification_events` to prevent duplicate emails on retries.
 

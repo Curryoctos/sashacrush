@@ -1,5 +1,9 @@
 /// <reference path="../_shared/deno.d.ts" />
 import {
+  ConfirmContributionError,
+  confirmContributionFromGateway,
+} from '../_shared/confirmContribution.ts'
+import {
   ConfirmInvestmentError,
   confirmInvestmentFromGateway,
 } from '../_shared/confirmInvestment.ts'
@@ -24,7 +28,11 @@ interface StripeEventObject {
   amount_total?: number
   amount?: number
   currency?: string
-  metadata?: { payment_id?: string; investment_id?: string }
+  metadata?: {
+    payment_id?: string
+    investment_id?: string
+    contribution_id?: string
+  }
   payment_intent?: string | { id?: string } | null
   payment_status?: string
 }
@@ -74,8 +82,19 @@ Deno.serve(async (req) => {
     }
 
     const investmentId = object?.metadata?.investment_id?.trim()
+    const contributionId = object?.metadata?.contribution_id?.trim()
     const paymentId = object?.metadata?.payment_id?.trim()
     const supabase = createServiceClient()
+
+    if (contributionId) {
+      return await handleContributionCheckout({
+        supabase,
+        eventId: event.id,
+        eventType: event.type ?? '',
+        object,
+        contributionId,
+      })
+    }
 
     if (investmentId) {
       return await handleInvestmentCheckout({
@@ -95,7 +114,11 @@ Deno.serve(async (req) => {
       paymentId,
     })
   } catch (error) {
-    if (error instanceof ConfirmPaymentError || error instanceof ConfirmInvestmentError) {
+    if (
+      error instanceof ConfirmPaymentError ||
+      error instanceof ConfirmInvestmentError ||
+      error instanceof ConfirmContributionError
+    ) {
       return errorResponse(error.message, error.status)
     }
 
@@ -103,6 +126,97 @@ Deno.serve(async (req) => {
     return errorResponse(message, 500)
   }
 })
+
+async function handleContributionCheckout(params: {
+  supabase: ServiceClient
+  eventId: string
+  eventType: string
+  object: StripeEventObject | undefined
+  contributionId: string
+}) {
+  const { supabase, eventId, eventType, object, contributionId } = params
+  const eventKey = `stripe:contribution:${eventId}`
+
+  const claimed = await claimGatewayWebhookEvent(supabase, {
+    provider: 'stripe',
+    eventKey,
+    functionName: 'stripe-webhook',
+    contributionId,
+    metadata: { type: eventType, kind: 'contribution' },
+  })
+
+  if (!claimed) {
+    return jsonResponse({
+      success: true,
+      skipped: true,
+      reason: 'Duplicate Stripe contribution event',
+      eventId,
+    })
+  }
+
+  try {
+    const { data: contribution, error: contributionError } = await supabase
+      .from('project_contributions')
+      .select('id, amount_usd, status, method')
+      .eq('id', contributionId)
+      .single()
+
+    if (contributionError || !contribution) {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Contribution not found for Stripe event', 404)
+    }
+
+    if (contribution.method !== 'stripe') {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Contribution method is not stripe', 409)
+    }
+
+    const paidCents =
+      eventType === 'checkout.session.completed' ? object?.amount_total : object?.amount
+
+    if (
+      !stripeAmountMatches(
+        paidCents,
+        Number(contribution.amount_usd),
+        object?.currency ?? 'usd',
+      )
+    ) {
+      console.error('Stripe contribution amount mismatch', {
+        contributionId,
+        expectedUsd: contribution.amount_usd,
+        paidCents,
+        currency: object?.currency,
+        eventId,
+      })
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Paid amount does not match recorded contribution', 409)
+    }
+
+    const paymentIntentId =
+      typeof object?.payment_intent === 'string'
+        ? object.payment_intent
+        : object?.payment_intent?.id ??
+          (eventType === 'payment_intent.succeeded' ? object?.id : null)
+
+    const checkoutSessionId =
+      eventType === 'checkout.session.completed' ? object?.id ?? null : null
+
+    const result = await confirmContributionFromGateway(supabase, contributionId, {
+      stripePaymentIntentId: paymentIntentId ?? null,
+      stripeCheckoutSessionId: checkoutSessionId,
+    })
+
+    return jsonResponse({
+      success: true,
+      kind: 'contribution',
+      contributionId,
+      alreadyConfirmed: result.alreadyConfirmed,
+    })
+  } catch (error) {
+    await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+    throw error
+  }
+}
 
 async function handleInvestmentCheckout(params: {
   supabase: ServiceClient

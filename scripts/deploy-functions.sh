@@ -16,6 +16,7 @@ FUNCTIONS=(
   confirm-payment
   initiate-gateway-payment
   initiate-investment-checkout
+  initiate-project-contribution
   stripe-webhook
   flutterwave-webhook
 )

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   AlertCircle,
@@ -45,11 +45,31 @@ function daysRemaining(target: string | null): number | null {
 
 export function ProjectDetailPage() {
   const { slug = '' } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { project, participants, updates, milestones, isLoading, error } =
     useProject(slug)
   const [tab, setTab] = useState<Tab>('about')
   const [contributeOpen, setContributeOpen] = useState(false)
   const [photoDialog, setPhotoDialog] = useState<LandPhoto | null>(null)
+  const [contributionBanner, setContributionBanner] = useState<string | null>(
+    null,
+  )
+
+  useEffect(() => {
+    const contribution = searchParams.get('contribution')
+    if (!contribution) return
+    if (contribution === 'success') {
+      setContributionBanner(
+        'Card payment submitted. Funding updates after Stripe confirms the charge.',
+      )
+    } else if (contribution === 'cancel') {
+      setContributionBanner('Checkout cancelled. No contribution was recorded as paid.')
+    }
+    const next = new URLSearchParams(searchParams)
+    next.delete('contribution')
+    next.delete('id')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const photosQuery = useQuery({
     queryKey: ['project-photos', project?.id],
@@ -147,6 +167,11 @@ export function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
+      {contributionBanner ? (
+        <p className="ui-alert-info" role="status">
+          {contributionBanner}
+        </p>
+      ) : null}
       <div className="relative h-56 overflow-hidden rounded-xl border border-border sm:h-64">
         {project.cover_image_path ? (
           <img

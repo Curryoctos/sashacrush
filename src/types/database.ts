@@ -566,6 +566,7 @@ export interface Database {
           function_name: string
           payment_id: string | null
           investment_id: string | null
+          contribution_id: string | null
           metadata: Json | null
           created_at: string
         }
@@ -576,6 +577,7 @@ export interface Database {
           function_name: string
           payment_id?: string | null
           investment_id?: string | null
+          contribution_id?: string | null
           metadata?: Json | null
           created_at?: string
         }
@@ -586,8 +588,81 @@ export interface Database {
           function_name?: string
           payment_id?: string | null
           investment_id?: string | null
+          contribution_id?: string | null
           metadata?: Json | null
           created_at?: string
+        }
+        Relationships: []
+      }
+      project_contributions: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string | null
+          contributor_name: string
+          contributor_email: string
+          contributor_country: string | null
+          is_anonymous: boolean
+          amount_usd: number
+          amount_ugx: number | null
+          method: 'stripe' | 'mobile_money' | 'wire' | 'crypto'
+          reference: string
+          status: 'pending' | 'confirmed' | 'rejected' | 'cancelled'
+          payer_phone: string | null
+          mobile_money_network: 'mtn' | 'airtel' | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          notes: string | null
+          confirmed_at: string | null
+          rejection_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id?: string | null
+          contributor_name: string
+          contributor_email: string
+          contributor_country?: string | null
+          is_anonymous?: boolean
+          amount_usd: number
+          amount_ugx?: number | null
+          method: 'stripe' | 'mobile_money' | 'wire' | 'crypto'
+          reference: string
+          status?: 'pending' | 'confirmed' | 'rejected' | 'cancelled'
+          payer_phone?: string | null
+          mobile_money_network?: 'mtn' | 'airtel' | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          notes?: string | null
+          confirmed_at?: string | null
+          rejection_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string | null
+          contributor_name?: string
+          contributor_email?: string
+          contributor_country?: string | null
+          is_anonymous?: boolean
+          amount_usd?: number
+          amount_ugx?: number | null
+          method?: 'stripe' | 'mobile_money' | 'wire' | 'crypto'
+          reference?: string
+          status?: 'pending' | 'confirmed' | 'rejected' | 'cancelled'
+          payer_phone?: string | null
+          mobile_money_network?: 'mtn' | 'airtel' | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          notes?: string | null
+          confirmed_at?: string | null
+          rejection_reason?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -904,6 +979,7 @@ export interface Database {
           display_name: string
           location: string | null
           bio: string | null
+          join_reason: string | null
           created_at: string
         }
         Insert: {
@@ -912,6 +988,7 @@ export interface Database {
           display_name: string
           location?: string | null
           bio?: string | null
+          join_reason?: string | null
           created_at?: string
         }
         Update: {
@@ -920,6 +997,7 @@ export interface Database {
           display_name?: string
           location?: string | null
           bio?: string | null
+          join_reason?: string | null
           created_at?: string
         }
         Relationships: []

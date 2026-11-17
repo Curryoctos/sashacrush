@@ -1,4 +1,5 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { StaffMfaGate } from '@/components/auth/StaffMfaGate'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { PortalShell } from '@/components/layout/PortalShell'
 import { useAuth } from '@/hooks/useAuth'
@@ -21,8 +22,10 @@ export function AgentPortalLayout() {
       headerActions={<NotificationCenter />}
       onSignOut={handleSignOut}
     >
-      {/* MFA temporarily disabled — restore StaffMfaGate when re-enabling TOTP */}
-      <Outlet />
+      <StaffMfaGate
+        mfaSetupPath="/agent/mfa-setup"
+        mfaChallengePath="/agent/mfa-challenge"
+      />
     </PortalShell>
   )
 }

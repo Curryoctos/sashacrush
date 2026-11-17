@@ -9,6 +9,7 @@ interface RegisterPayload {
   displayName?: string
   location?: string
   bio?: string
+  joinReason?: string
 }
 
 function normalizeEmail(email: string): string {
@@ -27,6 +28,8 @@ Deno.serve(async (req) => {
     const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : ''
     const location = typeof body.location === 'string' ? body.location.trim() : ''
     const bio = typeof body.bio === 'string' ? body.bio.trim() : ''
+    const joinReason =
+      typeof body.joinReason === 'string' ? body.joinReason.trim().slice(0, 500) : ''
 
     if (!email || !email.includes('@')) {
       return errorResponse('A valid email is required.', 400)
@@ -39,9 +42,14 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createServiceClient()
+    const clientIp =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      req.headers.get('x-real-ip') ??
+      'unknown'
 
     try {
       await assertRateLimit(supabase, `register-community:${email}`, 5, 3_600)
+      await assertRateLimit(supabase, `register-community:ip:${clientIp}`, 20, 3_600)
     } catch (error) {
       if (error instanceof RateLimitError) {
         return errorResponse(error.message, 429)
@@ -90,6 +98,7 @@ Deno.serve(async (req) => {
       display_name: displayName,
       location: location || null,
       bio: bio || null,
+      join_reason: joinReason || null,
     })
 
     if (memberError) {

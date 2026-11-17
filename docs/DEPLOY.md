@@ -66,6 +66,25 @@ npm run build
 
 Deploy `dist/` to your static host (Vercel, Netlify, etc.).
 
+### GitHub Actions secrets (production-build job)
+
+CI **tests** always use local Supabase (`127.0.0.1:54321` + demo anon key).  
+Do **not** put live Supabase URLs in `.github/workflows/ci.yml`.
+
+For the `production-build` job (runs on push to `main` / `map`), add these under  
+**Repo → Settings → Secrets and variables → Actions**:
+
+| Secret | Example |
+|--------|---------|
+| `VITE_SUPABASE_URL` | `https://xxxx.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | anon/public key from Supabase Dashboard → Settings → API |
+| `VITE_APP_URL` | `https://your-app.vercel.app` |
+
+Optional: `VITE_STRIPE_PUBLIC_KEY`, `VITE_FLUTTERWAVE_PUBLIC_KEY`,  
+`VITE_WALLETCONNECT_PROJECT_ID`, `VITE_CRYPTO_TREASURY_ADDRESS`.
+
+If you deploy with Vercel/Netlify, set the same `VITE_*` values in that host’s env — the host build is what users get.
+
 ## 5. Post-deploy smoke test
 
 1. Staff login → MFA setup/challenge (TOTP) → dashboard
@@ -75,17 +94,20 @@ Deploy `dist/` to your static host (Vercel, Netlify, etc.).
 4. Pay out seller (MoMo or manual) → Flutterwave transfer webhook / Confirm paid → receipt PDF + emails
    - Fund Flutterwave UGX balance before MoMo tests
    - Failed transfers mark the payout `failed` and free available-to-pay-out
-5. Chat message → email alert + in-app notification bell
+5. Chat message → email alert + in-app notification bell (DB trigger + optional notify-* email)
+6. Public project contribute → Stripe Checkout (card) or pending reference (wire/MoMo/crypto); webhook confirms card → `funding_raised_usd` updates
+7. Community register at `/community/register` (edge fn `register-community-member`, `verify_jwt=false`)
 
 ## 6. CI
 
-GitHub Actions runs on push/PR to `main`, `features`, `develop`:
+GitHub Actions runs on push/PR to `main`, `features`, `develop`, `map`:
 
 - **secret-scan** — gitleaks (C-30)
-- **quality** — typecheck, lint, unit tests, `npm audit --omit=dev --audit-level=critical`, build
+- **quality** — typecheck, lint, unit tests, `npm audit --omit=dev --audit-level=critical`, build (local placeholders)
 - **integration** — Supabase local + seller RLS / isolation / GPS immutability
 - **e2e** — preview server + Puppeteer smoke tests
 - **lighthouse** — C-29 mobile performance gates
+- **production-build** — push to `main`/`map` only; builds with live `VITE_*` secrets and uploads `dist` artifact
 
 ## 7. Security (C-30)
 
