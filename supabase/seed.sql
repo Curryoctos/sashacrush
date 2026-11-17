@@ -148,12 +148,42 @@ VALUES (
   }'::jsonb
 );
 
+-- Land-linked funding project (payments.project_id is required)
+INSERT INTO public.projects (
+  id, title, slug, description, cause, type, visibility,
+  funding_goal_usd, funding_raised_usd, min_contribution_usd,
+  location_name, country, latitude, longitude, status, tags, land_id
+)
+VALUES (
+  'a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a77',
+  'Mubende Land Acquisition',
+  'mubende-land',
+  'Seed land acquisition project linked to the Mubende deal for local CI and demos.',
+  'Acquire and clear title for the Mubende parcel.',
+  'land_acquisition',
+  'private',
+  300000,
+  0,
+  10,
+  'Mubende District, Uganda',
+  'Uganda',
+  0.5605,
+  31.3950,
+  'active',
+  ARRAY['land', 'seed'],
+  'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55'
+);
+
 -- Payment record — sellers must NEVER see this via RLS
-INSERT INTO public.payments (land_id, amount_usd, amount_ugx, method, status)
+INSERT INTO public.payments (
+  land_id, project_id, amount_usd, amount_ugx, method, status, disbursement_reason
+)
 VALUES (
   'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
+  'a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a77',
   50000,
   185000000,
   'manual',
-  'pending'
+  'pending',
+  'Seed pending seller disbursement for Mubende land acquisition'
 );
