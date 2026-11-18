@@ -45,7 +45,8 @@ describe('E2E smoke', () => {
     const bodyText = await page.evaluate(() => document.body.innerText)
 
     expect(bodyText).toContain('Sign in')
-    expect(bodyText).toContain('Seller Login')
+    expect(bodyText).toContain('Staff')
+    expect(bodyText).toContain('Seller')
 
     await browser.close()
   })
