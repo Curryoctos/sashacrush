@@ -58,6 +58,10 @@ Local Stripe testing: `stripe listen --forward-to http://127.0.0.1:54321/functio
 
 ## 4. Frontend
 
+`vercel.json` rewrites all non-file routes to `index.html` so deep links
+(`/login`, `/projects`, `/admin/...`) work on Vercel. Without it, direct
+loads of those paths return 404.
+
 Set production env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_APP_URL`) and build:
 
 ```bash
