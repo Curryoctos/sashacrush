@@ -15,7 +15,7 @@ import {
   claimGatewayWebhookEvent,
   releaseGatewayWebhookEvent,
 } from '../_shared/gatewayIdempotency.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { stripeAmountMatches } from '../_shared/paymentAmountGuard.ts'
 import {
   getStripeWebhookSecret,
@@ -48,6 +48,9 @@ interface StripeEvent {
 type ServiceClient = ReturnType<typeof createServiceClient>
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }

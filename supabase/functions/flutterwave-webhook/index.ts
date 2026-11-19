@@ -14,7 +14,7 @@ import {
   claimGatewayWebhookEvent,
   releaseGatewayWebhookEvent,
 } from '../_shared/gatewayIdempotency.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { flutterwaveAmountMatches } from '../_shared/paymentAmountGuard.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
@@ -54,6 +54,9 @@ function extractMetaPaymentId(meta: unknown): string | null {
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }

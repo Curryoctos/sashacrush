@@ -56,9 +56,19 @@ export function LoginPage() {
       await signInWithMagicLink(email.trim())
       setMagicLinkSent(true)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Could not send magic link.',
-      )
+      const message =
+        err instanceof Error ? err.message : 'Could not send magic link.'
+      if (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('Could not reach the server')
+      ) {
+        setError(
+          'Cannot reach the sign-in service. Hard-refresh this page (clear site data / unregister the service worker) and try again. If it continues, the live app may be pointed at the wrong Supabase project.',
+        )
+      } else {
+        setError(message)
+      }
     } finally {
       setSubmitting(false)
     }

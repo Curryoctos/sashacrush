@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { AuthContext, type AuthContextValue } from '@/contexts/auth-context'
+import { invokeEdgeFunction } from '@/lib/invokeEdgeFunction'
 import { supabase } from '@/lib/supabase'
 import type { AuthUser, UserRole } from '@/types'
 
@@ -141,24 +142,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const signInWithMagicLink = useCallback(async (email: string) => {
-    const { data, error } = await supabase.functions.invoke('request-seller-magic-link', {
-      body: { email: email.trim().toLowerCase() },
-    })
-
-    if (data && typeof data === 'object' && 'error' in data && data.error) {
-      throw new Error(String(data.error))
-    }
-
-    if (error) {
-      const contextBody =
-        error && typeof error === 'object' && 'context' in error
-          ? (error as { context?: { body?: unknown } }).context?.body
-          : undefined
-      if (contextBody && typeof contextBody === 'object' && 'error' in contextBody) {
-        throw new Error(String((contextBody as { error: unknown }).error))
-      }
-      throw new Error(error.message || 'Could not request magic link.')
-    }
+    await invokeEdgeFunction(
+      'request-seller-magic-link',
+      { email: email.trim().toLowerCase() },
+      'Could not send magic link.',
+    )
   }, [])
 
   const value = useMemo<AuthContextValue>(

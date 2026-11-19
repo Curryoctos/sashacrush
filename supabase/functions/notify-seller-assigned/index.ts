@@ -3,7 +3,7 @@ import { requireAuthenticatedStaff } from '../_shared/auth.ts'
 import { RateLimitError, assertRateLimit } from '../_shared/rateLimit.ts'
 import { sellerAssignedEmail } from '../_shared/emailTemplates.ts'
 import { claimNotificationEvent } from '../_shared/idempotency.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { createServiceClient, getAppUrl } from '../_shared/supabaseAdmin.ts'
 
@@ -13,6 +13,9 @@ interface NotifyPayload {
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }

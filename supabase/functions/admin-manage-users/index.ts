@@ -5,7 +5,7 @@ import {
   staffInviteEmail,
   staffPasswordResetEmail,
 } from '../_shared/emailTemplates.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { getEnv } from '../_shared/env.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { createServiceClient, getAppUrl } from '../_shared/supabaseAdmin.ts'
@@ -206,6 +206,9 @@ async function sendAccessEmail(
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }

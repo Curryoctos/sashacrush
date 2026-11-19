@@ -74,7 +74,7 @@ export function PublicLayout() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-5 py-6 text-[12px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p>Powered by SashaCrush · CurryOctos</p>
+          <p>SashaCrush · by CurryOctos</p>
           <div className="flex flex-wrap gap-4">
             <Link className="hover:text-ink" to="/about">
               How It Works

@@ -1,7 +1,7 @@
 /// <reference path="../_shared/deno.d.ts" />
 import { requireAuthenticatedUser } from '../_shared/auth.ts'
 import { getEnv } from '../_shared/env.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { assertRateLimit, RateLimitError } from '../_shared/rateLimit.ts'
 import {
   createStripeCheckoutSession,
@@ -16,6 +16,9 @@ interface InitiateInvestmentCheckoutPayload {
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }

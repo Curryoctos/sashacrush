@@ -1,5 +1,5 @@
 /// <reference path="../_shared/deno.d.ts" />
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { RateLimitError, assertRateLimit } from '../_shared/rateLimit.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
@@ -17,6 +17,9 @@ function normalizeEmail(email: string): string {
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }

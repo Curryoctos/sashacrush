@@ -2,7 +2,17 @@
  * Supabase FunctionsHttpError.message is always the generic
  * "Edge Function returned a non-2xx status code". The real payload lives on
  * error.context as a Response — read it so callers can show actionable text.
+ *
+ * FunctionsFetchError ("Failed to send a request to the Edge Function") means
+ * the browser never got a usable HTTP response (network, CORS, SW, wrong URL).
  */
+
+const FETCH_FAIL =
+  /Failed to send a request to the Edge Function|Failed to fetch|NetworkError|Load failed/i
+
+const GENERIC_HTTP =
+  /Edge Function returned a non-2xx status code/i
+
 export async function extractEdgeFunctionError(
   error: unknown,
   data: unknown,
@@ -34,17 +44,23 @@ export async function extractEdgeFunctionError(
     }
   }
 
-  if (error instanceof Error && error.message && !isGenericFunctionsError(error.message)) {
-    return error.message
-  }
-
   if (error instanceof Error && error.message) {
+    if (FETCH_FAIL.test(error.message)) {
+      return (
+        `${fallback} Could not reach the server. ` +
+        'Check your connection, hard-refresh (clear the site’s service worker), ' +
+        'and confirm the app is pointed at the live Supabase project.'
+      )
+    }
+    if (!GENERIC_HTTP.test(error.message)) {
+      return error.message
+    }
     return `${fallback} (${error.message})`
   }
 
   return fallback
 }
 
-function isGenericFunctionsError(message: string): boolean {
-  return /Edge Function returned a non-2xx status code/i.test(message)
+export function isEdgeReachabilityError(message: string): boolean {
+  return FETCH_FAIL.test(message) || /Could not reach the server/i.test(message)
 }

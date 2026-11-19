@@ -6,9 +6,9 @@
 # Local verify
 npx supabase db reset
 
-# Remote
-supabase link --project-ref <your-project-ref>
-supabase db push
+# Remote (production project for www.sasha-union.com)
+npx supabase link --project-ref hwfpriemphbenuosluuc
+npx supabase db push
 ```
 
 ## 2. Edge Functions
@@ -76,9 +76,9 @@ For the `production-build` job (runs on push to `main` / `map`), add these under
 
 | Secret | Example |
 |--------|---------|
-| `VITE_SUPABASE_URL` | `https://xxxx.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | anon/public key from Supabase Dashboard → Settings → API |
-| `VITE_APP_URL` | `https://your-app.vercel.app` |
+| `VITE_SUPABASE_URL` | `https://hwfpriemphbenuosluuc.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | anon/public key from that project (Dashboard → Settings → API) |
+| `VITE_APP_URL` | `https://www.sasha-union.com` |
 
 Optional: `VITE_STRIPE_PUBLIC_KEY`, `VITE_FLUTTERWAVE_PUBLIC_KEY`,  
 `VITE_WALLETCONNECT_PROJECT_ID`, `VITE_CRYPTO_TREASURY_ADDRESS`.

@@ -8,7 +8,7 @@ import {
   isFailedTransferStatus,
   isSuccessfulTransferStatus,
 } from '../_shared/flutterwave.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { assertRateLimit, RateLimitError } from '../_shared/rateLimit.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
@@ -17,6 +17,9 @@ interface InitiatePayload {
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }
