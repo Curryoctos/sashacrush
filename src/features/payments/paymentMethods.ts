@@ -41,7 +41,7 @@ export function paymentMethodLabel(
     return 'Mobile money payout'
   }
   if (method === 'manual') {
-    return 'Manual payout'
+    return 'WU / Venmo / Wire'
   }
   if (method === 'crypto') {
     return 'Crypto'
@@ -67,7 +67,7 @@ export function checkoutCtaLabel(choice: PaymentChoice, amountUsd: number | null
     case 'airtel':
       return amount ? `Pay out ${amount} via Airtel Money` : 'Send Airtel Money payout'
     case 'manual':
-      return 'Create manual payout + reference'
+      return 'Create WU / Venmo / Wire reference'
     case 'crypto':
       return 'Open Owner wallet → Convert and Pay'
   }
@@ -82,7 +82,7 @@ export function checkoutProviderHint(choice: PaymentChoice): string {
     case 'airtel':
       return 'Sends UGX from the company Flutterwave balance to the seller’s Airtel Money wallet.'
     case 'manual':
-      return 'Creates a pending_manual record with a unique WU reference for the cash/wire payout. Confirm after the seller is paid.'
+      return 'C-15: generates a unique WU-{project}-{timestamp} code for Western Union, Venmo, SendUp, or bank wire. Confirm after funds land — that mints the receipt.'
     case 'crypto':
       return 'Convert crypto on Owner Wallet (Convert and Pay). On-chain transfer funds the deal payment and receipt.'
   }

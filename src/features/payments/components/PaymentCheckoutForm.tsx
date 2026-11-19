@@ -62,9 +62,25 @@ export function PaymentCheckoutForm({
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>('mtn')
   const [ugxRate, setUgxRate] = useState<number | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [manualReference] = useState(() =>
+  const [manualReference, setManualReference] = useState(() =>
     generateManualPaymentReference(projectId || 'purchase'),
   )
+  const [copiedRef, setCopiedRef] = useState(false)
+
+  useEffect(() => {
+    setManualReference(generateManualPaymentReference(projectId || 'purchase'))
+    setCopiedRef(false)
+  }, [projectId])
+
+  const copyManualReference = async () => {
+    try {
+      await navigator.clipboard.writeText(manualReference)
+      setCopiedRef(true)
+      window.setTimeout(() => setCopiedRef(false), 2000)
+    } catch {
+      setCopiedRef(false)
+    }
+  }
 
   const isMobileMoney = paymentChoice === 'mtn' || paymentChoice === 'airtel'
   const isGateway = isGatewayChoice(paymentChoice)
@@ -344,8 +360,8 @@ export function PaymentCheckoutForm({
                 <PaymentMethodCard
                   selected={paymentChoice === 'manual'}
                   onClick={() => setPaymentChoice('manual')}
-                  title="Bank / cash"
-                  description="WU reference · confirm later"
+                  title="WU / Venmo / Wire"
+                  description="Offline rails · confirm later"
                   logo={<Banknote className="h-6 w-6 text-ink" />}
                 />
               </div>
@@ -443,16 +459,35 @@ export function PaymentCheckoutForm({
             )}
 
             {paymentChoice === 'manual' && (
-              <div className="rounded-lg border border-border bg-surface px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-                  Manual payout reference
+              <div className="rounded-xl border border-border bg-surface px-4 py-4">
+                <p className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
+                  Reconciliation reference · C-15
                 </p>
-                <p className="mt-2 font-mono text-lg font-semibold text-ink">
-                  {manualReference}
-                </p>
-                <p className="mt-1 text-sm text-muted">
-                  Use this code on the wire/cash payout. It is stored on the payment and
-                  printed on the receipt after you confirm.
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <p className="font-mono text-[18px] font-semibold tracking-tight text-ink">
+                    {manualReference}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void copyManualReference()}
+                  >
+                    {copiedRef ? (
+                      <>
+                        <Check className="h-3.5 w-3.5" aria-hidden />
+                        Copied
+                      </>
+                    ) : (
+                      'Copy code'
+                    )}
+                  </Button>
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-muted">
+                  Give this code to the sender for Western Union, Venmo, SendUp, or
+                  bank wire. Record the purchase now, then confirm under{' '}
+                  <span className="font-medium text-ink">Needs action</span> once
+                  funds arrive — that mints the seller receipt.
                 </p>
               </div>
             )}

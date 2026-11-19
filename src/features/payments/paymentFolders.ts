@@ -18,7 +18,8 @@ export const PAYMENT_FOLDER_LABELS: Record<PaymentFolderId, string> = {
 export const PAYMENT_FOLDER_DESCRIPTIONS: Record<PaymentFolderId, string> = {
   balance: 'Spent vs funding goal for this project',
   collect: 'Record a purchase or disbursement toward the project — with a reason',
-  'needs-action': 'Clear pending MoMo and manual purchase payouts',
+  'needs-action':
+    'Clear Flutterwave MoMo queues and confirm WU / Venmo / Wire references after money lands',
   history: 'Past purchases, reasons, and receipts',
 }
 

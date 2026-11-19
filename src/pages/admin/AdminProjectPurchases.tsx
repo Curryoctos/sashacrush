@@ -679,25 +679,48 @@ function PendingManualPurchaseRow({
   confirming: boolean
   onConfirm: () => void
 }) {
+  const [copied, setCopied] = useState(false)
+
+  const copyRef = async () => {
+    if (!payment.manual_reference) return
+    try {
+      await navigator.clipboard.writeText(payment.manual_reference)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3">
-      <div>
-        <p className="text-sm font-semibold text-ink">
-          Confirm{' '}
-          {paymentMethodLabel(payment.method, payment.mobile_money_network)}
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3.5">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-ink">
+          Confirm WU / Venmo / Wire received
         </p>
-        <p className="mt-0.5 text-sm text-ink">{payment.disbursement_reason}</p>
-        <p className="mt-0.5 text-sm text-muted">
+        <p className="mt-0.5 text-[13px] text-ink">{payment.disbursement_reason}</p>
+        <p className="mt-1 text-[12px] text-muted">
           {formatUsd(payment.amount_usd)}
-          {payment.manual_reference ? (
-            <span className="ml-2 font-mono text-xs text-ink">
-              {payment.manual_reference}
-            </span>
-          ) : null}
+          {payment.amount_ugx != null ? ` · ${formatUgx(payment.amount_ugx)}` : ''}
         </p>
+        {payment.manual_reference ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <code className="rounded-md border border-border bg-canvas px-2 py-1 font-mono text-[12px] text-ink">
+              {payment.manual_reference}
+            </code>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => void copyRef()}
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+        ) : null}
       </div>
       <Button size="sm" onClick={onConfirm} disabled={confirming}>
-        {confirming ? 'Confirming…' : 'Confirm paid'}
+        {confirming ? 'Issuing receipt…' : 'Confirm paid → receipt'}
       </Button>
     </div>
   )
