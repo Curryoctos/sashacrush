@@ -1,4 +1,9 @@
+import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
+import {
+  DealJourneyStrip,
+  type DealJourneyStep,
+} from '@/features/deals/DealJourneyStrip'
 import { DealSummaryPanel } from '@/features/deals/DealSummaryPanel'
 import { useDealSummary } from '@/features/deals/useDealSummary'
 import { LinkedProjectCard } from '@/features/projects/components/LandProjectBridge'
@@ -10,6 +15,50 @@ export function AdminDealPage() {
   const { landId = '' } = useParams()
   const dealQuery = useDealSummary(landId, true)
   const { project: linkedProject } = useLandLinkedProject(landId || null)
+
+  const journey = useMemo((): DealJourneyStep[] => {
+    if (!dealQuery.data) return []
+    const id = dealQuery.data.land.id
+    const payTo = linkedProject
+      ? `/admin/payments?project=${linkedProject.id}&folder=collect`
+      : landPurchasesPath(id, 'collect')
+    return [
+      {
+        id: 'chat',
+        label: 'Messages',
+        hint: 'Align with seller',
+        to: `/admin/chat?land=${id}`,
+        done: dealQuery.data.unreadCount === 0,
+      },
+      {
+        id: 'photos',
+        label: 'Field proof',
+        hint: 'GPS photos',
+        to: `/admin/photos?land=${id}&folder=gallery`,
+      },
+      {
+        id: 'docs',
+        label: 'Documents',
+        hint: 'Send & e-sign',
+        to: `/admin/documents?land=${id}`,
+      },
+      {
+        id: 'pay',
+        label: 'Pay out',
+        hint: 'Stripe / MoMo',
+        to: payTo,
+        current: true,
+      },
+      {
+        id: 'receipts',
+        label: 'History',
+        hint: 'Receipts & payouts',
+        to: linkedProject
+          ? `/admin/payments?project=${linkedProject.id}&folder=history`
+          : landPurchasesPath(id, 'history'),
+      },
+    ]
+  }, [dealQuery.data, linkedProject])
 
   return (
     <div>
@@ -29,6 +78,7 @@ export function AdminDealPage() {
 
       {dealQuery.data && (
         <div className="space-y-4">
+          <DealJourneyStrip steps={journey} />
           {linkedProject ? (
             <div className="ui-page pb-0">
               <LinkedProjectCard
