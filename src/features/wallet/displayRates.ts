@@ -126,3 +126,36 @@ export function formatRateTimestamp(fetchedAt: number): string {
     second: '2-digit',
   }).format(new Date(fetchedAt))
 }
+
+/**
+ * C-09 transaction lock — always hits CoinGecko + FX APIs.
+ * Never returns a cached or stale rate; throws so the UI cannot pay on old data.
+ */
+export async function fetchFreshTransactionRates(): Promise<{
+  cryptoUsd: CryptoUsdRates
+  usdToUgx: number
+  fetchedAt: number
+}> {
+  try {
+    const [cryptoUsd, usdToUgx] = await Promise.all([
+      fetchCryptoUsdRates(),
+      fetchUsdToUgxLive(),
+    ])
+    const fetchedAt = Date.now()
+    // Keep display cache warm with the same fresh snapshot.
+    cache = {
+      cryptoUsd,
+      usdToUgx,
+      fetchedAt,
+      stale: false,
+      error: null,
+    }
+    return { cryptoUsd, usdToUgx, fetchedAt }
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Live rate unavailable'
+    throw new Error(
+      `Live rate unavailable — cannot initiate crypto payment. (${message})`,
+    )
+  }
+}

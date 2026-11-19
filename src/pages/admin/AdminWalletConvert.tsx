@@ -9,12 +9,16 @@ import {
   ETHEREUM_MAINNET_CHAIN_ID,
   type CryptoAsset,
 } from '@/features/wallet/constants'
-import { fetchWalletDisplayRates } from '@/features/wallet/displayRates'
+import {
+  fetchFreshTransactionRates,
+  formatRateTimestamp,
+} from '@/features/wallet/displayRates'
 import { getTreasuryAddress } from '@/features/wallet/sendTransfer'
 import { settleCryptoConversion } from '@/features/wallet/settleCryptoConversion'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { formatUgx, formatUsd } from '@/lib/formatters'
+import { cn } from '@/lib/cn'
 import {
   notifyInfo,
   notifySuccess,
@@ -49,6 +53,7 @@ export function AdminWalletConvertPage() {
     usdToUgx: number
     cryptoNeeded: number
     usdNeeded: number
+    lockedAt: number
     expiresAt: number
   } | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
@@ -98,10 +103,12 @@ export function AdminWalletConvertPage() {
     return () => window.clearInterval(id)
   }, [locked])
 
+  const countdownPct = locked
+    ? Math.max(0, Math.min(100, (secondsLeft / LOCK_SECONDS) * 100))
+    : 0
+
   const preview = useMemo(() => {
-    if (!locked) {
-      return null
-    }
+    if (!locked) return null
     return {
       cryptoNeeded: locked.cryptoNeeded,
       usdNeeded: locked.usdNeeded,
@@ -132,26 +139,28 @@ export function AdminWalletConvertPage() {
     }
     setBusy(true)
     try {
-      const rates = await fetchWalletDisplayRates({ force: true })
-      if (rates.stale || rates.usdToUgx <= 0 || rates.cryptoUsd[asset] <= 0) {
+      const rates = await fetchFreshTransactionRates()
+      const cryptoUsd = rates.cryptoUsd[asset]
+      if (cryptoUsd <= 0 || rates.usdToUgx <= 0) {
         throw new Error(
-          rates.error ||
-            'Live rate unavailable — cannot initiate crypto payment.',
+          'Live rate unavailable — cannot initiate crypto payment.',
         )
       }
       const usdNeeded = ugx / rates.usdToUgx
-      const cryptoNeeded = usdNeeded / rates.cryptoUsd[asset]
+      const cryptoNeeded = usdNeeded / cryptoUsd
       if ((holding?.balance ?? 0) + 1e-12 < cryptoNeeded) {
         throw new Error(
           `Insufficient ${asset} in wallet (need ~${cryptoNeeded.toFixed(8)}, have ${holding?.balance ?? 0}).`,
         )
       }
+      const lockedAt = rates.fetchedAt
       setLocked({
-        cryptoUsd: rates.cryptoUsd[asset],
+        cryptoUsd,
         usdToUgx: rates.usdToUgx,
         cryptoNeeded,
         usdNeeded,
-        expiresAt: Date.now() + LOCK_SECONDS * 1000,
+        lockedAt,
+        expiresAt: lockedAt + LOCK_SECONDS * 1000,
       })
     } catch (err) {
       setLocked(null)
@@ -208,7 +217,7 @@ export function AdminWalletConvertPage() {
       notifySuccess(
         `Payment confirmed. Receipt ${result.receiptNumber}. Tx ${shortenAddress(result.txHash)}.`,
       )
-      navigate(`/admin/payments?project=${projectId}`)
+      navigate(`/admin/payments?project=${projectId}&folder=history`)
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Could not complete conversion.',
@@ -223,9 +232,9 @@ export function AdminWalletConvertPage() {
       <PageHeader
         backTo="/admin/wallet"
         backLabel="Wallet"
-        eyebrow="Conversion kit"
+        eyebrow="Conversion kit · C-09"
         title="Convert and Pay"
-        description="Fresh rate → approve in wallet → project purchase + receipt."
+        description="Fresh CoinGecko + FX rate → 60s lock → approve in wallet → project purchase + receipt with the locked rate."
       />
 
       {!treasuryAddress ? (
@@ -235,9 +244,16 @@ export function AdminWalletConvertPage() {
           `.env.local` and restart.
         </p>
       ) : (
-        <p className="text-sm text-muted">
-          Treasury:{' '}
-          <span className="font-mono">{shortenAddress(treasuryAddress)}</span>
+        <p className="text-[13px] text-muted">
+          Treasury{' '}
+          <span className="font-mono text-ink">
+            {shortenAddress(treasuryAddress)}
+          </span>
+          {' · '}
+          connected{' '}
+          <span className="font-mono text-ink">
+            {shortenAddress(wallet.address)}
+          </span>
         </p>
       )}
 
@@ -256,7 +272,7 @@ export function AdminWalletConvertPage() {
       <Card>
         <CardHeader
           title="Payment amount"
-          description="Choose the project, reason, asset, and UGX to settle. Rate is fetched fresh and locked for 60 seconds."
+          description="Project, reason, asset, and UGX to settle. Display rates are never used for the lock — only a fresh API fetch."
         />
         <div className="space-y-4">
           <label className="block space-y-1.5">
@@ -298,46 +314,48 @@ export function AdminWalletConvertPage() {
             />
           </label>
 
-          <label className="block space-y-1.5">
-            <span className="ui-label">Asset</span>
-            <select
-              className="ui-input"
-              value={asset}
-              disabled={busy || Boolean(locked)}
-              onChange={(event) => setAsset(event.target.value as CryptoAsset)}
-            >
-              {ASSETS.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                  {value === 'BTC' ? ' (WBTC)' : ''}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs text-muted">
-              Wallet balance:{' '}
-              {holding
-                ? holding.balance.toLocaleString(undefined, {
-                    maximumFractionDigits: 8,
-                  })
-                : '—'}{' '}
-              {asset}
-            </span>
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-1.5">
+              <span className="ui-label">Asset</span>
+              <select
+                className="ui-input"
+                value={asset}
+                disabled={busy || Boolean(locked)}
+                onChange={(event) => setAsset(event.target.value as CryptoAsset)}
+              >
+                {ASSETS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                    {value === 'BTC' ? ' (WBTC)' : ''}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[12px] text-muted">
+                Wallet balance:{' '}
+                {holding
+                  ? holding.balance.toLocaleString(undefined, {
+                      maximumFractionDigits: 8,
+                    })
+                  : '—'}{' '}
+                {asset}
+              </span>
+            </label>
 
-          <label className="block space-y-1.5">
-            <span className="ui-label">Amount to pay (UGX)</span>
-            <input
-              className="ui-input max-w-xs"
-              type="number"
-              min="1"
-              step="1"
-              value={ugxAmount}
-              disabled={busy || Boolean(locked)}
-              onChange={(event) => setUgxAmount(event.target.value)}
-              placeholder="0"
-              required
-            />
-          </label>
+            <label className="block space-y-1.5">
+              <span className="ui-label">Amount to pay (UGX)</span>
+              <input
+                className="ui-input"
+                type="number"
+                min="1"
+                step="1"
+                value={ugxAmount}
+                disabled={busy || Boolean(locked)}
+                onChange={(event) => setUgxAmount(event.target.value)}
+                placeholder="0"
+                required
+              />
+            </label>
+          </div>
 
           {!locked ? (
             <Button
@@ -348,24 +366,71 @@ export function AdminWalletConvertPage() {
               {busy ? 'Fetching live rate…' : 'Fetch fresh rate (60s window)'}
             </Button>
           ) : (
-            <div className="space-y-3 rounded-lg border border-border bg-surface px-4 py-3">
-              <p className="text-sm text-ink">
-                Locked: {formatUsd(locked.cryptoUsd)} / {asset} · 1 USD ={' '}
-                {locked.usdToUgx.toLocaleString(undefined, {
-                  maximumFractionDigits: 0,
-                })}{' '}
-                UGX
-              </p>
+            <div className="space-y-4 rounded-xl border border-border bg-surface px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-muted uppercase">
+                    Rate locked
+                  </p>
+                  <p className="mt-1 text-[15px] font-semibold text-ink">
+                    {formatUsd(locked.cryptoUsd)} / {asset}
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-muted">
+                    1 USD ={' '}
+                    {locked.usdToUgx.toLocaleString(undefined, {
+                      maximumFractionDigits: 0,
+                    })}{' '}
+                    UGX · locked at {formatRateTimestamp(locked.lockedAt)}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    'rounded-lg px-3 py-2 text-center tabular-nums',
+                    secondsLeft <= 10
+                      ? 'bg-warning-soft text-warning'
+                      : 'bg-canvas text-ink',
+                  )}
+                  aria-live="polite"
+                >
+                  <p className="text-[22px] font-semibold leading-none">
+                    {secondsLeft}s
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted">remaining</p>
+                </div>
+              </div>
+
+              <div
+                className="h-1.5 overflow-hidden rounded-full bg-border"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={LOCK_SECONDS}
+                aria-valuenow={secondsLeft}
+                aria-label="Rate lock countdown"
+              >
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-[width] duration-200 ease-linear',
+                    secondsLeft <= 10 ? 'bg-warning' : 'bg-ink',
+                  )}
+                  style={{ width: `${countdownPct}%` }}
+                />
+              </div>
+
               {preview ? (
-                <p className="text-sm font-medium text-ink">
-                  You will send ~{preview.cryptoNeeded.toFixed(8)} {asset} (
-                  {formatUsd(preview.usdNeeded)}) to treasury to cover{' '}
-                  {formatUgx(Number(ugxAmount))}.
+                <p className="text-[13px] leading-relaxed text-ink">
+                  Send{' '}
+                  <span className="font-semibold">
+                    ~{preview.cryptoNeeded.toFixed(8)} {asset}
+                  </span>{' '}
+                  ({formatUsd(preview.usdNeeded)}) to treasury to cover{' '}
+                  <span className="font-semibold">
+                    {formatUgx(Number(ugxAmount))}
+                  </span>
+                  . This rate is stored on the payment and printed on the
+                  receipt.
                 </p>
               ) : null}
-              <p className="text-sm text-muted">
-                Confirm in wallet within {secondsLeft}s
-              </p>
+
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -380,7 +445,7 @@ export function AdminWalletConvertPage() {
                   disabled={busy}
                   onClick={() => setLocked(null)}
                 >
-                  Cancel
+                  Cancel lock
                 </Button>
               </div>
             </div>
@@ -388,8 +453,8 @@ export function AdminWalletConvertPage() {
         </div>
       </Card>
 
-      <p className="text-sm text-muted">
-        <Link className="underline" to="/admin/wallet">
+      <p className="text-[13px] text-muted">
+        <Link className="underline hover:text-ink" to="/admin/wallet">
           Back to portfolio
         </Link>
       </p>
