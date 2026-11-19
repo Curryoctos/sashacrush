@@ -91,7 +91,7 @@ If you deploy with Vercel/Netlify, set the same `VITE_*` values in that host’s
 
 ## 5. Post-deploy smoke test
 
-1. Staff login → MFA setup/challenge (TOTP) → dashboard
+1. Staff login → dashboard (MFA gate deferred — re-enable later via `StaffMfaGate`)
 2. Admin Users → create a seller (or staff) and confirm access email / Mailpit link
 3. Seller magic link (provisioned active email only)
 3. Send document for signing → seller `?sign=` link

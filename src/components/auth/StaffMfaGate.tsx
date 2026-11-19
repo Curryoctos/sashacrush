@@ -11,13 +11,20 @@ interface StaffMfaGateProps {
 const STAFF_ROLES: UserRole[] = ['admin', 'agent', 'executive']
 
 /**
- * C-30: staff portals require TOTP enrollment + AAL2 challenge before use.
+ * Set to `true` to require TOTP enrollment + AAL2 before staff portals (C-01 / C-30).
+ * Deferred for now so staff can use live dashboards without MFA friction.
  */
+const STAFF_MFA_REQUIRED = false
+
 export function StaffMfaGate({ mfaSetupPath, mfaChallengePath }: StaffMfaGateProps) {
   const { user, isLoading } = useAuth()
   const location = useLocation()
   const { hasVerifiedTotp, isChecking: isCheckingEnrollment } = useMfaStatus()
   const { needsChallenge, isChecking: isCheckingAssurance } = useMfaAssurance()
+
+  if (!STAFF_MFA_REQUIRED) {
+    return <Outlet />
+  }
 
   if (
     isLoading ||

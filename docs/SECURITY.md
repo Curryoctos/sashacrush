@@ -19,13 +19,13 @@ Production hardening checklist before go-live. Business rules BR-01…BR-08 are 
 
 | Item | Status / notes |
 |------|----------------|
-| A01 Broken access control | RLS + seller isolation suite; staff MFA gate restored |
+| A01 Broken access control | RLS + seller isolation suite; staff MFA gate deferred (re-enable before go-live) |
 | A02 Cryptographic failures | Signature SHA-256; no server-held crypto private keys |
 | A03 Injection | Supabase client parameterized; edge input validation |
 | A04 Insecure design | Admin-only payouts (`money_hardening`); capital shortfall hard-block |
 | A05 Security misconfiguration | Webhook `verify_jwt=false` only where signature-verified; secrets via Supabase/Vercel env |
 | A06 Vulnerable components | CI `npm audit --omit=dev --audit-level=critical`; zero critical required |
-| A07 Identification / auth failures | Staff TOTP MFA; seller magic-link rate limits |
+| A07 Identification / auth failures | Staff TOTP MFA (deferred); seller magic-link rate limits |
 | A08 Software / data integrity | Signed doc hash + storage write-once after sign |
 | A09 Logging / monitoring | `audit_log` (admin/agent read); gateway webhook event table |
 | A10 SSRF | Outbound only to Stripe / Flutterwave / rate APIs with fixed hosts |
@@ -66,7 +66,7 @@ Community board tables are intentionally public-read for registered community UX
 
 1. Apply migrations through `20261001000000_security_hardening.sql`
 2. Redeploy payment edge functions after money hardening
-3. Staff MFA enrollment for all admin/agent/executive accounts
+3. Re-enable staff MFA gate (`STAFF_MFA_REQUIRED`) and enroll all admin/agent/executive accounts
 4. Enable GitHub Secret Scanning + Push Protection on the remote
 5. Confirm `npm audit --omit=dev` reports **0 critical**
 6. UAT: seller JWT cannot see payments / capital / cargo / media vault
