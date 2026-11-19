@@ -426,3 +426,11 @@ verify_jwt = false
 # Seller magic link is requested before auth; rate-limited inside the function.
 [functions.request-seller-magic-link]
 verify_jwt = false
+
+# Community self-registration is pre-auth; rate-limited inside the function.
+[functions.register-community-member]
+verify_jwt = false
+
+# Public project contributions (guest or signed-in); rate-limited inside the function.
+[functions.initiate-project-contribution]
+verify_jwt = false

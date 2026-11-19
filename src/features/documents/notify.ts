@@ -2,10 +2,10 @@ import { supabase } from '@/lib/supabase'
 
 export async function notifyDocumentSent(
   documentId: string,
-  sellerId: string,
+  assigneeId: string,
 ): Promise<void> {
   const { error } = await supabase.functions.invoke('notify-document-sent', {
-    body: { documentId, sellerId },
+    body: { documentId, assigneeId, sellerId: assigneeId },
   })
 
   if (error) {

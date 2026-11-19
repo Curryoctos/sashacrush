@@ -2,14 +2,15 @@
 import { requireServiceRole } from '../_shared/auth.ts'
 import { claimNotificationEvent } from '../_shared/idempotency.ts'
 import { paymentConfirmedEmail } from '../_shared/emailTemplates.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { RateLimitError, assertRateLimit } from '../_shared/rateLimit.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { createServiceClient, getAppUrl } from '../_shared/supabaseAdmin.ts'
 
 interface PaymentRow {
   id: string
-  land_id: string
+  land_id: string | null
+  project_id?: string | null
   amount_usd: number
   amount_ugx: number | null
   method: string | null
@@ -28,7 +29,7 @@ function extractPayment(payload: WebhookPayload | PaymentRow): {
   payment: PaymentRow | null
   oldPayment: PaymentRow | null
 } {
-  if ('land_id' in payload && 'amount_usd' in payload && 'status' in payload) {
+  if ('amount_usd' in payload && 'status' in payload && ('land_id' in payload || 'project_id' in payload)) {
     return { payment: payload as PaymentRow, oldPayment: null }
   }
 
@@ -55,6 +56,9 @@ function isConfirmedTransition(payment: PaymentRow, oldPayment: PaymentRow | nul
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }
@@ -65,8 +69,11 @@ Deno.serve(async (req) => {
     const payload = (await req.json()) as WebhookPayload | PaymentRow
     const { payment, oldPayment } = extractPayment(payload)
 
-    if (!payment?.id || !payment.land_id) {
-      return errorResponse('Invalid webhook payload: missing required payment fields', 400)
+    if (!payment?.id || (!payment.land_id && !payment.project_id)) {
+      return errorResponse(
+        'Invalid webhook payload: payment needs id and land_id or project_id',
+        400,
+      )
     }
 
     if (!isConfirmedTransition(payment, oldPayment)) {
@@ -106,14 +113,37 @@ Deno.serve(async (req) => {
       return errorResponse(`Admin profile not found: ${adminError?.message ?? 'missing email'}`)
     }
 
-    const { data: land, error: landError } = await supabase
-      .from('land_records')
-      .select('title')
-      .eq('id', payment.land_id)
-      .single()
+    let title = 'Payout'
+    let portalUrl = `${getAppUrl()}/admin/payments`
 
-    if (landError || !land) {
-      return errorResponse(`Land record not found: ${landError?.message ?? 'unknown error'}`)
+    if (payment.land_id) {
+      const { data: land, error: landError } = await supabase
+        .from('land_records')
+        .select('title')
+        .eq('id', payment.land_id)
+        .maybeSingle()
+
+      if (landError) {
+        return errorResponse(`Land record lookup failed: ${landError.message}`)
+      }
+      if (land?.title) {
+        title = land.title
+        portalUrl = `${getAppUrl()}/admin/payments?land=${payment.land_id}`
+      }
+    } else if (payment.project_id) {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('title')
+        .eq('id', payment.project_id)
+        .maybeSingle()
+
+      if (projectError) {
+        return errorResponse(`Project lookup failed: ${projectError.message}`)
+      }
+      if (project?.title) {
+        title = project.title
+        portalUrl = `${getAppUrl()}/admin/payments?project=${payment.project_id}`
+      }
     }
 
     const { data: receipt } = await supabase
@@ -124,7 +154,6 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle()
 
-    const portalUrl = `${getAppUrl()}/admin/payments`
     const adminName = admin.full_name ?? admin.email
 
     const html = paymentConfirmedEmail({
@@ -132,14 +161,14 @@ Deno.serve(async (req) => {
       amountUsd: Number(payment.amount_usd),
       amountUgx: Number(payment.amount_ugx ?? 0),
       method: payment.method ?? 'unknown',
-      landTitle: land.title,
+      landTitle: title,
       receiptNumber: receipt?.receipt_number ?? 'Pending',
       portalUrl,
     })
 
     await sendEmail({
       to: admin.email,
-      subject: `Payment confirmed — ${land.title}`,
+      subject: `Payment confirmed — ${title}`,
       html,
     })
 

@@ -14,7 +14,7 @@ describe('documentStages', () => {
     const result = evaluateDocumentStageMove('sent', 'signed')
     expect(result).toEqual({
       kind: 'blocked',
-      reason: 'Only the assigned seller can sign a document.',
+      reason: 'Only the assigned signer can sign a document.',
     })
   })
 

@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useEffectEvent,
   useId,
   useRef,
   type ReactNode,
@@ -31,7 +32,10 @@ export function Drawer({
   const descriptionId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
+  const onCloseEvent = useEffectEvent(onClose)
 
+  // Only when `open` flips true — do not re-run on onClose identity changes
+  // (inline handlers remount focus and steal keystrokes from form fields).
   useEffect(() => {
     if (!open) {
       return
@@ -45,7 +49,7 @@ export function Drawer({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        onCloseEvent()
       }
     }
 
@@ -59,7 +63,7 @@ export function Drawer({
       document.body.style.overflow = previousOverflow
       previouslyFocused.current?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) {
     return null
@@ -82,7 +86,7 @@ export function Drawer({
         tabIndex={-1}
         className={cn(
           'relative flex h-full w-full flex-col border-l border-border bg-surface-elevated shadow-xl outline-none',
-          'focus-visible:ring-2 focus-visible:ring-brand-600',
+          'focus-visible:ring-2 focus-visible:ring-ink/20',
           widthClassName,
         )}
       >

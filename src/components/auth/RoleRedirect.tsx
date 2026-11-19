@@ -14,7 +14,7 @@ export function RoleRedirect() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/projects" replace />
   }
 
   return <Navigate to={ROLE_DASHBOARD_PATH[user.role]} replace />

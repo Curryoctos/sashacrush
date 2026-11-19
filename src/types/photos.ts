@@ -4,12 +4,27 @@ export const PHOTO_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as con
 
 export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024
 
+/** PostgREST may return numeric columns as strings. */
+export function photoAccuracyMeters(value: unknown): number | null {
+  if (value == null || value === '') {
+    return null
+  }
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export interface LandPhoto {
   id: string
-  land_id: string
+  land_id: string | null
+  project_id?: string | null
   uploader_id: string
   file_path: string | null
   latitude: number | null
   longitude: number | null
+  /** Horizontal GPS accuracy in meters. Set only when a camera fix was within 10m. */
+  accuracy_m: number | null
   captured_at: string
 }
+
+/** Alias used by project detail photos tab. */
+export type Photo = LandPhoto

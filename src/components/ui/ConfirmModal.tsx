@@ -81,7 +81,7 @@ export function ConfirmModal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative z-10 w-full max-w-md outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+        className="relative z-10 w-full max-w-md outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
       >
         <h2 id={titleId} className="text-lg font-semibold text-ink">
           {title}

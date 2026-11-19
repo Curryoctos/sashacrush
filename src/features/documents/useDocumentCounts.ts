@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import type { DocumentStatus } from '@/types'
+import type { DocumentScope, DocumentStatus } from '@/types'
 import { DOCUMENT_FOLDER_ORDER } from '@/features/documents/documentFolders'
 
 export type DocumentCountBucket = Record<DocumentStatus, number> & { total: number }
@@ -16,21 +16,32 @@ function emptyBucket(): DocumentCountBucket {
   }
 }
 
-export function useDocumentCounts(landIds: string[]) {
+function isAssigneeRole(role: string | null | undefined): boolean {
+  return role === 'seller' || role === 'executive'
+}
+
+export function useDocumentCounts(
+  scopeIds: string[],
+  options?: { scope?: DocumentScope },
+) {
+  const scope = options?.scope ?? 'land'
   const { user } = useAuth()
-  const sortedIds = [...landIds].sort()
+  const sortedIds = [...scopeIds].sort()
 
   return useQuery({
-    queryKey: ['document-counts', sortedIds, user?.role, user?.id],
+    queryKey: ['document-counts', scope, sortedIds, user?.role, user?.id],
     enabled: sortedIds.length > 0 && Boolean(user),
     queryFn: async (): Promise<Record<string, DocumentCountBucket>> => {
-      let query = supabase
-        .from('documents')
-        .select('land_id, status')
-        .in('land_id', sortedIds)
+      let query = supabase.from('documents').select('land_id, investor_id, status')
 
-      if (user?.role === 'seller') {
-        query = query.eq('assigned_to', user.id)
+      if (scope === 'investor') {
+        query = query.in('investor_id', sortedIds)
+      } else {
+        query = query.in('land_id', sortedIds)
+      }
+
+      if (isAssigneeRole(user?.role)) {
+        query = query.eq('assigned_to', user!.id)
       }
 
       const { data, error } = await query
@@ -39,19 +50,25 @@ export function useDocumentCounts(landIds: string[]) {
       }
 
       const counts: Record<string, DocumentCountBucket> = {}
-      for (const landId of sortedIds) {
-        counts[landId] = emptyBucket()
+      for (const scopeId of sortedIds) {
+        counts[scopeId] = emptyBucket()
       }
 
       for (const row of data ?? []) {
-        const landId = row.land_id as string
+        const scopeId =
+          scope === 'investor'
+            ? (row.investor_id as string | null)
+            : (row.land_id as string | null)
+        if (!scopeId) {
+          continue
+        }
         const status = row.status as DocumentStatus
-        const bucket = counts[landId] ?? emptyBucket()
+        const bucket = counts[scopeId] ?? emptyBucket()
         if (DOCUMENT_FOLDER_ORDER.includes(status)) {
           bucket[status] += 1
           bucket.total += 1
         }
-        counts[landId] = bucket
+        counts[scopeId] = bucket
       }
 
       return counts

@@ -45,13 +45,17 @@ describe('E2E smoke', () => {
     const bodyText = await page.evaluate(() => document.body.innerText)
 
     expect(bodyText).toContain('Sign in')
-    expect(bodyText).toContain('Seller Login')
+    expect(bodyText).toContain('Staff')
+    expect(bodyText).toContain('Seller')
 
     await browser.close()
   })
 
-  it('admin can sign in and reach dashboard', async () => {
+  it('admin can sign in and reach the dashboard', async () => {
     if (!(await isReachable(BASE_URL))) {
+      if (process.env.CI === 'true') {
+        throw new Error(`E2E preview must be reachable in CI: ${BASE_URL}`)
+      }
       console.warn(`Skipping E2E: ${BASE_URL} not reachable`)
       return
     }
@@ -65,12 +69,11 @@ describe('E2E smoke', () => {
     await page.click('button[type="submit"]')
 
     await page.waitForFunction(
-      () => window.location.pathname.includes('/admin'),
+      () => window.location.pathname.includes('/admin/dashboard'),
       { timeout: 15_000 },
     )
 
-    const path = page.url()
-    expect(path).toMatch(/\/admin/)
+    expect(page.url()).toMatch(/\/admin\/dashboard/)
 
     await browser.close()
   })

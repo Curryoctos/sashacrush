@@ -7,13 +7,15 @@ export function AdminAuditLogPage() {
   const { data: entries, isLoading, error } = useAuditLog()
 
   return (
-    <div className="ui-page max-w-5xl">
+    <div className="ui-page">
       <PageHeader
         title="Audit Log"
         description="Track land record, payment, and document changes across the platform."
       />
 
-      {isLoading && <p className="text-sm text-muted">Loading audit entries…</p>}
+      {isLoading && (
+        <p className="text-sm text-muted">Loading audit entries…</p>
+      )}
 
       {error && (
         <p className="ui-alert-danger" role="alert">
@@ -48,7 +50,9 @@ export function AdminAuditLogPage() {
                     <td className="font-medium">{entry.action}</td>
                     <td>
                       {entry.entity_type}
-                      <span className="block text-xs text-muted">{entry.entity_id}</span>
+                      <span className="block text-xs text-muted">
+                        {entry.entity_id}
+                      </span>
                     </td>
                     <td className="text-xs text-muted">
                       {entry.metadata ? JSON.stringify(entry.metadata) : '—'}

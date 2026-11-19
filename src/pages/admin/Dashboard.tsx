@@ -1,94 +1,36 @@
 import { useMemo } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft,
+  BarChart3,
   ClipboardList,
   FileText,
   FolderKanban,
+  Landmark,
   MessageSquare,
+  Package,
   Users,
-  Wallet,
+  Video,
 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
-import {
-  DealCards,
-  FolderCards,
-  HierarchyNav,
-} from '@/components/hierarchy/Hierarchy'
+import { DealCards, FolderCards } from '@/components/hierarchy/Hierarchy'
 import { useAdminDashboardStats } from '@/features/dashboard/useAdminDashboardStats'
-import { useAuth } from '@/hooks/useAuth'
 import { formatSupabaseError } from '@/lib/supabase-errors'
+import { Button } from '@/components/ui/Button'
 
-type AdminDashFolder = 'users' | 'deals' | 'documents' | 'payments' | 'messages' | 'audit'
-
-function isAdminDashFolder(value: string | null): value is AdminDashFolder {
+function Metric({ label, value }: { label: string; value: number | string }) {
   return (
-    value === 'users' ||
-    value === 'deals' ||
-    value === 'documents' ||
-    value === 'payments' ||
-    value === 'messages' ||
-    value === 'audit'
+    <div>
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-2 text-[28px] font-semibold tracking-tight text-ink tabular-nums">
+        {value}
+      </p>
+    </div>
   )
 }
 
-const FOLDER_META: Record<
-  AdminDashFolder,
-  { title: string; description: string; to: string }
-> = {
-  users: {
-    title: 'Users',
-    description: 'Provision and control portal accounts',
-    to: '/admin/users',
-  },
-  deals: {
-    title: 'Active deals',
-    description: 'Open a deal workspace',
-    to: '/admin/land-records',
-  },
-  documents: {
-    title: 'Documents',
-    description: 'Signing and deal files',
-    to: '/admin/documents',
-  },
-  payments: {
-    title: 'Payments',
-    description: 'Collect and confirm deal payments',
-    to: '/admin/payments',
-  },
-  messages: {
-    title: 'Messages',
-    description: 'Seller and executive chat',
-    to: '/admin/chat',
-  },
-  audit: {
-    title: 'Audit log',
-    description: 'Change history across the platform',
-    to: '/admin/audit-log',
-  },
-}
-
 export function AdminDashboard() {
-  const { user } = useAuth()
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
   const { data: stats, isLoading, error } = useAdminDashboardStats()
-
-  const folderParam = searchParams.get('folder')
-  const selectedFolder = isAdminDashFolder(folderParam) ? folderParam : null
-
-  const setFolder = (folder: AdminDashFolder | null) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (folder) {
-        next.set('folder', folder)
-      } else {
-        next.delete('folder')
-      }
-      return next
-    })
-  }
 
   const dealCards = useMemo(
     () =>
@@ -101,18 +43,10 @@ export function AdminDashboard() {
   )
 
   return (
-    <div className="ui-page max-w-4xl">
-      <PageHeader
-        eyebrow="Operations"
-        title="Admin workspace"
-        description={
-          user?.email
-            ? `Signed in as ${user.email}. Open a folder to continue.`
-            : 'Open a folder to continue.'
-        }
-      />
+    <div className="ui-page">
+      <PageHeader title="Overview" />
 
-      {isLoading && <p className="text-sm text-muted">Loading workspace…</p>}
+      {isLoading && <p className="text-[13px] text-muted">Loading…</p>}
 
       {error && (
         <p className="ui-alert-danger" role="alert">
@@ -120,89 +54,104 @@ export function AdminDashboard() {
         </p>
       )}
 
-      {stats && !selectedFolder && (
-        <FolderCards
-          folders={[
-            {
-              id: 'users',
-              title: FOLDER_META.users.title,
-              description: FOLDER_META.users.description,
-              icon: <Users className="h-5 w-5" />,
-              onSelect: () => navigate(FOLDER_META.users.to),
-            },
-            {
-              id: 'deals',
-              title: FOLDER_META.deals.title,
-              description: FOLDER_META.deals.description,
-              icon: <FolderKanban className="h-5 w-5" />,
-              count: stats.activeLands,
-              onSelect: () => setFolder('deals'),
-            },
-            {
-              id: 'documents',
-              title: FOLDER_META.documents.title,
-              description: FOLDER_META.documents.description,
-              icon: <FileText className="h-5 w-5" />,
-              count: stats.docsAwaitingSign,
-              onSelect: () => setFolder('documents'),
-            },
-            {
-              id: 'payments',
-              title: FOLDER_META.payments.title,
-              description: FOLDER_META.payments.description,
-              icon: <Wallet className="h-5 w-5" />,
-              count: stats.pendingPayments,
-              onSelect: () => setFolder('payments'),
-            },
-            {
-              id: 'messages',
-              title: FOLDER_META.messages.title,
-              description: FOLDER_META.messages.description,
-              icon: <MessageSquare className="h-5 w-5" />,
-              count: stats.unreadMessages,
-              onSelect: () => setFolder('messages'),
-            },
-            {
-              id: 'audit',
-              title: FOLDER_META.audit.title,
-              description: FOLDER_META.audit.description,
-              icon: <ClipboardList className="h-5 w-5" />,
-              onSelect: () => setFolder('audit'),
-            },
-          ]}
-        />
-      )}
-
-      {stats && selectedFolder === 'deals' && (
-        <div className="space-y-5">
-          <HierarchyNav
-            crumbs={[
-              { label: 'Workspace', onClick: () => setFolder(null) },
-              { label: 'Active deals' },
-            ]}
-          />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="ui-section-title">Active deals</h2>
-              <p className="ui-section-desc">Select a deal to open its folders</p>
+      {stats && (
+        <>
+          <section className="ui-panel p-5 sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h2 className="ui-section-title">Workspace</h2>
+              <p className="text-[12px] text-muted">Live counts</p>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setFolder(null)}>
-              <ArrowLeft className="h-4 w-4" />
-              Workspace
-            </Button>
-          </div>
-          <DealCards
-            deals={dealCards}
-            onSelect={(id) => navigate(`/admin/land-records?land=${id}`)}
-            emptyTitle="No active deals yet"
-            emptyDescription="Create a land record to start a transaction workspace."
-            emptyAction={
-              <Button onClick={() => navigate('/admin/land-records?folder=create')}>
-                Create land record
-              </Button>
-            }
-            prompt="Recent deals — open one to continue."
-            actions={
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <Metric label="Active deals" value={stats.activeLands} />
+              <Metric
+                label="Docs awaiting sign"
+                value={stats.docsAwaitingSign}
+              />
+              <Metric label="Pending payments" value={stats.pendingPayments} />
+              <Metric label="Unread messages" value={stats.unreadMessages} />
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="ui-section-title">Areas</h2>
+            </div>
+            <FolderCards
+              folders={[
+                {
+                  id: 'users',
+                  title: 'Users',
+                  description: 'Provision and control portal accounts',
+                  icon: <Users strokeWidth={1.75} />,
+                  onSelect: () => navigate('/admin/users'),
+                },
+                {
+                  id: 'projects',
+                  title: 'Projects',
+                  description: 'Funding catalog and land deal workspaces',
+                  icon: <FolderKanban strokeWidth={1.75} />,
+                  count: stats.activeLands,
+                  onSelect: () => navigate('/admin/projects'),
+                },
+                {
+                  id: 'analytics',
+                  title: 'Analytics',
+                  description: 'Charts, progress, and CSV export',
+                  icon: <BarChart3 strokeWidth={1.75} />,
+                  onSelect: () => navigate('/admin/analytics'),
+                },
+                {
+                  id: 'media',
+                  title: 'Media',
+                  description: 'Field photos and video vault',
+                  icon: <Video strokeWidth={1.75} />,
+                  onSelect: () => navigate('/admin/media-hub'),
+                },
+                {
+                  id: 'documents',
+                  title: 'Documents',
+                  description: 'Deal files and agent agreements',
+                  icon: <FileText strokeWidth={1.75} />,
+                  count: stats.docsAwaitingSign,
+                  onSelect: () => navigate('/admin/documents-hub'),
+                },
+                {
+                  id: 'finance',
+                  title: 'Finance',
+                  description: 'Payments, capital pool, and wallet',
+                  icon: <Landmark strokeWidth={1.75} />,
+                  count: stats.pendingPayments,
+                  onSelect: () => navigate('/admin/finance'),
+                },
+                {
+                  id: 'pipeline',
+                  title: 'Pipeline',
+                  description: 'Suggestions, community, and cargo',
+                  icon: <Package strokeWidth={1.75} />,
+                  onSelect: () => navigate('/admin/pipeline'),
+                },
+                {
+                  id: 'messages',
+                  title: 'Messages',
+                  description: 'Seller and executive chat',
+                  icon: <MessageSquare strokeWidth={1.75} />,
+                  count: stats.unreadMessages,
+                  onSelect: () => navigate('/admin/chat'),
+                },
+                {
+                  id: 'audit',
+                  title: 'Audit log',
+                  description: 'Change history across the platform',
+                  icon: <ClipboardList strokeWidth={1.75} />,
+                  onSelect: () => navigate('/admin/audit-log'),
+                },
+              ]}
+            />
+          </section>
+
+          <section>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="ui-section-title">Recent deals</h2>
               <Button
                 variant="secondary"
                 size="sm"
@@ -210,81 +159,23 @@ export function AdminDashboard() {
               >
                 View all
               </Button>
-            }
-          />
-        </div>
+            </div>
+            <DealCards
+              deals={dealCards}
+              onSelect={(id) => navigate(`/admin/land-records?land=${id}`)}
+              emptyTitle="No active deals yet"
+              emptyDescription="Create a land record to start a transaction workspace."
+              emptyAction={
+                <Button
+                  onClick={() => navigate('/admin/land-records?folder=create')}
+                >
+                  Create land record
+                </Button>
+              }
+            />
+          </section>
+        </>
       )}
-
-      {stats && selectedFolder && selectedFolder !== 'deals' && (
-        <ModuleLeaf
-          title={FOLDER_META[selectedFolder].title}
-          description={FOLDER_META[selectedFolder].description}
-          countLabel={moduleCountLabel(selectedFolder, stats)}
-          onBack={() => setFolder(null)}
-          onOpen={() => navigate(FOLDER_META[selectedFolder].to)}
-        />
-      )}
-    </div>
-  )
-}
-
-function moduleCountLabel(
-  folder: Exclude<AdminDashFolder, 'deals'>,
-  stats: {
-    docsAwaitingSign: number
-    pendingPayments: number
-    unreadMessages: number
-  },
-): string | null {
-  if (folder === 'documents') {
-    return `${stats.docsAwaitingSign} awaiting signature`
-  }
-  if (folder === 'payments') {
-    return `${stats.pendingPayments} pending`
-  }
-  if (folder === 'messages') {
-    return `${stats.unreadMessages} unread`
-  }
-  return null
-}
-
-function ModuleLeaf({
-  title,
-  description,
-  countLabel,
-  onBack,
-  onOpen,
-}: {
-  title: string
-  description: string
-  countLabel: string | null
-  onBack: () => void
-  onOpen: () => void
-}) {
-  return (
-    <div className="space-y-5">
-      <HierarchyNav
-        crumbs={[{ label: 'Workspace', onClick: onBack }, { label: title }]}
-      />
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="ui-section-title">{title}</h2>
-          <p className="ui-section-desc">{description}</p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-          Workspace
-        </Button>
-      </div>
-      <div className="ui-panel p-5">
-        {countLabel ? <p className="text-sm text-muted">{countLabel}</p> : null}
-        <p className={`${countLabel ? 'mt-2' : ''} text-sm text-muted`}>
-          Open the full {title.toLowerCase()} workspace to browse deals and folders.
-        </p>
-        <div className="mt-4">
-          <Button onClick={onOpen}>Open {title.toLowerCase()}</Button>
-        </div>
-      </div>
     </div>
   )
 }

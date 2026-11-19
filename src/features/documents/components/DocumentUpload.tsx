@@ -1,17 +1,18 @@
 import { useCallback, useRef, useState, type DragEvent } from 'react'
-import type { Document } from '@/types'
+import type { Document, DocumentScope } from '@/types'
 import { FILE_SIZE_ERROR, FILE_TYPE_ERROR, UPLOAD_FAILED_ERROR } from '@/types/documents'
 import { useDocuments } from '@/features/documents/useDocuments'
 import { validateFileSize, validateFileType } from '@/features/documents/validation'
 
 interface DocumentUploadProps {
   landId: string
+  scope?: DocumentScope
   onUpload: (doc: Document) => void
 }
 
-export function DocumentUpload({ landId, onUpload }: DocumentUploadProps) {
+export function DocumentUpload({ landId, scope = 'land', onUpload }: DocumentUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const { uploadDocument } = useDocuments(landId)
+  const { uploadDocument } = useDocuments(landId, { scope })
   const [isDragging, setIsDragging] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -81,8 +82,8 @@ export function DocumentUpload({ landId, onUpload }: DocumentUploadProps) {
         onClick={() => inputRef.current?.click()}
         className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
           isDragging
-            ? 'border-brand-600 bg-brand-50'
-            : 'border-border bg-surface hover:border-brand-500'
+            ? 'border-ink bg-surface'
+            : 'border-border bg-surface hover:border-muted/40'
         }`}
       >
         <p className="text-sm font-medium text-ink">
@@ -110,7 +111,7 @@ export function DocumentUpload({ landId, onUpload }: DocumentUploadProps) {
         <div className="space-y-1">
           <div className="h-2 overflow-hidden rounded-full bg-border">
             <div
-              className="h-full bg-brand-700 transition-all"
+              className="h-full bg-ink transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>

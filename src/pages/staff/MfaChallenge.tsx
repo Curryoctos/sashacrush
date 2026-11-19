@@ -15,7 +15,9 @@ interface StaffMfaChallengePageProps {
   backPath: string
 }
 
-export function StaffMfaChallengePage({ backPath }: StaffMfaChallengePageProps) {
+export function StaffMfaChallengePage({
+  backPath,
+}: StaffMfaChallengePageProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { needsChallenge, refresh } = useMfaAssurance()
@@ -51,7 +53,9 @@ export function StaffMfaChallengePage({ backPath }: StaffMfaChallengePageProps) 
       }
     } catch (verifyError) {
       setError(
-        verifyError instanceof Error ? verifyError.message : 'Invalid verification code.',
+        verifyError instanceof Error
+          ? verifyError.message
+          : 'Invalid verification code.',
       )
     } finally {
       setIsSubmitting(false)
@@ -59,10 +63,12 @@ export function StaffMfaChallengePage({ backPath }: StaffMfaChallengePageProps) 
   }
 
   return (
-    <div className="ui-page max-w-lg">
+    <div className="ui-page">
       <Card padding="lg">
-        <h1 className="font-display text-2xl font-semibold text-ink">Verify your identity</h1>
-        <p className="mt-2 text-sm text-muted">
+        <h1 className="text-[28px] font-semibold tracking-tight text-ink">
+          Verify your identity
+        </h1>
+        <p className="mt-3 text-[13px] text-muted">
           Enter the 6-digit code from your authenticator app to continue.
         </p>
 
@@ -96,7 +102,7 @@ export function StaffMfaChallengePage({ backPath }: StaffMfaChallengePageProps) 
         )}
 
         <p className="mt-6 text-sm">
-          <Link to={backPath} className="font-medium text-brand-700 hover:text-brand-800">
+          <Link to={backPath} className="font-medium text-muted hover:text-ink">
             Back to dashboard
           </Link>
         </p>

@@ -69,7 +69,9 @@ export function StaffMfaSetupPage({ backPath }: StaffMfaSetupPageProps) {
       }
     } catch (verifyError) {
       setError(
-        verifyError instanceof Error ? verifyError.message : 'Invalid verification code.',
+        verifyError instanceof Error
+          ? verifyError.message
+          : 'Invalid verification code.',
       )
     } finally {
       setIsSubmitting(false)
@@ -77,14 +79,14 @@ export function StaffMfaSetupPage({ backPath }: StaffMfaSetupPageProps) {
   }
 
   return (
-    <div className="ui-page max-w-lg">
+    <div className="ui-page">
       <Card padding="lg">
-        <h1 className="font-display text-2xl font-semibold text-ink">
+        <h1 className="text-[28px] font-semibold tracking-tight text-ink">
           Set up two-factor authentication
         </h1>
-        <p className="mt-2 text-sm text-muted">
-          Staff accounts require an authenticator app (Google Authenticator, Authy, etc.) for
-          additional security on deal and payment operations.
+        <p className="mt-3 text-[13px] text-muted">
+          Staff accounts require an authenticator app (Google Authenticator,
+          Authy, etc.) for additional security on deal and payment operations.
         </p>
 
         {!factorId && (
@@ -99,7 +101,9 @@ export function StaffMfaSetupPage({ backPath }: StaffMfaSetupPageProps) {
             {secret && (
               <p className="text-center text-xs text-muted">
                 Manual entry secret:{' '}
-                <code className="rounded bg-surface px-1 text-ink">{secret}</code>
+                <code className="rounded bg-surface px-1 text-ink">
+                  {secret}
+                </code>
               </p>
             )}
             <div>
@@ -131,7 +135,7 @@ export function StaffMfaSetupPage({ backPath }: StaffMfaSetupPageProps) {
         )}
 
         <p className="mt-6 text-sm">
-          <Link to={backPath} className="font-medium text-brand-700 hover:text-brand-800">
+          <Link to={backPath} className="font-medium text-muted hover:text-ink">
             Back to dashboard
           </Link>
         </p>
