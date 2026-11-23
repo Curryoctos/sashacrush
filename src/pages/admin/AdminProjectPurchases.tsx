@@ -316,8 +316,8 @@ export function AdminProjectPurchasesPage() {
       <PageHeader
         backTo="/admin/finance"
         backLabel="Finance"
-        title="Purchases"
-        description="Every outbound payment targets a project. When the project is linked to a land deal, that land context is kept on the purchase."
+        title="Seller payouts"
+        description="Outbound payments to sellers for a project (and its linked land deal). Capital available must cover the amount."
       />
 
       {awaitingPaymentId && (

@@ -70,9 +70,9 @@ export function AdminWalletPage() {
       <PageHeader
         backTo="/admin/finance"
         backLabel="Finance"
-        eyebrow="Web3"
-        title="Owner wallet"
-        description="Connect MetaMask or WalletConnect. SashaCrush never asks for or stores private keys."
+        eyebrow="Optional"
+        title="Crypto pay"
+        description="Connect MetaMask or WalletConnect to convert crypto into a deal payment. Keys stay on your device — never on the server."
       />
 
       {wallet.error ? (

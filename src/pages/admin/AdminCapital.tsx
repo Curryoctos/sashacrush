@@ -114,8 +114,8 @@ export function AdminCapitalPage() {
         backTo="/admin/finance"
         backLabel="Finance"
         eyebrow="Treasury"
-        title="Company capital"
-        description="Confirm agent investments toward deals into the company pool."
+        title="Capital pool"
+        description="Money agents invest toward deals. Raised minus seller payouts = available to pay out."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link to="/admin/investor-documents">

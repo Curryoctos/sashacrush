@@ -231,10 +231,10 @@ export function AdminWalletConvertPage() {
     <div className="ui-page">
       <PageHeader
         backTo="/admin/wallet"
-        backLabel="Wallet"
+        backLabel="Crypto pay"
         eyebrow="Conversion kit · C-09"
         title="Convert and Pay"
-        description="Fresh CoinGecko + FX rate → 60s lock → approve in wallet → project purchase + receipt with the locked rate."
+        description="Fresh CoinGecko + FX rate → 60s lock → approve in wallet → project payment + receipt with the locked rate."
       />
 
       {!treasuryAddress ? (
