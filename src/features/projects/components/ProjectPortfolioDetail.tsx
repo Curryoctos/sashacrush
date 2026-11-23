@@ -75,7 +75,7 @@ export function ProjectPortfolioDetail({
             </Badge>
             {showContribute ? (
               <Link to={`/projects/${project.slug}`}>
-                <Button size="sm">Contribute</Button>
+                <Button size="sm">Support this project</Button>
               </Link>
             ) : (
               <Link to={`/projects/${project.slug}`}>

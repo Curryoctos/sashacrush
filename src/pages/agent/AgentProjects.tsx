@@ -6,8 +6,8 @@ export function AgentProjectsPage() {
   return (
     <div className="ui-page">
       <PageHeader
-        title="Funding projects"
-        description="Browse public projects and any private ones you participate in. Contribute from the project page."
+        title="Support a project"
+        description="Browse public projects and any private ones you participate in. Supporting a project raises that project’s goal — it does not add to the company capital pool."
         backTo="/agent/capital"
         backLabel="Capital"
       />

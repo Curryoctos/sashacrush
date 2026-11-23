@@ -503,7 +503,7 @@ export function ProjectDetailPage() {
               </ul>
             </div>
             <Button className="w-full" onClick={() => setContributeOpen(true)}>
-              Contribute now
+              Support this project
             </Button>
           </div>
         </aside>
@@ -577,7 +577,7 @@ function FundingBox({
         {days != null ? <span>{days} days left</span> : null}
       </div>
       <Button className="w-full" onClick={onFund}>
-        Fund this project
+        Support this project
       </Button>
       <Button variant="secondary" className="w-full">
         Follow project

@@ -191,7 +191,9 @@ export function ContributeModal({ open, project, onClose }: ContributeModalProps
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 id="contribute-title" className="text-[15px] font-semibold text-ink">
-            {step === 4 ? 'Contribution submitted' : `Contribute · ${project.title}`}
+            {step === 4
+              ? 'Support recorded'
+              : `Support this project · ${project.title}`}
           </h2>
           <button
             type="button"

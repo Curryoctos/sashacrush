@@ -7,7 +7,7 @@ export function AgentProjectDetailPage() {
     <ProjectPortfolioDetail
       slug={slug}
       backTo="/agent/projects"
-      backLabel="Funding projects"
+      backLabel="Support a project"
       showContribute
     />
   )

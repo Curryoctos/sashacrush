@@ -68,11 +68,11 @@ export function InvestmentSubmitForm({
   return (
     <Card>
       <CardHeader
-        title="Invest toward a deal"
+        title="Fund deal capital"
         description={
           isStripe
-            ? 'Choose a project, pay by card. Confirmed funds go into the company capital pool earmarked for that deal.'
-            : 'Choose a project, transfer offline, then record amount and reference for admin confirmation into the capital pool.'
+            ? 'Choose a land deal, pay by card. Confirmed funds raise company capital available for seller payouts on that deal — not the public project fundraising meter.'
+            : 'Choose a land deal, transfer offline, then record amount and reference. Admin confirmation credits the company capital pool.'
         }
       />
       <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)}>

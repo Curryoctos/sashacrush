@@ -6,28 +6,30 @@ export function AgentCapitalHubPage() {
     <PortalHubPage
       eyebrow="Investing"
       title="Capital"
-      description="Land investments fund the company pool for deals. Funding projects are community causes you can contribute to."
+      description="Two different money paths: fund company deal capital, or support a public project’s own fundraising goal."
       backTo="/agent/dashboard"
       backLabel="Dashboard"
       folders={[
         {
-          id: 'projects',
-          title: 'Funding projects',
-          description: 'Browse causes and contribute as an investor',
-          to: '/agent/projects',
-          icon: <FolderKanban className="h-5 w-5" />,
-        },
-        {
           id: 'investments',
-          title: 'Land investments',
-          description: 'Contribute toward a deal — funds the company pool',
+          title: 'Fund deal capital',
+          description:
+            'Invest toward a land deal — confirmed funds go into the company capital pool used for seller payouts.',
           to: '/agent/investments',
           icon: <PiggyBank className="h-5 w-5" />,
         },
         {
+          id: 'projects',
+          title: 'Support a project',
+          description:
+            'Public/community fundraising — raises that project’s goal total (not the company payout pool).',
+          to: '/agent/projects',
+          icon: <FolderKanban className="h-5 w-5" />,
+        },
+        {
           id: 'agreements',
           title: 'Agreements',
-          description: 'Review and sign before investing',
+          description: 'Review and sign before funding deal capital',
           to: '/agent/agreements',
           icon: <FileSignature className="h-5 w-5" />,
         },

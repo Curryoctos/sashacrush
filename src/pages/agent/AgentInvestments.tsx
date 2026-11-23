@@ -131,8 +131,8 @@ export function AgentInvestmentsPage() {
         backTo="/agent/capital"
         backLabel="Capital"
         eyebrow="Capital"
-        title="Investments"
-        description="Invest toward a deal — confirmed amounts fund the company capital pool."
+        title="Fund deal capital"
+        description="Money toward a land deal enters the company capital pool (for seller payouts). This is not the same as supporting a public project’s fundraising goal."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link to="/agent/agreements">
@@ -143,7 +143,7 @@ export function AgentInvestmentsPage() {
                 type="button"
                 onClick={() => setShowCreate((open) => !open)}
               >
-                {showCreate ? 'Close' : 'New investment'}
+                {showCreate ? 'Close' : 'New capital investment'}
               </Button>
             ) : null}
           </div>
@@ -217,11 +217,11 @@ export function AgentInvestmentsPage() {
           <InvestmentList
             investments={investments}
             title="Your investments"
-            description="Each row is toward a deal and feeds the company capital pool when confirmed."
+            description="Each row funds company capital for a deal when confirmed — not a project’s public fundraising total."
             emptyTitle={
               showCreate
-                ? 'No investments submitted yet.'
-                : 'No investments yet — click New investment to contribute.'
+                ? 'No capital investments submitted yet.'
+                : 'No capital investments yet — click New capital investment to start.'
             }
             showDeal
             dealLabel={(row) => {
