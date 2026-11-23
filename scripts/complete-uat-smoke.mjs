@@ -5,11 +5,17 @@
  *   3. Chat message → in-app notify (+ email invoke)
  *   4. Public project contribute (wire) → admin confirm → funding bump
  *   5. Community register
+ *   6. Optional gateways (default on): MoMo Flutterwave initiate + Stripe Checkout URL
  *
  * Usage:
  *   SUPABASE_URL=... SUPABASE_ANON_KEY=... SUPABASE_SERVICE_ROLE_KEY=... \
  *   UAT_ADMIN_PASSWORD='...' UAT_SELLER_PASSWORD='...' \
  *   node scripts/complete-uat-smoke.mjs
+ *
+ * Optional:
+ *   UAT_SKIP_GATEWAYS=1 — skip MoMo/Stripe initiate checks
+ *   UAT_REQUIRE_GATEWAYS=1 — fail the run if gateway initiates fail
+ *   UAT_MOMO_PHONE — Uganda MoMo payee (default 256771000000)
  */
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'node:crypto'
@@ -29,6 +35,9 @@ const PROJECT_ID = process.env.UAT_PROJECT_ID ?? 'a4eebc99-9c0b-4ef8-bb6d-6bb9bd
 const RATE_UGX = 3700
 const PAYOUT_USD = Number(process.env.UAT_PAYOUT_USD ?? 25)
 const CONTRIB_USD = Number(process.env.UAT_CONTRIB_USD ?? 50)
+const SKIP_GATEWAYS = process.env.UAT_SKIP_GATEWAYS === '1'
+const REQUIRE_GATEWAYS = process.env.UAT_REQUIRE_GATEWAYS === '1'
+const MOMO_PHONE = process.env.UAT_MOMO_PHONE ?? '256771000000'
 
 const results = []
 
@@ -45,9 +54,10 @@ function section(title) {
   console.log(`\n── ${title}`)
 }
 
-function record(name, pass, detail = '') {
-  results.push({ name, pass, detail })
+function record(name, pass, detail = '', { optional = false } = {}) {
+  results.push({ name, pass, detail, optional })
   if (pass) ok(name, detail)
+  else if (optional) console.warn(`⚠️  ${name}${detail ? ` — ${detail}` : ''}`)
   else console.error(`❌ ${name}${detail ? ` — ${detail}` : ''}`)
 }
 
@@ -404,6 +414,82 @@ async function smokeCommunity() {
   record('community-login', !loginError, loginError?.message ?? email)
 }
 
+async function smokeGateways() {
+  section('6. Gateways (MoMo initiate + Stripe Checkout)')
+  const optional = !REQUIRE_GATEWAYS
+
+  const { data: payment, error: payError } = await service
+    .from('payments')
+    .insert({
+      land_id: LAND_ID,
+      project_id: PROJECT_ID,
+      disbursement_reason: 'UAT MoMo gateway smoke',
+      amount_usd: 1,
+      amount_ugx: RATE_UGX,
+      rate_used: RATE_UGX,
+      method: 'flutterwave',
+      status: 'pending',
+      mobile_money_network: 'mtn',
+      payer_phone: MOMO_PHONE,
+    })
+    .select('id')
+    .single()
+  if (payError || !payment) {
+    record('momo-create', false, payError?.message ?? 'insert failed', { optional })
+    return
+  }
+  record('momo-create', true, payment.id, { optional })
+
+  const admin = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD)
+  const { data: momoData, error: momoError } = await admin.functions.invoke(
+    'initiate-gateway-payment',
+    { body: { paymentId: payment.id } },
+  )
+  if (momoError) {
+    record('momo-initiate', false, await invokeErrorDetail(momoError), { optional })
+  } else {
+    record(
+      'momo-initiate',
+      true,
+      JSON.stringify({
+        reference: momoData?.reference,
+        transferId: momoData?.transferId,
+        status: momoData?.status,
+        mode: momoData?.mode,
+      }),
+      { optional },
+    )
+  }
+
+  const anonClient = browser()
+  const { data: stripeData, error: stripeError } = await anonClient.functions.invoke(
+    'initiate-project-contribution',
+    {
+      body: {
+        projectId: PROJECT_ID,
+        amountUsd: Math.max(CONTRIB_USD, 25),
+        method: 'stripe',
+        contributorName: 'UAT Stripe Contributor',
+        contributorEmail: `uat.stripe.${Date.now()}@example.com`,
+        contributorCountry: 'US',
+      },
+    },
+  )
+  if (stripeError) {
+    record('stripe-checkout', false, await invokeErrorDetail(stripeError), { optional })
+    return
+  }
+  const hasUrl = Boolean(stripeData?.checkoutUrl)
+  record(
+    'stripe-checkout',
+    hasUrl,
+    hasUrl
+      ? `${stripeData.contributionId} · ${new URL(stripeData.checkoutUrl).host}`
+      : JSON.stringify(stripeData),
+    { optional },
+  )
+}
+
 async function main() {
   console.log(`\nUAT / DEPLOY smoke against ${URL}\n`)
 
@@ -427,24 +513,35 @@ async function main() {
   await smokeChat(adminId, sellerId)
   await smokeContribute(raisedBefore)
   await smokeCommunity()
+  if (!SKIP_GATEWAYS) {
+    await smokeGateways()
+  } else {
+    section('6. Gateways skipped (UAT_SKIP_GATEWAYS=1)')
+  }
 
-  const failed = results.filter((r) => !r.pass)
+  const hardFailed = results.filter((r) => !r.pass && !r.optional)
+  const softFailed = results.filter((r) => !r.pass && r.optional)
   console.log('\n══ Summary')
   for (const r of results) {
-    console.log(`  ${r.pass ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? ` — ${r.detail}` : ''}`)
+    const tag = r.pass ? 'PASS' : r.optional ? 'WARN' : 'FAIL'
+    console.log(`  ${tag}  ${r.name}${r.detail ? ` — ${r.detail}` : ''}`)
   }
-  console.log(
-    failed.length
-      ? `\n❌ UAT smoke finished with ${failed.length} failure(s).\n`
-      : '\n✅ UAT smoke complete — all checks passed.\n',
-  )
+  if (hardFailed.length) {
+    console.log(`\n❌ UAT smoke finished with ${hardFailed.length} failure(s).\n`)
+  } else if (softFailed.length) {
+    console.log(
+      `\n⚠️  Core UAT passed; ${softFailed.length} gateway check(s) need valid Edge secrets.\n`,
+    )
+  } else {
+    console.log('\n✅ UAT smoke complete — all checks passed.\n')
+  }
   if (!process.env.UAT_ADMIN_PASSWORD) {
     console.log(`Admin password (generated): ${ADMIN_PASSWORD}`)
   }
   if (!process.env.UAT_SELLER_PASSWORD) {
     console.log(`Seller password (generated): ${SELLER_PASSWORD}`)
   }
-  if (failed.length) process.exit(1)
+  if (hardFailed.length) process.exit(1)
 }
 
 main().catch((err) => {
