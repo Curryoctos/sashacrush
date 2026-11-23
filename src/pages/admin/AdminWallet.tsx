@@ -10,6 +10,7 @@ import {
   ETHEREUM_MAINNET_CHAIN_ID,
   shortenAddress,
 } from '@/features/wallet/constants'
+import { getTreasuryAddress } from '@/features/wallet/sendTransfer'
 import { useWalletDisplayRates } from '@/features/wallet/useWalletDisplayRates'
 import {
   notifyInfo,
@@ -61,8 +62,10 @@ export function AdminWalletPage() {
   }
 
   const ratesReady = Boolean(ratesQuery.data && !ratesQuery.data.stale)
+  const treasuryAddress = getTreasuryAddress()
+  const treasuryConfigured = Boolean(treasuryAddress)
   const canConvertAndPay = Boolean(
-    wallet.address && ratesReady && !onWrongChain,
+    wallet.address && ratesReady && !onWrongChain && treasuryConfigured,
   )
 
   return (
@@ -75,6 +78,27 @@ export function AdminWalletPage() {
         description="Connect MetaMask or WalletConnect to convert crypto into a deal payment. Keys stay on your device — never on the server."
       />
 
+      {!treasuryConfigured ? (
+        <p className="ui-alert-warning" role="status">
+          Crypto pay is not configured for this deploy. Set{' '}
+          <code className="text-xs">VITE_CRYPTO_TREASURY_ADDRESS</code> to the
+          company receive wallet, rebuild, and redeploy. Until then, use{' '}
+          <Link className="underline" to="/admin/payments">
+            Seller payouts
+          </Link>{' '}
+          (MoMo / wire) instead — this page is optional.
+        </p>
+      ) : (
+        <p className="text-sm text-muted" role="status">
+          Treasury receive address{' '}
+          <span className="font-mono text-ink">
+            {shortenAddress(treasuryAddress!)}
+          </span>
+          . Convert and Pay sends on-chain funds here before recording the deal
+          payment.
+        </p>
+      )}
+
       {wallet.error ? (
         <p className="ui-alert-danger" role="alert">
           {wallet.error}
@@ -85,7 +109,11 @@ export function AdminWalletPage() {
         <Card>
           <CardHeader
             title="Connect wallet"
-            description="Desktop: MetaMask. Mobile: WalletConnect. Connection is one click; balances are read-only via ethers.js."
+            description={
+              treasuryConfigured
+                ? 'Desktop: MetaMask. Mobile: WalletConnect. Connection is one click; balances are read-only via ethers.js.'
+                : 'You can still connect to inspect balances, but Convert and Pay stays disabled until the treasury address is configured.'
+            }
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -194,17 +222,19 @@ export function AdminWalletPage() {
             )}
             {!canConvertAndPay ? (
               <p className="mt-3 text-sm text-muted">
-                {onWrongChain
-                  ? 'Switch the wallet to Ethereum mainnet first.'
-                  : ratesQuery.data?.stale
-                    ? 'Live rates are stale — refresh before converting.'
-                    : 'Waiting for live display rates…'}
+                {!treasuryConfigured
+                  ? 'Configure VITE_CRYPTO_TREASURY_ADDRESS to enable Convert and Pay.'
+                  : onWrongChain
+                    ? 'Switch the wallet to Ethereum mainnet first.'
+                    : ratesQuery.data?.stale
+                      ? 'Live rates are stale — refresh before converting.'
+                      : 'Waiting for live display rates…'}
               </p>
             ) : (
               <p className="mt-3 text-sm text-muted">
-                Seller payouts after conversion settle through{' '}
+                After conversion, the deal payment appears under{' '}
                 <Link className="underline" to="/admin/payments">
-                  Payments
+                  Seller payouts
                 </Link>
                 .
               </p>

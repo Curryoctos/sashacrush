@@ -154,6 +154,25 @@ export function AdminCapitalPage() {
         </div>
       )}
 
+      {capital &&
+      capital.availableUsd <= 0 &&
+      (capital.raisedUsd > 0 || capital.disbursedUsd > 0) ? (
+        <p className="ui-alert-warning" role="status">
+          Available is $0 because confirmed seller payouts (
+          {formatUsd(capital.disbursedUsd)}) already cover or exceed raised
+          capital ({formatUsd(capital.raisedUsd)}). Raise more capital or reduce
+          new payouts — this is expected pool math, not a broken meter.
+        </p>
+      ) : null}
+
+      {capital && capital.raisedUsd === 0 && capital.disbursedUsd === 0 ? (
+        <p className="text-sm text-muted" role="status">
+          No confirmed capital yet. Agents fund deal capital under their Capital
+          hub; you confirm offline rows here. Stripe investments confirm via
+          webhook.
+        </p>
+      ) : null}
+
       {(error || capitalError || actionError) && (
         <p className="ui-alert-danger" role="alert">
           {actionError ?? formatSupabaseError((error ?? capitalError) as Error)}
