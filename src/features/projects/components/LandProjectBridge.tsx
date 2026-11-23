@@ -33,8 +33,8 @@ export function LinkedLandCard({
             {landTitle?.trim() || 'Land workspace'}
           </p>
           <p className="mt-0.5 text-xs text-muted">
-            Documents, seller chat, and field photos stay on the land record.
-            Purchases run through this project.
+            Documents, seller chat, and field photos stay on the land deal.
+            Seller payouts for this deal are recorded on this project.
           </p>
         </div>
       </div>
@@ -76,7 +76,8 @@ export function LinkedProjectCard({
             {projectTitle}
           </p>
           <p className="mt-0.5 text-xs text-muted">
-            Purchases and disbursements for this deal are recorded on the project.
+            Seller payouts for this deal are recorded on this project — keep
+            money here, field work on the land deal.
           </p>
         </div>
       </div>
@@ -89,7 +90,7 @@ export function LinkedProjectCard({
         {showPurchases ? (
           <Link to={projectPurchasesPath(projectId, 'collect')}>
             <Button size="sm">
-              Purchases
+              Seller payouts
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </Button>
           </Link>

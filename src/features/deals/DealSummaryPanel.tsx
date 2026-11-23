@@ -39,7 +39,11 @@ export function DealSummaryPanel({
     <div className="ui-page">
       <PageHeader
         title={deal.land.title}
-        description={deal.land.location ?? 'Land transaction overview'}
+        description={
+          deal.land.location
+            ? `${deal.land.location} · Deal workspace`
+            : 'Deal workspace — messages, docs, photos, and seller payouts'
+        }
         backTo={backLink.to}
         backLabel={backLink.label}
       />

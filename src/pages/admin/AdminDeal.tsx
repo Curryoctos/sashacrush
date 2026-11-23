@@ -44,8 +44,8 @@ export function AdminDealPage() {
       },
       {
         id: 'pay',
-        label: 'Pay out',
-        hint: 'Stripe / MoMo',
+        label: 'Seller payouts',
+        hint: 'MoMo / wire / manual',
         to: payTo,
         current: true,
       },
@@ -79,15 +79,28 @@ export function AdminDealPage() {
       {dealQuery.data && (
         <div className="space-y-4">
           <DealJourneyStrip steps={journey} />
-          {linkedProject ? (
-            <div className="ui-page pb-0">
+          <div className="ui-page pb-0 space-y-3">
+            <p className="text-sm text-muted">
+              This deal cockpit is the single path for this land: message the
+              seller → field proof → e-sign docs → seller payouts → receipts.
+              Finance capital/crypto live under Finance; keep payouts here via
+              the linked project when possible.
+            </p>
+            {linkedProject ? (
               <LinkedProjectCard
                 projectId={linkedProject.id}
                 projectTitle={linkedProject.title}
                 projectSlug={linkedProject.slug}
               />
-            </div>
-          ) : null}
+            ) : (
+              <p className="ui-alert-warning" role="status">
+                No funding project linked yet. Link a project on the land record
+                or project detail so seller payouts stay in one money context.
+                You can still open payouts from land, but a linked project is the
+                clearer path.
+              </p>
+            )}
+          </div>
           <DealSummaryPanel
             deal={dealQuery.data}
             canEditBoundary
@@ -110,7 +123,7 @@ export function AdminDealPage() {
                 to: `/admin/documents?land=${dealQuery.data.land.id}`,
               },
               {
-                label: 'Purchases',
+                label: 'Seller payouts',
                 to: linkedProject
                   ? `/admin/payments?project=${linkedProject.id}&folder=collect`
                   : landPurchasesPath(dealQuery.data.land.id, 'collect'),
