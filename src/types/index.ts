@@ -14,7 +14,17 @@ export type {
 } from './database'
 export type { ChatChannel } from './database'
 export type { ChatMessage, ChatMessageInsert } from './chat'
-export type { Document, DocumentStatus, AllowedMimeType } from './documents'
+export type { Document, DocumentScope, DocumentStatus, AllowedMimeType } from './documents'
+export type {
+  Suggestion,
+  SuggestionComment,
+  SuggestionStatus,
+  SuggestionWithMeta,
+} from './suggestions'
+export {
+  SUGGESTION_STATUS_LABEL,
+  SUGGESTION_COLUMNS,
+} from './suggestions'
 export {
   ALLOWED_MIME_TYPES,
   DOCUMENT_BUCKET,
@@ -24,3 +34,27 @@ export {
   FILE_TYPE_ERROR,
   UPLOAD_FAILED_ERROR,
 } from './documents'
+export type {
+  MilestoneStatus,
+  ParticipantRole,
+  Payment,
+  Project,
+  ProjectMilestone,
+  ProjectParticipant,
+  ProjectStatus,
+  ProjectType,
+  ProjectUpdate,
+  ProjectVisibility,
+  Receipt,
+  Saving,
+  UpdateType,
+  UserProfile,
+} from './projects'
+export {
+  PARTICIPANT_ROLES,
+  PROJECT_STATUSES,
+  PROJECT_TYPES,
+  UPDATE_TYPES,
+  isProjectStatus,
+  isProjectType,
+} from './projects'

@@ -9,12 +9,25 @@ export interface SendEmailParams {
 const RESEND_API_URL = 'https://api.resend.com/emails'
 const DEFAULT_FROM = 'notifications@sashacrush.com'
 
+function isLocalDevAppUrl(appUrl: string): boolean {
+  return (
+    !appUrl ||
+    appUrl.includes('localhost') ||
+    appUrl.includes('127.0.0.1') ||
+    appUrl.includes('0.0.0.0')
+  )
+}
+
 export async function sendEmail(params: SendEmailParams): Promise<void> {
   const apiKey = getEnv('RESEND_API_KEY')
   if (!apiKey) {
-    console.warn('[sendEmail] RESEND_API_KEY not set — skipping email delivery')
-    console.warn('[sendEmail] To:', params.to, '| Subject:', params.subject)
-    return
+    const appUrl = getEnv('APP_URL') ?? ''
+    if (isLocalDevAppUrl(appUrl)) {
+      console.warn('[sendEmail] RESEND_API_KEY not set — skipping email delivery (local)')
+      console.warn('[sendEmail] To:', params.to, '| Subject:', params.subject)
+      return
+    }
+    throw new Error('RESEND_API_KEY is not configured')
   }
 
   const from = getEnv('RESEND_FROM_EMAIL') ?? DEFAULT_FROM

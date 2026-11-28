@@ -1,17 +1,16 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { DocumentsBrowser } from '@/features/documents/components/DocumentsBrowser'
 import { notifySuccess } from '@/features/notifications/useNotifications'
 import { useSellerLands } from '@/features/seller/useSellerLands'
-import { useAuth } from '@/hooks/useAuth'
 
 export function SellerDocumentsPage() {
-  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const signDocumentId = searchParams.get('sign')
 
-  const { lands, selectedLandId, isLoading, error } = useSellerLands(signDocumentId)
+  const { lands, selectedLandId, isLoading, error } =
+    useSellerLands(signDocumentId)
 
   useEffect(() => {
     if (!signDocumentId || !selectedLandId) {
@@ -32,19 +31,13 @@ export function SellerDocumentsPage() {
   }, [signDocumentId, selectedLandId, setSearchParams])
 
   return (
-    <div className="ui-page max-w-6xl">
-      <div>
-        <PageBackLink to="/seller/dashboard" label="Seller Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Documents"
-          description={
-            user?.email
-              ? `Signed in as ${user.email}. Expand a deal, open a document, then sign.`
-              : 'Expand a deal, open a document, then sign.'
-          }
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/seller/dashboard"
+        backLabel="Dashboard"
+        title="Documents"
+        description="Expand a deal, open a document, then sign."
+      />
 
       <DocumentsBrowser
         lands={lands}

@@ -132,6 +132,7 @@ export function useUserWorkspace() {
       executive: [],
       agent: [],
       seller: [],
+      community: [],
     }
     for (const user of users) {
       groups[user.role].push(user)

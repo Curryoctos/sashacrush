@@ -10,9 +10,9 @@ interface IconActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> 
 }
 
 const variantClass: Record<IconActionVariant, string> = {
-  secondary: 'border border-border bg-white text-ink hover:bg-surface',
-  primary: 'bg-brand-700 text-white hover:bg-brand-800',
-  danger: 'bg-danger text-white hover:bg-danger/90',
+  secondary: 'border border-border bg-surface-elevated text-ink hover:bg-hover',
+  primary: 'bg-ink text-ink-inverse hover:opacity-90',
+  danger: 'bg-danger text-white hover:opacity-90',
 }
 
 export function IconActionButton({
@@ -31,7 +31,7 @@ export function IconActionButton({
       aria-label={label}
       disabled={disabled}
       className={cn(
-        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition',
+        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition',
         'disabled:pointer-events-none disabled:opacity-50',
         variantClass[variant],
         className,

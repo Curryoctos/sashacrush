@@ -7,6 +7,7 @@ export interface ChatMessage {
   id: string
   channel: ChatChannel
   land_id: string | null
+  project_id?: string | null
   sender_id: string
   body: string
   created_at: string

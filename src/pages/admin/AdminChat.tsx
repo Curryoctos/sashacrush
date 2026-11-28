@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { ArrowLeft, Building2, MessageSquare } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Building2, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { PageBackLink, PageHeader } from '@/components/ui/PageHeader'
+import { BackArrow } from '@/components/ui/BackArrow'
+import { PageHeader } from '@/components/ui/PageHeader'
 import {
   DealCards,
   FolderCards,
@@ -10,10 +12,9 @@ import {
 } from '@/components/hierarchy/Hierarchy'
 import { ChatWindow } from '@/features/chat/components/ChatWindow'
 import { UnreadBadge } from '@/features/chat/components/UnreadBadge'
-import {
-  countUnreadMessages,
-  readLastReadAt,
-} from '@/features/chat/chat-utils'
+import { countUnreadMessages, readLastReadAt } from '@/features/chat/chat-utils'
+import { ProjectChatPanel } from '@/features/projects/components/ProjectChatPanel'
+import { ProjectLibraryShell } from '@/features/projects/components/ProjectLibraryShell'
 import { useLandHierarchyNav } from '@/hooks/useLandHierarchyNav'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
@@ -47,8 +48,12 @@ async function fetchMessagesSnapshot(
 
 export function AdminChatPage() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const projectId = searchParams.get('project')
+
   const landsQuery = useQuery({
     queryKey: ['admin-land-records-options'],
+    enabled: !projectId,
     queryFn: async (): Promise<LandRecord[]> => {
       const { data, error } = await supabase
         .from('land_records')
@@ -110,16 +115,22 @@ export function AdminChatPage() {
     [lands],
   )
 
+  if (projectId) {
+    return (
+      <ProjectLibraryShell projectId={projectId} folder="messages">
+        <ProjectChatPanel projectId={projectId} />
+      </ProjectLibraryShell>
+    )
+  }
+
   return (
-    <div className="ui-page max-w-4xl">
-      <div>
-        <PageBackLink to="/admin/dashboard" label="Admin Dashboard" />
-        <PageHeader
-          className="mt-3"
-          title="Messages"
-          description="Open a channel, then a deal when needed."
-        />
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        backTo="/admin/dashboard"
+        backLabel="Dashboard"
+        title="Messages"
+        description="Open a channel, then a deal when needed. Project workspaces open project-scoped chat."
+      />
 
       {!channel && (
         <FolderCards
@@ -156,8 +167,12 @@ export function AdminChatPage() {
               <h2 className="ui-section-title">Executive chat</h2>
               <UnreadBadge count={executiveUnread} />
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(null, null)}
+            >
+              <BackArrow />
               Channels
             </Button>
           </div>
@@ -175,8 +190,12 @@ export function AdminChatPage() {
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="ui-section-title">Land owner chat</h2>
-            <Button variant="secondary" size="sm" onClick={() => setNavigation(null, null)}>
-              <ArrowLeft className="h-4 w-4" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setNavigation(null, null)}
+            >
+              <BackArrow />
               Channels
             </Button>
           </div>
@@ -216,7 +235,7 @@ export function AdminChatPage() {
               size="sm"
               onClick={() => setNavigation(null, 'land-owner')}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <BackArrow />
               Deals
             </Button>
           </div>

@@ -1,10 +1,21 @@
 /// <reference path="../_shared/deno.d.ts" />
 import {
+  ConfirmContributionError,
+  confirmContributionFromGateway,
+} from '../_shared/confirmContribution.ts'
+import {
+  ConfirmInvestmentError,
+  confirmInvestmentFromGateway,
+} from '../_shared/confirmInvestment.ts'
+import {
   ConfirmPaymentError,
   confirmPaymentAndIssueReceipt,
 } from '../_shared/confirmPayment.ts'
-import { claimGatewayWebhookEvent } from '../_shared/gatewayIdempotency.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import {
+  claimGatewayWebhookEvent,
+  releaseGatewayWebhookEvent,
+} from '../_shared/gatewayIdempotency.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { stripeAmountMatches } from '../_shared/paymentAmountGuard.ts'
 import {
   getStripeWebhookSecret,
@@ -12,23 +23,34 @@ import {
 } from '../_shared/stripe.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
+interface StripeEventObject {
+  id?: string
+  amount_total?: number
+  amount?: number
+  currency?: string
+  metadata?: {
+    payment_id?: string
+    investment_id?: string
+    contribution_id?: string
+  }
+  payment_intent?: string | { id?: string } | null
+  payment_status?: string
+}
+
 interface StripeEvent {
   id?: string
   type?: string
   data?: {
-    object?: {
-      id?: string
-      amount_total?: number
-      amount?: number
-      currency?: string
-      metadata?: { payment_id?: string }
-      payment_intent?: string | { id?: string } | null
-      payment_status?: string
-    }
+    object?: StripeEventObject
   }
 }
 
+type ServiceClient = ReturnType<typeof createServiceClient>
+
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }
@@ -62,58 +84,333 @@ Deno.serve(async (req) => {
       return errorResponse('Stripe event missing id', 400)
     }
 
+    const investmentId = object?.metadata?.investment_id?.trim()
+    const contributionId = object?.metadata?.contribution_id?.trim()
     const paymentId = object?.metadata?.payment_id?.trim()
     const supabase = createServiceClient()
 
-    let resolvedPaymentId = paymentId
-
-    if (!resolvedPaymentId && object?.id) {
-      const { data: bySession } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('stripe_payment_intent_id', object.id)
-        .maybeSingle()
-
-      resolvedPaymentId = bySession?.id
-
-      if (!resolvedPaymentId) {
-        const paymentIntentId =
-          typeof object.payment_intent === 'string'
-            ? object.payment_intent
-            : object.payment_intent?.id
-
-        if (paymentIntentId) {
-          const { data: byIntent } = await supabase
-            .from('payments')
-            .select('id')
-            .eq('stripe_payment_intent_id', paymentIntentId)
-            .maybeSingle()
-          resolvedPaymentId = byIntent?.id
-        }
-      }
-    }
-
-    if (!resolvedPaymentId) {
-      return errorResponse('Could not resolve payment_id from Stripe event', 400)
-    }
-
-    const claimed = await claimGatewayWebhookEvent(supabase, {
-      provider: 'stripe',
-      eventKey: `stripe:${event.id}`,
-      functionName: 'stripe-webhook',
-      paymentId: resolvedPaymentId,
-      metadata: { type: event.type },
-    })
-
-    if (!claimed) {
-      return jsonResponse({
-        success: true,
-        skipped: true,
-        reason: 'Duplicate Stripe event',
+    if (contributionId) {
+      return await handleContributionCheckout({
+        supabase,
         eventId: event.id,
+        eventType: event.type ?? '',
+        object,
+        contributionId,
       })
     }
 
+    if (investmentId) {
+      return await handleInvestmentCheckout({
+        supabase,
+        eventId: event.id,
+        eventType: event.type ?? '',
+        object,
+        investmentId,
+      })
+    }
+
+    return await handleLegacyPaymentCheckout({
+      supabase,
+      eventId: event.id,
+      eventType: event.type ?? '',
+      object,
+      paymentId,
+    })
+  } catch (error) {
+    if (
+      error instanceof ConfirmPaymentError ||
+      error instanceof ConfirmInvestmentError ||
+      error instanceof ConfirmContributionError
+    ) {
+      return errorResponse(error.message, error.status)
+    }
+
+    const message = error instanceof Error ? error.message : 'Unexpected error'
+    return errorResponse(message, 500)
+  }
+})
+
+async function handleContributionCheckout(params: {
+  supabase: ServiceClient
+  eventId: string
+  eventType: string
+  object: StripeEventObject | undefined
+  contributionId: string
+}) {
+  const { supabase, eventId, eventType, object, contributionId } = params
+  const eventKey = `stripe:contribution:${eventId}`
+
+  const claimed = await claimGatewayWebhookEvent(supabase, {
+    provider: 'stripe',
+    eventKey,
+    functionName: 'stripe-webhook',
+    contributionId,
+    metadata: { type: eventType, kind: 'contribution' },
+  })
+
+  if (!claimed) {
+    return jsonResponse({
+      success: true,
+      skipped: true,
+      reason: 'Duplicate Stripe contribution event',
+      eventId,
+    })
+  }
+
+  try {
+    const { data: contribution, error: contributionError } = await supabase
+      .from('project_contributions')
+      .select('id, amount_usd, status, method')
+      .eq('id', contributionId)
+      .single()
+
+    if (contributionError || !contribution) {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Contribution not found for Stripe event', 404)
+    }
+
+    if (contribution.method !== 'stripe') {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Contribution method is not stripe', 409)
+    }
+
+    const paidCents =
+      eventType === 'checkout.session.completed' ? object?.amount_total : object?.amount
+
+    if (
+      !stripeAmountMatches(
+        paidCents,
+        Number(contribution.amount_usd),
+        object?.currency ?? 'usd',
+      )
+    ) {
+      console.error('Stripe contribution amount mismatch', {
+        contributionId,
+        expectedUsd: contribution.amount_usd,
+        paidCents,
+        currency: object?.currency,
+        eventId,
+      })
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Paid amount does not match recorded contribution', 409)
+    }
+
+    const paymentIntentId =
+      typeof object?.payment_intent === 'string'
+        ? object.payment_intent
+        : object?.payment_intent?.id ??
+          (eventType === 'payment_intent.succeeded' ? object?.id : null)
+
+    const checkoutSessionId =
+      eventType === 'checkout.session.completed' ? object?.id ?? null : null
+
+    const result = await confirmContributionFromGateway(supabase, contributionId, {
+      stripePaymentIntentId: paymentIntentId ?? null,
+      stripeCheckoutSessionId: checkoutSessionId,
+    })
+
+    return jsonResponse({
+      success: true,
+      kind: 'contribution',
+      contributionId,
+      alreadyConfirmed: result.alreadyConfirmed,
+    })
+  } catch (error) {
+    await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+    throw error
+  }
+}
+
+async function handleInvestmentCheckout(params: {
+  supabase: ServiceClient
+  eventId: string
+  eventType: string
+  object: StripeEventObject | undefined
+  investmentId: string
+}) {
+  const { supabase, eventId, eventType, object, investmentId } = params
+  const eventKey = `stripe:investment:${eventId}`
+
+  const claimed = await claimGatewayWebhookEvent(supabase, {
+    provider: 'stripe',
+    eventKey,
+    functionName: 'stripe-webhook',
+    investmentId,
+    metadata: { type: eventType, kind: 'investment' },
+  })
+
+  if (!claimed) {
+    return jsonResponse({
+      success: true,
+      skipped: true,
+      reason: 'Duplicate Stripe investment event',
+      eventId,
+    })
+  }
+
+  try {
+    const { data: investment, error: investmentError } = await supabase
+      .from('investments')
+      .select('id, amount_usd, status, method')
+      .eq('id', investmentId)
+      .single()
+
+    if (investmentError || !investment) {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Investment not found for Stripe event', 404)
+    }
+
+    if (investment.method !== 'stripe') {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Investment method is not stripe', 409)
+    }
+
+    const paidCents =
+      eventType === 'checkout.session.completed' ? object?.amount_total : object?.amount
+
+    if (
+      !stripeAmountMatches(paidCents, Number(investment.amount_usd), object?.currency ?? 'usd')
+    ) {
+      console.error('Stripe investment amount mismatch', {
+        investmentId,
+        expectedUsd: investment.amount_usd,
+        paidCents,
+        currency: object?.currency,
+        eventId,
+      })
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+      return errorResponse('Paid amount does not match recorded investment', 409)
+    }
+
+    const paymentIntentId =
+      typeof object?.payment_intent === 'string'
+        ? object.payment_intent
+        : object?.payment_intent?.id ??
+          (eventType === 'payment_intent.succeeded' ? object?.id : null)
+
+    const checkoutSessionId =
+      eventType === 'checkout.session.completed' ? object?.id ?? null : null
+
+    const result = await confirmInvestmentFromGateway(supabase, investmentId, {
+      stripePaymentIntentId: paymentIntentId ?? null,
+      stripeCheckoutSessionId: checkoutSessionId,
+    })
+
+    return jsonResponse({
+      success: true,
+      kind: 'investment',
+      investmentId,
+      alreadyConfirmed: result.alreadyConfirmed,
+    })
+  } catch (error) {
+    await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+    throw error
+  }
+}
+
+async function handleLegacyPaymentCheckout(params: {
+  supabase: ServiceClient
+  eventId: string
+  eventType: string
+  object: StripeEventObject | undefined
+  paymentId?: string
+}) {
+  const { supabase, eventId, eventType, object } = params
+  let resolvedPaymentId = params.paymentId
+
+  if (!resolvedPaymentId && object?.id) {
+    const { data: bySession } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('stripe_payment_intent_id', object.id)
+      .maybeSingle()
+
+    resolvedPaymentId = bySession?.id
+
+    if (!resolvedPaymentId) {
+      const paymentIntentId =
+        typeof object.payment_intent === 'string'
+          ? object.payment_intent
+          : object.payment_intent?.id
+
+      if (paymentIntentId) {
+        const { data: byIntent } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle()
+        resolvedPaymentId = byIntent?.id
+      }
+    }
+  }
+
+  if (!resolvedPaymentId) {
+    // May also be an investment PI without metadata on payment_intent.succeeded — try lookup.
+    const paymentIntentId =
+      typeof object?.payment_intent === 'string'
+        ? object.payment_intent
+        : object?.payment_intent?.id ??
+          (eventType === 'payment_intent.succeeded' ? object?.id : null)
+
+    if (paymentIntentId) {
+      const { data: byInvestIntent } = await supabase
+        .from('investments')
+        .select('id')
+        .eq('stripe_payment_intent_id', paymentIntentId)
+        .maybeSingle()
+
+      if (byInvestIntent?.id) {
+        return await handleInvestmentCheckout({
+          supabase,
+          eventId,
+          eventType,
+          object,
+          investmentId: byInvestIntent.id,
+        })
+      }
+    }
+
+    if (object?.id && eventType === 'checkout.session.completed') {
+      const { data: byInvestSession } = await supabase
+        .from('investments')
+        .select('id')
+        .eq('stripe_checkout_session_id', object.id)
+        .maybeSingle()
+
+      if (byInvestSession?.id) {
+        return await handleInvestmentCheckout({
+          supabase,
+          eventId,
+          eventType,
+          object,
+          investmentId: byInvestSession.id,
+        })
+      }
+    }
+
+    return errorResponse('Could not resolve payment_id or investment_id from Stripe event', 400)
+  }
+
+  const eventKey = `stripe:${eventId}`
+
+  const claimed = await claimGatewayWebhookEvent(supabase, {
+    provider: 'stripe',
+    eventKey,
+    functionName: 'stripe-webhook',
+    paymentId: resolvedPaymentId,
+    metadata: { type: eventType, kind: 'payment' },
+  })
+
+  if (!claimed) {
+    return jsonResponse({
+      success: true,
+      skipped: true,
+      reason: 'Duplicate Stripe event',
+      eventId,
+    })
+  }
+
+  try {
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select('id, amount_usd, status')
@@ -121,24 +418,22 @@ Deno.serve(async (req) => {
       .single()
 
     if (paymentError || !payment) {
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
       return errorResponse('Payment not found for Stripe event', 404)
     }
 
     const paidCents =
-      event.type === 'checkout.session.completed'
-        ? object?.amount_total
-        : object?.amount
+      eventType === 'checkout.session.completed' ? object?.amount_total : object?.amount
 
-    if (
-      !stripeAmountMatches(paidCents, Number(payment.amount_usd), object?.currency ?? 'usd')
-    ) {
+    if (!stripeAmountMatches(paidCents, Number(payment.amount_usd), object?.currency ?? 'usd')) {
       console.error('Stripe amount mismatch', {
         paymentId: resolvedPaymentId,
         expectedUsd: payment.amount_usd,
         paidCents,
         currency: object?.currency,
-        eventId: event.id,
+        eventId,
       })
+      await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
       return errorResponse('Paid amount does not match recorded payment', 409)
     }
 
@@ -146,7 +441,7 @@ Deno.serve(async (req) => {
       typeof object?.payment_intent === 'string'
         ? object.payment_intent
         : object?.payment_intent?.id ??
-          (event.type === 'payment_intent.succeeded' ? object?.id : null)
+          (eventType === 'payment_intent.succeeded' ? object?.id : null)
 
     if (paymentIntentId) {
       await supabase
@@ -158,22 +453,19 @@ Deno.serve(async (req) => {
     const result = await confirmPaymentAndIssueReceipt(supabase, resolvedPaymentId, {
       source: 'stripe_webhook',
       actorId: null,
-      providerEventKey: `stripe:${event.id}`,
+      providerEventKey: eventKey,
       paidAmount: paidCents != null ? paidCents / 100 : null,
       paidCurrency: (object?.currency ?? 'usd').toUpperCase(),
     })
 
     return jsonResponse({
       success: true,
+      kind: 'payment',
       receiptNumber: result.receiptNumber,
       alreadyConfirmed: result.alreadyConfirmed,
     })
   } catch (error) {
-    if (error instanceof ConfirmPaymentError) {
-      return errorResponse(error.message, error.status)
-    }
-
-    const message = error instanceof Error ? error.message : 'Unexpected error'
-    return errorResponse(message, 500)
+    await releaseGatewayWebhookEvent(supabase, { provider: 'stripe', eventKey })
+    throw error
   }
-})
+}

@@ -1,0 +1,293 @@
+import { useMemo, useState, type FormEvent } from 'react'
+import { Film } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Card, CardHeader, Stat } from '@/components/ui/Card'
+import { EmptyState, PageHeader } from '@/components/ui/PageHeader'
+import { formatBytes, MAX_MEDIA_BYTES } from '@/features/media/constants'
+import { useMediaVault } from '@/features/media/useMediaVault'
+import {
+  notifyInfo,
+  notifySuccess,
+} from '@/features/notifications/useNotifications'
+import { formatDate } from '@/lib/formatters'
+import { formatSupabaseError } from '@/lib/supabase-errors'
+
+interface MediaVaultViewProps {
+  canUpload: boolean
+  backTo?: string
+  backLabel?: string
+}
+
+export function MediaVaultView({
+  canUpload,
+  backTo,
+  backLabel,
+}: MediaVaultViewProps) {
+  const [landFilter, setLandFilter] = useState<string | 'all'>('all')
+  const {
+    videos,
+    isLoading,
+    error,
+    lands,
+    landsLoading,
+    usage,
+    uploadVideo,
+    deleteVideo,
+  } = useMediaVault(landFilter)
+
+  const [title, setTitle] = useState('')
+  const [landId, setLandId] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [playingId, setPlayingId] = useState<string | null>(null)
+  const [showUpload, setShowUpload] = useState(false)
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof videos>()
+    for (const video of videos) {
+      const key = video.land_id ?? video.project_id ?? 'unscoped'
+      const list = map.get(key) ?? []
+      list.push(video)
+      map.set(key, list)
+    }
+    return [...map.entries()]
+  }, [videos])
+
+  const onUpload = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!file) {
+      setFormError('Choose an MP4 or MOV file.')
+      return
+    }
+    setBusy(true)
+    setFormError(null)
+    try {
+      await uploadVideo({ landId, title, file })
+      notifySuccess('Video uploaded.')
+      setTitle('')
+      setFile(null)
+      setShowUpload(false)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Upload failed.'
+      setFormError(message)
+      notifyInfo(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ui-page">
+      <PageHeader
+        eyebrow="Media vault"
+        title="Video & media"
+        description="Private storage with signed-URL playback."
+        backTo={backTo}
+        backLabel={backLabel}
+        actions={
+          canUpload ? (
+            <Button
+              type="button"
+              onClick={() => setShowUpload((open) => !open)}
+            >
+              {showUpload ? 'Close' : 'Upload video'}
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {canUpload && usage ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Stat label="Videos stored" value={String(usage.videoCount)} />
+          <Stat
+            label="Storage used (of 500MB/file cap)"
+            value={`${formatBytes(usage.usedBytes)} · max ${formatBytes(MAX_MEDIA_BYTES)} / file`}
+          />
+        </div>
+      ) : null}
+
+      {canUpload && showUpload ? (
+        <Card>
+          <CardHeader
+            title="Upload video"
+            description="MP4 or MOV, max 500MB. Organised by land deal and date."
+          />
+          <form
+            className="space-y-5"
+            onSubmit={(event) => void onUpload(event)}
+          >
+            <div className="ui-field-row">
+              <div className="ui-field">
+                <label htmlFor="media-land" className="ui-label">
+                  Land deal
+                </label>
+                <select
+                  id="media-land"
+                  className="ui-input"
+                  value={landId}
+                  disabled={busy || landsLoading}
+                  onChange={(event) => setLandId(event.target.value)}
+                  required
+                >
+                  <option value="">
+                    {landsLoading ? 'Loading…' : 'Select a deal…'}
+                  </option>
+                  {lands.map((land) => (
+                    <option key={land.id} value={land.id}>
+                      {land.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="ui-field">
+                <label htmlFor="media-title" className="ui-label">
+                  Title
+                </label>
+                <input
+                  id="media-title"
+                  className="ui-input"
+                  value={title}
+                  disabled={busy}
+                  onChange={(event) => setTitle(event.target.value)}
+                  required
+                  placeholder="Site walkthrough — east boundary"
+                />
+              </div>
+            </div>
+            <div className="ui-field">
+              <label htmlFor="media-file" className="ui-label">
+                File
+              </label>
+              <input
+                id="media-file"
+                className="ui-input"
+                type="file"
+                accept="video/mp4,video/quicktime,.mp4,.mov"
+                disabled={busy}
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                required
+              />
+              <p className="ui-hint">MP4 or MOV · max 500MB.</p>
+            </div>
+            {formError ? (
+              <p className="ui-alert-danger" role="alert">
+                {formError}
+              </p>
+            ) : null}
+            <div className="flex justify-end border-t border-border/80 pt-4">
+              <Button type="submit" disabled={busy} size="lg">
+                {busy ? 'Uploading…' : 'Upload video'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      ) : null}
+
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="block space-y-1.5">
+          <span className="ui-label">Filter by deal</span>
+          <select
+            className="ui-input min-w-[14rem]"
+            value={landFilter}
+            onChange={(event) => setLandFilter(event.target.value)}
+          >
+            <option value="all">All deals</option>
+            {lands.map((land) => (
+              <option key={land.id} value={land.id}>
+                {land.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {isLoading ? <p className="text-sm text-muted">Loading media…</p> : null}
+      {error ? (
+        <p className="ui-alert-danger" role="alert">
+          {formatSupabaseError(error as Error)}
+        </p>
+      ) : null}
+
+      {!isLoading && !error && videos.length === 0 ? (
+        <EmptyState
+          title="No videos yet."
+          description="Admin can upload MP4 or MOV site recordings."
+        />
+      ) : null}
+
+      {grouped.map(([groupLandId, groupVideos]) => (
+        <section key={groupLandId} className="space-y-3">
+          <h2 className="ui-section-title">
+            {groupVideos[0]?.land_title ?? 'Land deal'}
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {groupVideos.map((video) => (
+              <Card key={video.id} padding="sm">
+                <div className="overflow-hidden rounded-md bg-ink/90">
+                  {playingId === video.id && video.signed_url ? (
+                    <video
+                      className="aspect-video w-full bg-black"
+                      controls
+                      playsInline
+                      src={video.signed_url}
+                      preload="metadata"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex aspect-video w-full flex-col items-center justify-center gap-2 text-white"
+                      onClick={() => setPlayingId(video.id)}
+                      disabled={!video.signed_url}
+                    >
+                      <Film className="h-10 w-10 opacity-80" />
+                      <span className="text-sm">
+                        {video.signed_url
+                          ? 'Play (signed URL)'
+                          : 'URL unavailable'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+                <div className="mt-3 space-y-1">
+                  <p className="font-medium text-ink">{video.title}</p>
+                  <p className="text-sm text-muted">
+                    {formatDate(video.captured_at)} ·{' '}
+                    {formatBytes(video.size_bytes)}
+                  </p>
+                </div>
+                {canUpload ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="danger"
+                    className="mt-3"
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          await deleteVideo(video)
+                          notifySuccess('Video removed.')
+                          if (playingId === video.id) {
+                            setPlayingId(null)
+                          }
+                        } catch (err) {
+                          notifyInfo(
+                            err instanceof Error
+                              ? err.message
+                              : 'Could not delete.',
+                          )
+                        }
+                      })()
+                    }}
+                  >
+                    Delete
+                  </Button>
+                ) : null}
+              </Card>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}

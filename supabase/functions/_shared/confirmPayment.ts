@@ -24,12 +24,57 @@ export async function confirmPaymentAndIssueReceipt(
 ): Promise<ConfirmPaymentResult> {
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
-    .select('id, land_id, amount_usd, amount_ugx, rate_used, status')
+    .select(
+      'id, land_id, project_id, amount_usd, amount_ugx, rate_used, status, method',
+    )
     .eq('id', paymentId)
     .single()
 
   if (paymentError || !payment) {
     throw new ConfirmPaymentError('Payment not found', 404)
+  }
+
+  if (payment.status === 'failed') {
+    throw new ConfirmPaymentError(
+      'This payout failed at the gateway. Create a new payout instead of confirming.',
+      400,
+    )
+  }
+
+  // Gateway payouts must confirm only via provider webhook (verified success + amount).
+  if (
+    audit?.source === 'staff' &&
+    (payment.method === 'flutterwave' || payment.method === 'stripe')
+  ) {
+    throw new ConfirmPaymentError(
+      payment.method === 'flutterwave'
+        ? 'Flutterwave payouts confirm automatically when Flutterwave reports success. Manual confirm is not allowed.'
+        : 'Stripe payments confirm automatically via webhook. Manual confirm is not allowed.',
+      400,
+    )
+  }
+
+  // Crypto staff confirms must be backed by an on-chain ledger row for this payment.
+  if (audit?.source === 'staff' && payment.method === 'crypto') {
+    const { data: cryptoRow, error: cryptoError } = await supabase
+      .from('transactions_crypto')
+      .select('id, tx_hash, status')
+      .eq('payment_id', paymentId)
+      .maybeSingle()
+
+    if (cryptoError) {
+      throw new ConfirmPaymentError(
+        `Could not verify crypto ledger: ${cryptoError.message}`,
+        500,
+      )
+    }
+
+    if (!cryptoRow?.tx_hash) {
+      throw new ConfirmPaymentError(
+        'Crypto payouts require a matching transactions_crypto row before confirm.',
+        400,
+      )
+    }
   }
 
   const { data: existingReceipt } = await supabase
@@ -47,14 +92,52 @@ export async function confirmPaymentAndIssueReceipt(
     }
   }
 
-  const { data: land, error: landError } = await supabase
-    .from('land_records')
-    .select('seller_id')
-    .eq('id', payment.land_id)
-    .single()
+  let payeeId: string | null = null
 
-  if (landError || !land?.seller_id) {
-    throw new ConfirmPaymentError('This land record has no seller assigned.', 400)
+  if (!payment.project_id) {
+    throw new ConfirmPaymentError('Payment has no project target.', 400)
+  }
+
+  if (payment.land_id) {
+    const { data: land } = await supabase
+      .from('land_records')
+      .select('seller_id')
+      .eq('id', payment.land_id)
+      .maybeSingle()
+    payeeId = land?.seller_id ?? null
+  }
+
+  if (!payeeId) {
+    const { data: counterpart } = await supabase
+      .from('project_participants')
+      .select('user_id')
+      .eq('project_id', payment.project_id)
+      .eq('role', 'counterpart')
+      .order('joined_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (counterpart?.user_id) {
+      payeeId = counterpart.user_id
+    } else {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('owner_id, created_by')
+        .eq('id', payment.project_id)
+        .single()
+
+      if (projectError || !project) {
+        throw new ConfirmPaymentError('Project not found for this purchase.', 400)
+      }
+      payeeId = project.owner_id ?? project.created_by
+    }
+  }
+
+  if (!payeeId) {
+    throw new ConfirmPaymentError(
+      'Assign a project payee (counterpart, owner, or linked land seller) before confirming.',
+      400,
+    )
   }
 
   const amountUsd = Number(payment.amount_usd)
@@ -78,7 +161,8 @@ export async function confirmPaymentAndIssueReceipt(
       supabase,
       paymentId: payment.id,
       landId: payment.land_id,
-      sellerId: land.seller_id,
+      projectId: payment.project_id,
+      sellerId: payeeId,
       amountUsd,
       amountUgx,
       rateUsed,

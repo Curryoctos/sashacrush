@@ -16,7 +16,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Badge, statusTone } from '@/components/ui/Badge'
 import { cn } from '@/lib/cn'
 import {
   DOCUMENT_PIPELINE_ORDER,
@@ -104,9 +103,9 @@ export function DocumentBoard({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {!canEditStages ? (
-        <p className="ui-alert-info" role="note">
+        <p className="text-[13px] text-muted">
           Board is read-only for your role. Open a card to review details.
         </p>
       ) : null}
@@ -119,7 +118,7 @@ export function DocumentBoard({
         onDragCancel={() => setActiveId(null)}
       >
         <div
-          className="flex gap-3 overflow-x-auto pb-2"
+          className="flex gap-4 overflow-x-auto pb-1"
           role="region"
           aria-label="Document stage board"
         >
@@ -169,15 +168,15 @@ function BoardColumn({
       ref={setNodeRef}
       aria-label={`${DOCUMENT_STAGE_LABELS[status]} column`}
       className={cn(
-        'flex w-72 shrink-0 flex-col rounded-lg border border-border bg-surface',
-        isOver && canEditStages && 'border-brand-400 bg-brand-50/40',
+        'flex w-64 shrink-0 flex-col rounded-xl bg-surface transition',
+        isOver && canEditStages && 'bg-hover',
       )}
     >
-      <header className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+      <header className="flex items-center justify-between gap-3 px-3 py-2.5">
+        <h3 className="text-[12px] font-medium text-ink">
           {DOCUMENT_STAGE_LABELS[status]}
         </h3>
-        <span className="rounded-md bg-white px-1.5 py-0.5 text-xs font-medium text-ink">
+        <span className="text-[12px] text-muted tabular-nums">
           {documents.length}
         </span>
       </header>
@@ -187,9 +186,11 @@ function BoardColumn({
         strategy={verticalListSortingStrategy}
         disabled={!canEditStages}
       >
-        <div className="flex min-h-[12rem] flex-col gap-2 p-2">
+        <div className="flex min-h-[12rem] flex-col gap-1.5 px-2 pb-2">
           {documents.length === 0 ? (
-            <p className="px-2 py-6 text-center text-xs text-muted">No documents</p>
+            <p className="px-2 py-8 text-center text-[12px] text-muted">
+              No documents
+            </p>
           ) : (
             documents.map((document) => (
               <SortableBoardCard
@@ -239,7 +240,7 @@ function SortableBoardCard({
     >
       <button
         type="button"
-        className="w-full text-left focus-visible:ring-2 focus-visible:ring-brand-600"
+        className="w-full text-left focus-visible:ring-2 focus-visible:ring-ink/20"
         onClick={() => onOpen(document)}
         aria-label={`Open ${document.title ?? 'document'}`}
       >
@@ -263,21 +264,22 @@ function BoardCardFace({
   dragging: boolean
 }) {
   const title = document.title ?? document.file_path ?? 'Untitled document'
+  const when = new Date(document.created_at).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  })
 
   return (
     <article
       className={cn(
-        'rounded-md border border-border bg-surface-elevated p-3 shadow-sm',
-        highlighted && 'border-brand-400 ring-1 ring-brand-300',
-        dragging && 'shadow-lg ring-2 ring-brand-500',
+        'rounded-lg border border-border bg-surface-elevated px-3 py-2.5 transition',
+        'hover:border-muted/40',
+        highlighted && 'border-muted/40',
+        dragging && 'border-muted/40 shadow-sm',
       )}
     >
-      <p className="line-clamp-2 text-sm font-medium text-ink">{title}</p>
-      <div className="mt-2">
-        <Badge tone={statusTone(document.status)}>
-          {DOCUMENT_STAGE_LABELS[document.status]}
-        </Badge>
-      </div>
+      <p className="line-clamp-2 text-[13px] font-medium text-ink">{title}</p>
+      <p className="mt-1 text-[12px] text-muted">{when}</p>
     </article>
   )
 }

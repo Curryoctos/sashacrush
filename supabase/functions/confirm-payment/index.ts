@@ -1,10 +1,10 @@
 /// <reference path="../_shared/deno.d.ts" />
-import { requireAuthenticatedStaff } from '../_shared/auth.ts'
+import { requireAuthenticatedAdmin } from '../_shared/auth.ts'
 import {
   ConfirmPaymentError,
   confirmPaymentAndIssueReceipt,
 } from '../_shared/confirmPayment.ts'
-import { errorResponse, jsonResponse } from '../_shared/http.ts'
+import { handleCorsPreflight, errorResponse, jsonResponse } from '../_shared/http.ts'
 import { assertRateLimit, RateLimitError } from '../_shared/rateLimit.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 
@@ -13,16 +13,19 @@ interface ConfirmPaymentPayload {
 }
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req)
+  if (preflight) return preflight
+
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405)
   }
 
   try {
-    const staff = await requireAuthenticatedStaff(req)
+    const admin = await requireAuthenticatedAdmin(req)
     const supabase = createServiceClient()
 
     try {
-      await assertRateLimit(supabase, `confirm-payment:${staff.userId}`, 30, 3_600)
+      await assertRateLimit(supabase, `confirm-payment:${admin.userId}`, 30, 3_600)
     } catch (error) {
       if (error instanceof RateLimitError) {
         return errorResponse(error.message, 429)
@@ -39,7 +42,7 @@ Deno.serve(async (req) => {
 
     const result = await confirmPaymentAndIssueReceipt(supabase, paymentId, {
       source: 'staff',
-      actorId: staff.userId,
+      actorId: admin.userId,
     })
 
     return jsonResponse({

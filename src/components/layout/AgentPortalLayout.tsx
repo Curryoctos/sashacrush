@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { StaffMfaGate } from '@/components/auth/StaffMfaGate'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { PortalShell } from '@/components/layout/PortalShell'
 import { useAuth } from '@/hooks/useAuth'
 import { AGENT_NAV } from '@/lib/portal-nav'

@@ -1,4 +1,4 @@
-import { FunctionsHttpError } from '@supabase/supabase-js'
+import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
 import { extractEdgeFunctionError } from '@/lib/edgeFunctionError'
 
@@ -28,5 +28,13 @@ describe('extractEdgeFunctionError', () => {
     await expect(
       extractEdgeFunctionError(error, null, 'Could not start gateway checkout.'),
     ).resolves.toContain('Could not start gateway checkout.')
+  })
+
+  it('explains FunctionsFetchError reachability failures', async () => {
+    const error = new FunctionsFetchError({})
+
+    await expect(
+      extractEdgeFunctionError(error, null, 'Could not send magic link.'),
+    ).resolves.toMatch(/Could not reach the server/)
   })
 })

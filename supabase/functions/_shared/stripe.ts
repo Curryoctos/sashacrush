@@ -22,12 +22,17 @@ export interface StripeCheckoutSession {
   payment_intent: string | null
 }
 
+/**
+ * Hosted Checkout Session (one-time USD payment).
+ * Omit payment_method_types so Stripe dynamic payment methods apply.
+ */
 export async function createStripeCheckoutSession(params: {
   amountUsd: number
-  paymentId: string
-  landTitle: string
+  productName: string
   successUrl: string
   cancelUrl: string
+  /** Session + PaymentIntent metadata (e.g. investment_id or payment_id). */
+  metadata: Record<string, string>
   customerEmail?: string | null
 }): Promise<StripeCheckoutSession> {
   const secret = requireStripeSecretKey()
@@ -42,11 +47,17 @@ export async function createStripeCheckoutSession(params: {
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
     'line_items[0][price_data][currency]': 'usd',
-    'line_items[0][price_data][product_data][name]': `SashaCrush — ${params.landTitle}`,
+    'line_items[0][price_data][product_data][name]': params.productName,
     'line_items[0][price_data][unit_amount]': String(amountCents),
     'line_items[0][quantity]': '1',
-    'metadata[payment_id]': params.paymentId,
-    'payment_intent_data[metadata][payment_id]': params.paymentId,
+  }
+
+  for (const [key, value] of Object.entries(params.metadata)) {
+    if (!value) {
+      continue
+    }
+    body[`metadata[${key}]`] = value
+    body[`payment_intent_data[metadata][${key}]`] = value
   }
 
   if (params.customerEmail) {

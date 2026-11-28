@@ -15,9 +15,10 @@ import { supabase } from '@/lib/supabase'
 export type { PaymentRow }
 
 interface BalanceTrackerProps {
-  landId: string
+  landId?: string | null
+  projectId?: string | null
   landTitle: string
-  landReference?: string
+  landReference: string
   totalValueUsd: number
 }
 
@@ -26,17 +27,20 @@ interface BalanceSummary {
   totalValueUgx: number
   paidUsd: number
   paidUgx: number
+  pendingUsd: number
   outstandingUsd: number
   outstandingUgx: number
+  availableToPayOutUsd: number
   pctPaid: number
   lastPaymentDate: string | null
   payments: PaymentRow[]
 }
 
 export function BalanceTracker({
-  landId,
+  landId = null,
+  projectId = null,
   landTitle,
-  landReference = 'SC-MBD-001',
+  landReference,
   totalValueUsd,
 }: BalanceTrackerProps) {
   const { user } = useAuth()
@@ -47,12 +51,21 @@ export function BalanceTracker({
   const load = useCallback(async () => {
     setError(null)
     try {
+      let paymentsQuery = supabase
+        .from('payments')
+        .select(
+          'id, land_id, project_id, disbursement_reason, amount_usd, amount_ugx, rate_used, method, status, created_at',
+        )
+        .order('created_at', { ascending: false })
+
+      if (projectId) {
+        paymentsQuery = paymentsQuery.eq('project_id', projectId)
+      } else if (landId) {
+        paymentsQuery = paymentsQuery.eq('land_id', landId)
+      }
+
       const [{ data: payments, error: paymentsError }, ugxRate] = await Promise.all([
-        supabase
-          .from('payments')
-          .select('id, land_id, amount_usd, amount_ugx, rate_used, method, status, created_at')
-          .eq('land_id', landId)
-          .order('created_at', { ascending: false }),
+        paymentsQuery,
         fetchUsdToUgxRate(),
       ])
 
@@ -123,8 +136,10 @@ export function BalanceTracker({
         totalValueUgx: balance.totalValueUsd * ugxRate,
         paidUsd: balance.paidUsd,
         paidUgx,
+        pendingUsd: balance.pendingUsd,
         outstandingUsd,
         outstandingUgx: outstandingUsd * ugxRate,
+        availableToPayOutUsd: balance.availableToPayOutUsd,
         pctPaid,
         lastPaymentDate,
         payments: confirmed,
@@ -135,22 +150,29 @@ export function BalanceTracker({
     } finally {
       setIsLoading(false)
     }
-  }, [landId, totalValueUsd])
+  }, [landId, projectId, totalValueUsd])
 
   useEffect(() => {
     void load()
   }, [load])
 
   useEffect(() => {
+    const filter = projectId
+      ? `project_id=eq.${projectId}`
+      : landId
+        ? `land_id=eq.${landId}`
+        : null
+    if (!filter) return
+
     const channel = supabase
-      .channel(`balance-tracker:${landId}`)
+      .channel(`balance-tracker:${projectId ?? landId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'payments',
-          filter: `land_id=eq.${landId}`,
+          filter,
         },
         () => {
           void load()
@@ -161,7 +183,7 @@ export function BalanceTracker({
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [landId, load])
+  }, [landId, projectId, load])
 
   if (user?.role === 'seller') {
     return null
@@ -199,7 +221,7 @@ export function BalanceTracker({
     <section className="ui-panel p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">
+          <h2 className="text-[15px] font-semibold text-ink">
             {landTitle} — {landReference}
           </h2>
           <p className="mt-1 text-sm text-muted">Payment Progress</p>
@@ -213,7 +235,7 @@ export function BalanceTracker({
                 `${landReference.toLowerCase()}-payments.csv`,
               )
             }
-            className="rounded-md border border-border bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface"
+            className="rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface"
           >
             ↓ Export CSV
           </button>
@@ -229,7 +251,7 @@ export function BalanceTracker({
           <div className="mt-5">
             <div className="relative h-4 overflow-hidden rounded-full bg-border">
               <div
-                className="h-full rounded-full bg-brand-700 transition-[width]"
+                className="h-full rounded-full bg-ink transition-[width]"
                 style={{ width: `${Math.min(100, summary.pctPaid)}%` }}
               />
             </div>
@@ -238,7 +260,7 @@ export function BalanceTracker({
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <BalanceStat
               label="Total Value"
               usd={formatUsd(summary.totalValueUsd)}
@@ -250,9 +272,14 @@ export function BalanceTracker({
               ugx={formatUgx(summary.paidUgx)}
             />
             <BalanceStat
+              label="Pending"
+              usd={formatUsd(summary.pendingUsd)}
+              ugx="In-flight payouts"
+            />
+            <BalanceStat
               label="Outstanding"
               usd={formatUsd(summary.outstandingUsd)}
-              ugx={formatUgx(summary.outstandingUgx)}
+              ugx={`Available ${formatUsd(summary.availableToPayOutUsd)}`}
               emphasize
             />
           </div>
@@ -282,11 +309,11 @@ function BalanceStat({
   return (
     <div
       className={`rounded-lg border px-4 py-3 ${
-        emphasize ? 'border-brand-200 bg-brand-50' : 'border-border bg-surface'
+        emphasize ? 'border-muted/40 bg-surface' : 'border-border bg-surface-elevated'
       }`}
     >
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="mt-1 font-display text-lg font-semibold text-ink">{usd}</p>
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-1 text-[15px] font-semibold text-ink">{usd}</p>
       <p className="mt-0.5 text-xs text-muted">{ugx}</p>
     </div>
   )

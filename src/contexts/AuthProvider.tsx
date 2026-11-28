@@ -2,11 +2,42 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { AuthContext, type AuthContextValue } from '@/contexts/auth-context'
+import { invokeEdgeFunction } from '@/lib/invokeEdgeFunction'
 import { supabase } from '@/lib/supabase'
 import type { AuthUser, UserRole } from '@/types'
 
+const PASSWORD_RECOVERY_KEY = 'sc_password_recovery'
+
 interface AuthProviderProps {
   children: ReactNode
+}
+
+function readRecoveryFlag(): boolean {
+  try {
+    if (typeof window === 'undefined') return false
+    if (sessionStorage.getItem(PASSWORD_RECOVERY_KEY) === '1') return true
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    if (hash.get('type') === 'recovery') return true
+  } catch {
+    // sessionStorage may be unavailable
+  }
+  return false
+}
+
+function markPasswordRecovery(): void {
+  try {
+    sessionStorage.setItem(PASSWORD_RECOVERY_KEY, '1')
+  } catch {
+    // ignore
+  }
+}
+
+function clearPasswordRecovery(): void {
+  try {
+    sessionStorage.removeItem(PASSWORD_RECOVERY_KEY)
+  } catch {
+    // ignore
+  }
 }
 
 async function fetchProfile(session: Session): Promise<AuthUser | null> {
@@ -36,6 +67,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [authReady, setAuthReady] = useState(false)
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(readRecoveryFlag)
 
   // Listen for session changes — must stay synchronous (no await / Supabase calls here).
   // Async work inside onAuthStateChange deadlocks signInWithPassword and getSession.
@@ -52,7 +84,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        markPasswordRecovery()
+        setNeedsPasswordSetup(true)
+      }
+      if (event === 'SIGNED_OUT') {
+        clearPasswordRecovery()
+        setNeedsPasswordSetup(false)
+      }
       setSession(nextSession)
       setAuthReady(true)
     })
@@ -136,29 +176,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (error) {
       throw error
     }
+    clearPasswordRecovery()
+    setNeedsPasswordSetup(false)
     setSession(null)
     setUser(null)
   }, [])
 
   const signInWithMagicLink = useCallback(async (email: string) => {
-    const { data, error } = await supabase.functions.invoke('request-seller-magic-link', {
-      body: { email: email.trim().toLowerCase() },
-    })
+    await invokeEdgeFunction(
+      'request-seller-magic-link',
+      { email: email.trim().toLowerCase() },
+      'Could not send magic link.',
+    )
+  }, [])
 
-    if (data && typeof data === 'object' && 'error' in data && data.error) {
-      throw new Error(String(data.error))
-    }
-
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
     if (error) {
-      const contextBody =
-        error && typeof error === 'object' && 'context' in error
-          ? (error as { context?: { body?: unknown } }).context?.body
-          : undefined
-      if (contextBody && typeof contextBody === 'object' && 'error' in contextBody) {
-        throw new Error(String((contextBody as { error: unknown }).error))
-      }
-      throw new Error(error.message || 'Could not request magic link.')
+      throw error
     }
+    clearPasswordRecovery()
+    setNeedsPasswordSetup(false)
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -166,11 +204,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       user,
       role: user?.role ?? null,
       isLoading,
+      needsPasswordSetup,
       signIn,
       signOut,
       signInWithMagicLink,
+      updatePassword,
     }),
-    [user, isLoading, signIn, signOut, signInWithMagicLink],
+    [
+      user,
+      isLoading,
+      needsPasswordSetup,
+      signIn,
+      signOut,
+      signInWithMagicLink,
+      updatePassword,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

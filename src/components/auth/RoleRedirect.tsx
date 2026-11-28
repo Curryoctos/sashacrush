@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
 
 export function RoleRedirect() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, needsPasswordSetup } = useAuth()
 
   if (isLoading) {
     return (
@@ -13,8 +13,12 @@ export function RoleRedirect() {
     )
   }
 
+  if (needsPasswordSetup) {
+    return <Navigate to="/set-password" replace />
+  }
+
   if (!user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/projects" replace />
   }
 
   return <Navigate to={ROLE_DASHBOARD_PATH[user.role]} replace />

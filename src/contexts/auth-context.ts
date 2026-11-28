@@ -5,9 +5,12 @@ export interface AuthContextValue {
   user: AuthUser | null
   role: UserRole | null
   isLoading: boolean
+  /** True while completing an invite / password-reset recovery link. */
+  needsPasswordSetup: boolean
   signIn: (email: string, password: string) => Promise<AuthUser>
   signOut: () => Promise<void>
   signInWithMagicLink: (email: string) => Promise<void>
+  updatePassword: (password: string) => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
