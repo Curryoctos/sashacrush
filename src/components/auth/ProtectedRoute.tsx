@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, needsPasswordSetup } = useAuth()
 
   if (isLoading) {
     return (
@@ -15,6 +15,10 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
         <p className="text-muted">Loading…</p>
       </div>
     )
+  }
+
+  if (needsPasswordSetup) {
+    return <Navigate to="/set-password" replace />
   }
 
   if (!user) {

@@ -168,7 +168,7 @@ async function sendAccessEmail(
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'recovery',
     email: profile.email,
-    options: { redirectTo: `${appUrl}/login` },
+    options: { redirectTo: `${appUrl}/set-password` },
   })
 
   if (linkError || !linkData.properties?.action_link) {

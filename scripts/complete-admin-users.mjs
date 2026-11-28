@@ -3,9 +3,10 @@
  *   create (staff + seller) → invite/send_access → update → set password (staff) →
  *   login → deactivate / reactivate → last-admin guard
  *
- * Note: Admin UI does not type a password. Staff get a set-password (recovery) link;
- * sellers get a magic link. This script exercises the same edge actions, then
- * simulates completing the staff password step via Auth Admin API.
+ * Note: Admin UI does not type a password. Staff get a recovery link that lands on
+ * /set-password; sellers get a magic link. This script exercises the same edge
+ * actions, verifies redirect_to=/set-password, then completes staff password via
+ * Auth Admin API (stand-in for the Set Password page).
  *
  * Usage:
  *   SUPABASE_URL=... SUPABASE_ANON_KEY=... SUPABASE_SERVICE_ROLE_KEY=... \
@@ -219,8 +220,28 @@ async function main() {
     record('update-agent', false, err instanceof Error ? err.message : String(err))
   }
 
-  section('6. Staff completes password (simulates invite link) → login')
+  section('6. Invite recovery link lands on /set-password → staff password → login')
   {
+    const appUrl = (process.env.APP_URL ?? 'https://www.sasha-union.com').replace(/\/$/, '')
+    const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
+      type: 'recovery',
+      email: AGENT_EMAIL,
+      options: { redirectTo: `${appUrl}/set-password` },
+    })
+    let redirectTo = null
+    try {
+      redirectTo = linkData?.properties?.action_link
+        ? new globalThis.URL(linkData.properties.action_link).searchParams.get('redirect_to')
+        : null
+    } catch {
+      redirectTo = null
+    }
+    record(
+      'invite-redirect-set-password',
+      !linkError && redirectTo === `${appUrl}/set-password`,
+      linkError?.message ?? redirectTo ?? 'missing redirect',
+    )
+
     const { error: pwError } = await service.auth.admin.updateUserById(agent.id, {
       password: STAFF_PASSWORD,
       email_confirm: true,
@@ -228,7 +249,7 @@ async function main() {
     if (pwError) {
       record('staff-set-password', false, pwError.message)
     } else {
-      record('staff-set-password', true, 'Auth Admin update (invite completion stand-in)')
+      record('staff-set-password', true, 'Auth Admin update (Set Password page stand-in)')
       const staff = browser()
       const { data: session, error: loginError } = await staff.auth.signInWithPassword({
         email: AGENT_EMAIL,

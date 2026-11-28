@@ -10,13 +10,18 @@ type LoginMode = 'staff' | 'seller'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { user, isLoading, signIn, signInWithMagicLink } = useAuth()
+  const { user, isLoading, needsPasswordSetup, signIn, signInWithMagicLink } =
+    useAuth()
   const [mode, setMode] = useState<LoginMode>('staff')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  if (!isLoading && needsPasswordSetup) {
+    return <Navigate to="/set-password" replace />
+  }
 
   if (!isLoading && user) {
     return <Navigate to={ROLE_DASHBOARD_PATH[user.role]} replace />

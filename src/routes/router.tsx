@@ -11,6 +11,7 @@ import { SellerPortalLayout } from '@/components/layout/SellerPortalLayout'
 import { page } from '@/routes/lazyPage'
 import { LoginPage } from '@/pages/Login'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { SetPasswordPage } from '@/pages/SetPassword'
 import { StaffMfaChallengePage } from '@/pages/staff/MfaChallenge'
 import { StaffMfaSetupPage } from '@/pages/staff/MfaSetup'
 
@@ -281,6 +282,7 @@ const SellerReceiptsPage = lazyPage(
 export const router = createBrowserRouter([
   { path: '/', element: <RoleRedirect /> },
   { path: '/login', element: <LoginPage /> },
+  { path: '/set-password', element: <SetPasswordPage /> },
   {
     element: <PublicLayout />,
     children: [
