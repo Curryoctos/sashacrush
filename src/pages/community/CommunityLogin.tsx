@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
 
@@ -62,10 +63,8 @@ export function CommunityLoginPage() {
           <label htmlFor="community-login-password" className="ui-label">
             Password
           </label>
-          <input
+          <PasswordInput
             id="community-login-password"
-            className="ui-input"
-            type="password"
             value={password}
             disabled={busy}
             onChange={(event) => setPassword(event.target.value)}

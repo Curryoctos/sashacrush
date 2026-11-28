@@ -66,8 +66,11 @@ Deno.serve(async (req) => {
       .eq('email', email)
       .maybeSingle()
 
+    // Same generic response as a successful create — avoid email enumeration.
+    const EXISTING_OK = { success: true, alreadyRegistered: true as const }
+
     if (existing) {
-      return errorResponse('An account with this email already exists.', 409)
+      return jsonResponse(EXISTING_OK)
     }
 
     const { data: created, error: createError } = await supabase.auth.admin.createUser({
@@ -78,7 +81,11 @@ Deno.serve(async (req) => {
     })
 
     if (createError || !created.user) {
-      return errorResponse(createError?.message ?? 'Could not create account.', 400)
+      const msg = createError?.message ?? 'Could not create account.'
+      if (/already|registered|exists/i.test(msg)) {
+        return jsonResponse(EXISTING_OK)
+      }
+      return errorResponse(msg, 400)
     }
 
     const userId = created.user.id

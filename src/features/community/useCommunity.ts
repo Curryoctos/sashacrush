@@ -242,7 +242,7 @@ export async function registerCommunityMember(input: {
   location?: string
   bio?: string
   joinReason?: string
-}): Promise<void> {
+}): Promise<{ alreadyRegistered: boolean }> {
   const validationError = validateCommunityRegister(input)
   if (validationError) {
     throw new Error(validationError)
@@ -264,4 +264,12 @@ export async function registerCommunityMember(input: {
       await extractEdgeFunctionError(error, data, 'Could not register community member.'),
     )
   }
+
+  const alreadyRegistered = Boolean(
+    data &&
+      typeof data === 'object' &&
+      'alreadyRegistered' in data &&
+      (data as { alreadyRegistered?: boolean }).alreadyRegistered,
+  )
+  return { alreadyRegistered }
 }

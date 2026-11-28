@@ -11,6 +11,17 @@ npx supabase link --project-ref hwfpriemphbenuosluuc
 npx supabase db push
 ```
 
+### Auth (Dashboard → Authentication → Settings)
+
+Keep these aligned with production (`hwfpriemphbenuosluuc`):
+
+| Setting | Value |
+|--------|--------|
+| Site URL | `https://www.sasha-union.com` |
+| Redirect URLs | production + local `/**` allow-list |
+| Allow new users to sign up | **Off** (accounts only via edge functions) |
+| Minimum password length | **8** |
+
 ## 2. Edge Functions
 
 ```bash

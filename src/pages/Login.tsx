@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
 
@@ -166,14 +167,12 @@ export function LoginPage() {
                   <label htmlFor="password" className="ui-label">
                     Password
                   </label>
-                  <input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="ui-input"
                     placeholder="••••••••"
                   />
                 </div>

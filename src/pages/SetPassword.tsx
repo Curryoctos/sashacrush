@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
 
@@ -103,15 +104,13 @@ export function SetPasswordPage() {
               <label htmlFor="new-password" className="ui-label">
                 New password
               </label>
-              <input
+              <PasswordInput
                 id="new-password"
-                type="password"
                 autoComplete="new-password"
                 required
                 minLength={MIN_PASSWORD_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="ui-input"
                 placeholder="••••••••"
               />
             </div>
@@ -119,15 +118,13 @@ export function SetPasswordPage() {
               <label htmlFor="confirm-password" className="ui-label">
                 Confirm password
               </label>
-              <input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 autoComplete="new-password"
                 required
                 minLength={MIN_PASSWORD_LENGTH}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="ui-input"
                 placeholder="••••••••"
               />
             </div>

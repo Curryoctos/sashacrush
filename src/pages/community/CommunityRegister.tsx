@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { registerCommunityMember } from '@/features/community/useCommunity'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_DASHBOARD_PATH } from '@/types'
@@ -25,15 +26,25 @@ export function CommunityRegisterPage() {
     setError(null)
     setBusy(true)
     try {
-      await registerCommunityMember({
+      const { alreadyRegistered } = await registerCommunityMember({
         email,
         password,
         displayName,
         location,
         joinReason,
       })
-      await signIn(email.trim(), password)
-      navigate('/community', { replace: true })
+      try {
+        await signIn(email.trim(), password)
+        navigate('/community', { replace: true })
+      } catch (signInErr) {
+        if (alreadyRegistered) {
+          setError(
+            'If you already have an account, sign in with your existing password.',
+          )
+          return
+        }
+        throw signInErr
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed.')
     } finally {
@@ -85,10 +96,8 @@ export function CommunityRegisterPage() {
           <label htmlFor="community-password" className="ui-label">
             Password
           </label>
-          <input
+          <PasswordInput
             id="community-password"
-            className="ui-input"
-            type="password"
             value={password}
             disabled={busy}
             onChange={(event) => setPassword(event.target.value)}
